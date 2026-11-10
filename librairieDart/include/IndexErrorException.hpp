@@ -14,7 +14,7 @@
 class IndexErrorException: public std::exception {
 public:
 	IndexErrorException(std::string message);
-	virtual ~IndexErrorException() throw () {}
+	virtual ~IndexErrorException() {}
 	;
 	std::string what();
 private:

@@ -14,7 +14,7 @@
 class BadFormatException: public std::exception {
 public:
 	BadFormatException(std::string message);
-	virtual ~BadFormatException() throw () {}
+	virtual ~BadFormatException() {}
 	;
 	std::string what();
 private:

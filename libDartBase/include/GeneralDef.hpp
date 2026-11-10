@@ -129,7 +129,6 @@ static const std::string pathSeparator = "/";
 #define EPSILON             1E-5
 #define EPSILON4			1E-4
 
-#define byte uint8_t
 #define FAUX 0
 #define VRAI 1
 #define unsint uint32_t

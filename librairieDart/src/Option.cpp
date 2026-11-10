@@ -29,7 +29,7 @@ int Option::getNbOpt(string id) {
 }
 
 // fonction qui renvoit la valeur (string) de l'option demandee
-string Option::getValeurS(int i) throw (IndexErrorException) {
+string Option::getValeurS(int i) {
 	if ((unsigned int) i >= valeurs.size()) {
 		throw IndexErrorException("indice trop grand");
 	}
@@ -38,8 +38,7 @@ string Option::getValeurS(int i) throw (IndexErrorException) {
 ;
 
 // fonction qui renvoit la valeur (int) de l'option demandee
-int Option::getValeurI(int i)	throw (BadFormatException,
-								IndexErrorException) {
+int Option::getValeurI(int i) {
 	if ((unsigned int) i >= valeurs.size()) {
 		throw IndexErrorException("indice trop grand");
 	}
@@ -48,8 +47,7 @@ int Option::getValeurI(int i)	throw (BadFormatException,
 ;
 
 // fonction qui renvoit la valeur (float) de l'option demandee
-float Option::getValeurF(int i)	throw (BadFormatException,
-								IndexErrorException) {
+float Option::getValeurF(int i) {
 	if ((unsigned int) i >= valeurs.size()) {
 		throw IndexErrorException("indice trop grand");
 	}
@@ -58,8 +56,7 @@ float Option::getValeurF(int i)	throw (BadFormatException,
 ;
 
 // fonction qui renvoit la valeur (double) de l'option demandee
-double Option::getValeurD(int i) throw (BadFormatException,
-								IndexErrorException) {
+double Option::getValeurD(int i) {
 	if ((unsigned int) i >= valeurs.size()) {
 		throw IndexErrorException("indice trop grand");
 	}
@@ -68,8 +65,7 @@ double Option::getValeurD(int i) throw (BadFormatException,
 ;
 
 // fonction qui renvoit la valeur (bool) de l'option demandee
-bool Option::getValeurB(int i)	throw (BadFormatException,
-								IndexErrorException) {
+bool Option::getValeurB(int i) {
 	if ((unsigned int) i >= valeurs.size()) {
 		throw IndexErrorException("indice trop grand");
 	}

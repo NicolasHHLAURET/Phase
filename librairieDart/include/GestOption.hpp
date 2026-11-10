@@ -34,21 +34,17 @@ public:
 							const std::vector<std::string> & argumentsName);
 	bool parser(int argc,
 				char* argv[]);
-	int getNbOpt(std::string id) throw (IndexErrorException);
+	int getNbOpt(std::string id);
 	std::string getValeurS(	std::string id,
-						int num) throw (IndexErrorException);
+							int num);
 	int getValeurI(	std::string id,
-					int num) throw (BadFormatException,
-							IndexErrorException);
+							int num);
 	float getValeurF(	std::string id,
-						int num) throw (BadFormatException,
-								IndexErrorException);
+							int num);
 	double getValeurD(	std::string id,
-						int num) throw (BadFormatException,
-								IndexErrorException);
+							int num);
 	bool getValeurB(std::string id,
-					int num) throw (BadFormatException,
-							IndexErrorException);
+							int num);
 	bool estPresent(std::string id);
 	void setProgramDescription(const std::string & description) {
 		programDescription = description;

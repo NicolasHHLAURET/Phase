@@ -101,7 +101,7 @@ vector<double> BaseDeDonneesReflectance::getLigneTable(	const string & tableName
  * @param: la table qu'on veut lire dans la base
  * @exception: throw l'exception qui à causée l'erreur (pour interception éventuelle)
  */
-void BaseDeDonneesReflectance::checkIntegrity(const string &nomTable) throw (std::exception) {
+void BaseDeDonneesReflectance::checkIntegrity(const string &nomTable) {
 	try {
 		_session << "SELECT 42 FROM " << nomTable << " WHERE wavelength=42 AND reflectance=42 ;";
 	} catch (std::exception &e) { // Si quelque chose est intercepté c'est que l'intégrité est violée -> on gueule

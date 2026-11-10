@@ -65,7 +65,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					double &dValue) throw (DartException,BadFormatException);
+					double &dValue);
 
 	/**
 	 * 
@@ -76,7 +76,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					bool &bValue) throw (DartException,BadFormatException);
+					bool &bValue);
 
 	/**
 	 * 
@@ -87,7 +87,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					int &iValue) throw (DartException,BadFormatException);
+					int &iValue);
 
 	/**
 	 * 
@@ -98,7 +98,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					long int &liValue) throw (DartException,BadFormatException);
+					long int &liValue);
 
 	/**
 	 * 
@@ -109,7 +109,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					unsigned int &uiValue) throw (DartException,BadFormatException);
+					unsigned int &uiValue);
 
 	/**
 	 * 
@@ -120,7 +120,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					float &uiValue) throw (DartException,BadFormatException);
+					float &uiValue);
 
 	/**
 	 * 
@@ -131,7 +131,7 @@ public:
 	 * par le chemin sParameterPath.
 	 */
 	static void get(string sParameterPath,
-					string &sValue) throw (DartException,BadFormatException);
+					string &sValue);
 
 	/**
 	 * 
@@ -142,7 +142,7 @@ public:
 	 */
 	template<typename T>
 	static void get(string sParameterPath,
-					T &Value) throw (DartException,BadFormatException) {
+					T &Value) {
 		string sValue = "";
 		get(sParameterPath, sValue);
 		istringstream iss(sValue);
@@ -157,7 +157,7 @@ public:
 	 * Permet de recuperer la valeur d'un element caracterise par le chemin sParameterPath.
 	 */
 	static void getStringWithPossibleWhiteSpace(string sParameterPath,
-												std::string &sValue) throw (DartException,BadFormatException);
+												std::string &sValue);
 
 	/**
 	 *
@@ -169,7 +169,7 @@ public:
 	template<typename T>
 	static void get(string fileName,
 					string sParameterPath,
-					T &Value) throw (DartException,BadFormatException) {
+					T &Value) {
 		Value = DartXML::get<T>(fileName, sParameterPath);
 	}
 	
@@ -180,7 +180,7 @@ public:
 	 * Permet de recuperer la valeur d'un element caracterise par le chemin sParameterPath.
 	 */
 	template<typename T>
-	static T get(string sParameterPath) throw (DartException,BadFormatException) {
+	static T get(string sParameterPath) {
 		T Value;
 		string sValue = "";
 		get(sParameterPath, sValue);
@@ -197,7 +197,7 @@ public:
 	 */
 	template<typename T>
 	static T get(	string fileName,
-					string sParameterPath) throw (DartException,BadFormatException) {
+					string sParameterPath) {
 		return DartXML::get<T>(fileName, sParameterPath);
 	}
 	

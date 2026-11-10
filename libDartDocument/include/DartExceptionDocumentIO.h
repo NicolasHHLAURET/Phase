@@ -63,7 +63,7 @@ public:
 	/**
 	 * Destructeur.
 	 */
-	virtual ~DartExceptionDocumentIO() throw ();
+	virtual ~DartExceptionDocumentIO();
 
 private:
 	

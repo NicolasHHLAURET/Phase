@@ -56,7 +56,7 @@ public:
 	}
 	
 	void setNumberOfPointsX(const unsigned int & numOfPointsX);
-	void setNumberOfPointsY(const unsigned int & numOfPointsY) throw (int);
+	void setNumberOfPointsY(const unsigned int & numOfPointsY);
 	void setInput(const vector<vector<T> > & input);
 	void setInput1D(const vector<T> & input);
 	void calculateIntegration1D();
@@ -244,7 +244,7 @@ inline void NewtonCotesIntegrationCalculator<T>::setNumberOfPointsX(unsigned int
 }
 
 template<typename T>
-inline void NewtonCotesIntegrationCalculator<T>::setNumberOfPointsY(unsigned int const& numY) throw (int) {
+inline void NewtonCotesIntegrationCalculator<T>::setNumberOfPointsY(unsigned int const& numY) {
 	if (numY < 2) {
 		cerr << "Error: At least 2 points are needed for Newton-Cotes Close Integration" << endl;
 		throw(0);

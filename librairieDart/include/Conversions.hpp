@@ -18,7 +18,7 @@ public:
 	 * Converti quoi que ce soit en string...
 	 */
 	template<typename T>
-	static std::string convertitEnString(const T & t) throw (BadFormatException) {
+	static std::string convertitEnString(const T & t) {
 		std::ostringstream os;
 		os.setf(std::ios::fixed);
 		os << t;
@@ -32,7 +32,7 @@ public:
 	 * Converti quoi que ce soit en string...
 	 */
 	template<typename T>
-	static std::string convertitEnString(T & t) throw (BadFormatException) {
+	static std::string convertitEnString(T & t) {
 		std::ostringstream os;
 		os.setf(std::ios::fixed);
 		os << t;
@@ -46,7 +46,7 @@ public:
 	 * Converti un string en quoi que ce soit ...
 	 */
 	template<typename T>
-	static T convertitStringVersAutre(const std::string & t) throw (BadFormatException) {
+	static T convertitStringVersAutre(const std::string & t) {
 		T retour;
 		std::istringstream os(t);
 		os >> retour;
@@ -59,7 +59,7 @@ public:
 	 * Converti un string en quoi que ce soit ...
 	 */
 	template<typename T>
-	static T convertitStringVersAutre(std::string & t) throw (BadFormatException) {
+	static T convertitStringVersAutre(std::string & t) {
 		T retour;
 		std::istringstream os(t);
 		os >> retour;

@@ -41,49 +41,49 @@ DartSAParameters::~DartSAParameters() {}
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							double &dValue) throw (DartException,BadFormatException) {
+							double &dValue) {
 	dValue = DartXML::get<double>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							long int &liValue) throw (DartException,BadFormatException) {
+							long int &liValue) {
 	liValue = DartXML::get<long int>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							bool &bValue) throw (DartException,BadFormatException) {
+							bool &bValue) {
 	bValue = DartXML::get<bool>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							int &iValue) throw (DartException,BadFormatException) {
+							int &iValue) {
 	iValue = DartXML::get<int>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							unsigned int &uiValue) throw (DartException,BadFormatException) {
+							unsigned int &uiValue) {
 	uiValue = DartXML::get<unsigned int>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							float &fValue) throw (DartException,BadFormatException) {
+							float &fValue) {
 	fValue = DartXML::get<float>(sParameterPath);
 }
 // -----------------------------------------------------------------------------
 
 void DartSAParameters::get(	string sParameterPath,
-							string &sValue) throw (DartException,BadFormatException) {
+							string &sValue) {
 	sValue = DartXML::get<string>(sParameterPath);
 }
 
 
 void DartSAParameters::getStringWithPossibleWhiteSpace(string sParameterPath,
-													   std::string &sValue) throw (DartException,BadFormatException) {
+													   std::string &sValue) {
 	sValue = DartXML::getStringWithPossibleWhiteSpace(sParameterPath);
 }
 

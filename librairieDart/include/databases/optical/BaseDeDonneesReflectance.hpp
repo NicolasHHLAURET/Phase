@@ -53,7 +53,7 @@ public:
 	 * Check l'intégrité de la base de données
 	 * Throw l'exception levée et insulte l'utilisateur si la base n'est pas valide/est modifiée
 	 */
-	void checkIntegrity(const std::string & nomTable) throw (std::exception);
+	void checkIntegrity(const std::string & nomTable);
 
 	std::string getComments(const std::string & tableName);
 	int getNbLignesTable(const std::string & tableName);

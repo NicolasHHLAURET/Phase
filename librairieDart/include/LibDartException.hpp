@@ -11,12 +11,12 @@
 #include <string>
 class LibDartException: public std::exception {
 public:
-	LibDartException(const std::string & clef = "erreur.generique") throw () :
+	LibDartException(const std::string & clef = "erreur.generique") :
 			_clef(clef) {}
 	const char* what() const throw () {
 		return _clef.c_str();
 	}
-	virtual ~LibDartException() throw () {}
+	virtual ~LibDartException() {}
 private:
 	std::string _clef;       // Description de l'erreur.
 };

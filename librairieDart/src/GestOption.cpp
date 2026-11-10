@@ -80,7 +80,7 @@ bool GestOption::parser(int argc,
 ;
 
 // fonction qui indique le nombre de valeurs d'une option
-int GestOption::getNbOpt(string id) throw (IndexErrorException) {
+int GestOption::getNbOpt(string id) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("option " + id + " inexistante");
@@ -90,7 +90,7 @@ int GestOption::getNbOpt(string id) throw (IndexErrorException) {
 
 // fonction qui renvoit la valeur (string) de l'option demandee
 string GestOption::getValeurS(	string id,
-								int num) throw (IndexErrorException) {
+								int num) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("option " + id + " inexistante");
@@ -108,8 +108,7 @@ string GestOption::getValeurS(	string id,
 
 // fonction qui renvoit la valeur (int) de l'option demandee
 int GestOption::getValeurI(	string id,
-							int num) throw (BadFormatException,
-									IndexErrorException) {
+							int num) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("option " + id + " inexistante");
@@ -130,8 +129,7 @@ int GestOption::getValeurI(	string id,
 
 // fonction qui renvoit la valeur (float) de l'option demandee
 float GestOption::getValeurF(	string id,
-								int num) throw (BadFormatException,
-										IndexErrorException) {
+							int num) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("option " + id + " inexistante");
@@ -152,8 +150,7 @@ float GestOption::getValeurF(	string id,
 
 // fonction qui renvoit la valeur (double) de l'option demandee
 double GestOption::getValeurD(	string id,
-								int num) throw (BadFormatException,
-										IndexErrorException) {
+							int num) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("option " + id + " inexistante");
@@ -174,8 +171,7 @@ double GestOption::getValeurD(	string id,
 
 // fonction qui renvoit la valeur (bool) de l'option demandee
 bool GestOption::getValeurB(string id,
-							int num) throw (BadFormatException,
-									IndexErrorException) {
+							int num) {
 	if (!checkPresence(id)) {
 		//LOG4CPLUS_ERROR(logger, "option "+id+" inexistante");
 		throw IndexErrorException("Expected option [" + id + "] has not been provided.");

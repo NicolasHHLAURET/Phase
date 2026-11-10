@@ -23,15 +23,11 @@ public:
 	bool ajouterValeur(	int nbArg,
 						std::string val);
 	int getNbOpt(std::string id);
-	std::string getValeurS(int i) throw (IndexErrorException);
-	int getValeurI(int i)	throw (BadFormatException,
-							IndexErrorException);
-	float getValeurF(int i)	throw (BadFormatException,
-							IndexErrorException);
-	double getValeurD(int i) throw (BadFormatException,
-							IndexErrorException);
-	bool getValeurB(int i)	throw (BadFormatException,
-							IndexErrorException);
+	std::string getValeurS(int i);
+	int getValeurI(int i);
+	float getValeurF(int i);
+	double getValeurD(int i);
+	bool getValeurB(int i);
 
 private:
 	std::vector<std::string> valeurs;
