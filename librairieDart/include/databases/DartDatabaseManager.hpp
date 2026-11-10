@@ -15,8 +15,8 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 
 using namespace std;
 using namespace soci;
@@ -418,7 +418,9 @@ public:
 
 			for (int nbEssai = 0; nbEssai < CONNEXION_MAX_ESSAI; ++nbEssai) {
 				try {
-					_currentSession << query, use(wavelengthMin - DBEPSILON), use(wavelengthMax + DBEPSILON), into(numberOfSpectralValues);
+					const double lowerLambda = wavelengthMin - DBEPSILON;
+					const double upperLambda = wavelengthMax + DBEPSILON;
+					_currentSession << query, use(lowerLambda), use(upperLambda), into(numberOfSpectralValues);
 					return true;
 				} catch (const soci_error & se) {
 					if (nbEssai > CONNEXION_MAX_ESSAI) {
@@ -476,7 +478,9 @@ public:
 			for (int nbEssai = 0; nbEssai < CONNEXION_MAX_ESSAI; ++nbEssai) {
 				try {
 					result.clear();
-					rowset<row> resultSet = (_currentSession.prepare << query, use(wavelengthMin - DBEPSILON), use(wavelengthMax + DBEPSILON));
+				const double lowerLambda = wavelengthMin - DBEPSILON;
+				const double upperLambda = wavelengthMax + DBEPSILON;
+				rowset<row> resultSet = (_currentSession.prepare << query, use(lowerLambda), use(upperLambda));
 					for (rowset<row>::const_iterator itResultSet = resultSet.begin(); itResultSet != resultSet.end(); ++itResultSet) {
 						const row & rowResult = *itResultSet;
 						result.push_back(rowResult.get<TypeColumn>(0));

@@ -21,8 +21,8 @@
 #include <iostream>
 #include <iomanip>
 #include "FichierProperties.hpp"
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 
 class ObjectDatabase: soci::values {
 public:

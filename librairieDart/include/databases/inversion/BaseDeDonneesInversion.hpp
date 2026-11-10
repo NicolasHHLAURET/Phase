@@ -15,8 +15,8 @@
 #include <iostream>
 #include <iomanip>
 //#include <boost/regex.hpp> // Pas incluse dans cette version :(
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 #include "FichierProperties.hpp"
 #include "Conversions.hpp"
 #include "../lut/object/ObjectDatabase.hpp"

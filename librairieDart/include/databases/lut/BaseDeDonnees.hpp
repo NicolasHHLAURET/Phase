@@ -17,8 +17,8 @@
 #include <stack>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 #include "FichierProperties.hpp"
 #include "Conversions.hpp"
 #include "object/ObjectDatabase.hpp"
