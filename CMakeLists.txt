@@ -24,7 +24,7 @@ list(APPEND CMAKE_PREFIX_PATH "${DART_DEPS_PREFIX}")
 # Optional feature toggles
 option(DART_WITH_NETCDF "Enable NetCDF/HDF5-based atmosphere and phase-function files" OFF)
 
-find_package(Boost 1.70 REQUIRED)
+find_package(Boost 1.70 REQUIRED COMPONENTS filesystem system thread regex date_time)
 find_package(pugixml REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(SQLite3 REQUIRED)
