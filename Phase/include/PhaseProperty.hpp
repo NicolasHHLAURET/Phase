@@ -21,8 +21,8 @@
 #include "libDartEnv.h"
 #include <boost/thread.hpp>
 #include "PhaseStructure.hpp"
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 #include "DartEnv.h"
 #include "../include/PhaseUtils.hpp"
 #include "containers/DirectionCartesienne.hpp"
@@ -53,11 +53,13 @@
 //#define phaseFunctionAerosol 1
 
 //Netcdf
+#ifdef DART_WITH_NETCDF
 #include "../../librairieDart/include/namespaces/netcdf/AtmosphereNcKeys.hpp"
 #include "../../librairieDart/include/netcdf/DartNetcdf.hpp"
 #include <netcdf>
 using namespace netCDF;
 using namespace AtmosphereNcKeys;
+#endif
 
 using namespace soci;
 
@@ -1320,7 +1322,7 @@ public:
 	}
 
 	static void readReflectanceParameters(	const std::vector<bool> & useSpectralIrradianceForReflectance,
-											shared_ptr<PhaseDatabaseParameters> & modelProperties) {
+											const shared_ptr<PhaseDatabaseParameters> & modelProperties) {
 
 		if (modelProperties->getDatabaseType() == PHASE_EXTERN_DATABASE) {
 			std::string completeNameDatabase = modelProperties.get()->getDatabasePath() + modelProperties.get()->getDatabaseName();
@@ -1405,7 +1407,7 @@ public:
 	}
 
 	static void readReflectanceParametersPerThread(	const std::vector<bool> & useSpectralIrradianceForReflectance,
-													shared_ptr<PhaseDatabaseParameters> & modelProperties,
+													const shared_ptr<PhaseDatabaseParameters> & modelProperties,
 													const unsigned int & threadNumber) {
 		std::string completeNameDatabase = modelProperties.get()->getDatabasePath() + modelProperties.get()->getDatabaseName();
 		unsigned int spectralBandIndex = 0;
@@ -1492,7 +1494,7 @@ public:
 		}
 	}
 
-	static std::vector<double> readReflectanceParametersPerBand(shared_ptr<PhaseDatabaseParameters> & modelProperties,
+	static std::vector<double> readReflectanceParametersPerBand(const shared_ptr<PhaseDatabaseParameters> & modelProperties,
 																bool useSpectralIrradianceForReflectance,
 																DartDatabaseManager & databaseManager,
 																DartDatabaseManager & bottomDatabaseManager,
@@ -2695,6 +2697,7 @@ public:
 		return ui_nbOfRows;
 	}
 
+#ifdef DART_WITH_NETCDF
 	static void readAndWriteAtmosphereComponentAsNcdfGroup(
 			NcFile& ncFile,
 			vector<AtmosphereComposition>& atmospherePerBandMeanValues,
@@ -2826,6 +2829,8 @@ public:
 		}
 		crossSecVertDistribData.putAtt(ATM_ATT_MOLECULELIST, moleculeListOut.str());
 	}
+#endif // DART_WITH_NETCDF
+
 
 	static void readAndWriteOzone(	AtmosphereParameters & atmosphereParameters,
 									std::ofstream & out) {

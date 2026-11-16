@@ -42,8 +42,6 @@
 #include "containers/DirectionCartesienne.hpp"
 #include "FichierProperties.hpp"
 #include "./containers/air/AirPhaseFunction.hpp"
-#include "./containers/YaMLContainer.hpp"
-#include "yaml-cpp/yaml.h"
 #include "GeneralDef.hpp"
 #include "foliar/FoliarModel.hpp"
 #include "containers/lights/LightsContainer.hpp"
@@ -51,9 +49,6 @@
 #include "containers/lights/SpotLight.hpp"
 #include "containers/lights/LightSphere.hpp"
 #include "containers/TemperatureFunction.hpp"
-
-
-#include "../../SimulationEditorInputsDAO/include/DartInputsDAO.hpp"
 
 /**
  *  @ingroup Phase
@@ -71,8 +66,6 @@
 //bool DART_PHASE_CheckOldPhaseParametersFile (string File) ;
 class PhaseDAO {
 private:
-	static bool _useYaML;
-	static DartInputs::DartInputsDAO _dartInputsDAO;
 
 public:
 	/**
@@ -463,17 +456,7 @@ public:
 	static bool readPlotTxt(const std::string & fileName,
 							PhaseGeneralParametersDTO & genDTO);
 	static bool readLiDARXML();
-	static bool useYaMl() {
-		return _useYaML;
-	}
-	
-	static void setYaMlUsage(bool useYaMl) {
-		_useYaML = useYaMl;
-	}
 
-	static const DartInputs::DartInputsDAO & getInputsDAO() {
-		return _dartInputsDAO;
-	}
 private:
 	static void parseOpticalMaterials(PhaseGeneralParametersDTO & genDTO);
 	static void parseEmissionMaterials(PhaseGeneralParametersDTO & genDTO);

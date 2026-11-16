@@ -37,7 +37,7 @@ class RadianceRange;
 class TemperatureRangeProfile;
 class RadianceRangeProfile;
 class VoxelSize;
-class VoxelNumber;
+class EmissionVoxelNumber;
 class Dimensions;
 class LowerCorner;
 class Rotation;
@@ -190,7 +190,7 @@ public:
     double sizeZ;
 };
 
-class VoxelNumber {
+class EmissionVoxelNumber {
 public:
     int numberX;
     int numberY;
@@ -200,7 +200,7 @@ public:
 class Dimensions {
 public:
     VoxelSize voxelSize;
-    VoxelNumber voxelNumber;
+    EmissionVoxelNumber voxelNumber;
 };
 
 class LowerCorner {

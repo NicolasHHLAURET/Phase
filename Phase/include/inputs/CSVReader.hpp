@@ -145,7 +145,7 @@ public:
         return rows;
     }
 
-    static auto getDouble (const std::unordered_map<std::string, std::string> &row) {
+    static auto getDouble (const std::unordered_map<std::string, std::string> &row, const std::string & key) {
         return row.count(key) ? std::stod(row.at(key)) : 0.0;
     };
 

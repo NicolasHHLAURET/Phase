@@ -20,8 +20,8 @@
 #include <iostream>
 #include "libDartEnv.h"
 #include <boost/thread.hpp>
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 #include "DartEnv.h"
 #include "../include/PhaseUtils.hpp"
 #include "containers/DirectionCartesienne.hpp"
@@ -60,6 +60,7 @@ private:
 	unsigned int _numberOfSpectralBands;
 	unsigned int _numberOfFoliarModels;
 	int _numberOfDirections;
+	unsigned int _numberOfAngularSectors;
 	std::vector<double> _albedoVector;
 	std::vector<double> _albedoSpecVector;
 

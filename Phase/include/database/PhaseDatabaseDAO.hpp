@@ -381,7 +381,7 @@ public:
 		}
 	}
 
-	static void readTemperatureParameters(shared_ptr<PhaseDatabaseParameters> & modelProperties) {
+	static void readTemperatureParameters(const shared_ptr<PhaseDatabaseParameters> & modelProperties) {
 
 		std::string completeNameDatabase = modelProperties.get()->getDatabasePath() + modelProperties.get()->getDatabaseName();
 		DartDatabaseManager databaseManager(completeNameDatabase);

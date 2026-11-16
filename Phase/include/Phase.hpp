@@ -55,8 +55,8 @@
 #include "../../librairieDart/include/databases/optical/LireDatabase2D.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include "../../libSOCI/src/core/soci.h"
-#include "../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 
 #include "containers/DirectionCartesienne.hpp"
 #include "containers/air/AirPhaseFunction.hpp"
@@ -100,6 +100,7 @@
 #include "foliar/FoliarModel.hpp"
 #include "foliar/FoliarComputation.hpp"
 #include "foliar/LADComputation.hpp"
+#include "fluorescence/FluorescenceMatrices.hpp"
 
 #include "containers/lights/LightsContainer.hpp"
 
@@ -113,12 +114,14 @@ extern int RAMI;
 using namespace soci;
 
 //Netcdf
+#ifdef DART_WITH_NETCDF
 #include "../../librairieDart/include/namespaces/netcdf/AtmosphereNcKeys.hpp"
 #include "../../librairieDart/include/netcdf/DartNetcdf.hpp"
 
 #include <netcdf>
 using namespace netCDF;
 using namespace AtmosphereNcKeys;
+#endif
 
 #if __cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)
 #include <memory>
@@ -218,6 +221,7 @@ void writeAtmosphereWithDatabase(	PhaseGeneralParametersDTO & genDTO,
 									vector<AirPhaseFunction> & aerosolAFP,
 									const vector<DirectionCartesienne> & listDirections);
 
+#ifdef DART_WITH_NETCDF
 void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParameters,
 		vector<AtmosphereComposition>& atmospherePerBandMeanValues,
 		const std::vector<std::vector<HenyeyGreensteinParameters> > &henleyGreensteinMeanParameters);
@@ -226,6 +230,7 @@ void executeAtmosphereNcWithoutDatabase(	AtmosphereParameters& atmosphereParamet
 										AirPhaseFunction & moleculeAFP,
 										AirPhaseFunction & aerosolAFP,
 										const vector<DirectionCartesienne> & listDirections);
+#endif
 
 int main(	int argc,
 			char *argv[]);
@@ -265,28 +270,6 @@ void computeOpticalPropertiesSpecular(const unsigned int& spectralBandIndex,
 
 void processSurfaceMaterials(const PhaseGeneralParametersDTO & genDTO,  PhaseKeyMappingGenerator & pkmg, ofstream & outCoeffSpecProperties);
 
-
-void writeFluorescenceToSimulationProperties(	const FluorescenceResults & fluorescenceResults,
-												PhaseKeyMappingGenerator & pkmg,
-												ofstream & outCoeffSpecProperties);
-void computeFluorescenceMatrices(	FluorescenceResults & fluorescenceResults,
-									vector<vector<vector<double> > > & interpolatedMatrices,
-									const int & typeOfReflectance,
-									unsigned int modelIndex,
-									const FluorescenceParameters & fluorescence,
-									PhaseGeneralParametersDTO & genDTO,
-									unsigned int face);
-
-void interpolateAndWriteInFluorescenceMatrixFile(	fstream & ofstreamFluorescenceMatrices,
-													const string & fluspectOutputFile,
-													vector<vector<vector<double> > > & fluspectMatrices,
-													vector<vector<vector<double> > > & interpolatedMatrices,
-													PhaseGeneralParametersDTO & genDTO,
-													unsigned int wlEMin,
-													unsigned int wlEMax,
-													unsigned int wlFMin,
-													unsigned int wlFMax,
-													const bool & useCombinedYields);
 void computeOpticalPropertiesLambertian(const unsigned int& spectralBandIndex,
 										OpticalPropertyParameters & lambertianPropertyParameters,
 										const std::vector<DirectionCartesienne> & listDirections,

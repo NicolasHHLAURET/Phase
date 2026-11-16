@@ -353,7 +353,7 @@ void writeRadianceFile(PhaseGeneralParametersDTO & genDTO,
     influx.close();
 }
 
-void writeRadianceFile(PhaseGeneralParametersDTO & genDTO, const std::string & temperatureInFile, const phsdata::VoxelNumber & voxelNumber, const std::string & outputFolder, const std::string & outputFileName) {
+void writeRadianceFile(PhaseGeneralParametersDTO & genDTO, const std::string & temperatureInFile, const phsdata::EmissionVoxelNumber & voxelNumber, const std::string & outputFolder, const std::string & outputFileName) {
     std::string inputFilePath = DartEnv::getFilePathForRead(INPUT_DIR, temperatureInFile);
     std::ifstream influx(inputFilePath.c_str(), std::ios::in);
     if (influx.fail()) {
@@ -437,7 +437,7 @@ void writeRadianceFile(PhaseGeneralParametersDTO & genDTO, const vector<std::str
 	outflux.close();
 }
 
-void writeRadianceFile(PhaseGeneralParametersDTO & genDTO, const vector<std::string> & radianceFiles, const phsdata::VoxelNumber & voxelNumber, const std::string & outputFolder, const std::string & outputFileName) {
+void writeRadianceFile(PhaseGeneralParametersDTO & genDTO, const vector<std::string> & radianceFiles, const phsdata::EmissionVoxelNumber & voxelNumber, const std::string & outputFolder, const std::string & outputFileName) {
 	// Note: This allocates a large buffer (voxels × bands × sizeof(float)).
 	// 		 If this fails, the next module (e.g., LuxCore) would also fail to load the matrix.
 	// Note 2: LuxCore expects float and not double

@@ -325,7 +325,6 @@ void FoliarComputation::computeFRFoliarSpecular(const FTFoliar & fTFoliar,
 	if (opticalProperties.specularFoliarData._isSpecular) {
 		_albedoSpecVector[spectralBandIndex] = tsiSum / fTFoliar.solidAnglesSum;
 	}
-	computePhaseFunctionForAngularSector(listDirections, opticalProperties.specularFoliarData._isSpecular, spectralBandIndex);
 	computeAndStoreTgOmegas(listDirections, opticalProperties.specularFoliarData._isSpecular, modelIndex, spectralBandIndex);
 }
 

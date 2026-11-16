@@ -9,8 +9,8 @@
 #define AIRPHASEFUNCTIONFILELOADER_HPP_
 
 #include <bits/stl_pair.h>
-#include "../../../../libSOCI/src/core/soci.h"
-#include "../../../../libSOCI/src/backends/sqlite3/soci-sqlite3.h"
+#include <soci/soci.h>
+#include <soci/sqlite3/soci-sqlite3.h>
 #include <vector>
 #include <string>
 #include <iostream>

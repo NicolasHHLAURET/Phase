@@ -35,9 +35,6 @@
 //#include "../../libLog/include/log4cplus/logger.hapkeParameterh"
 //#include "../../libLog/include/log4cplus/configurator.hapkeParameterh"
 
-bool PhaseDAO::_useYaML = true;
-DartInputs::DartInputsDAO PhaseDAO::_dartInputsDAO;
-
 /**!
  * Permet de ne faire qu'une seule initialisation des fichiers pour ceux que l'on ouvre plusieurs fois.
  */
@@ -599,21 +596,17 @@ bool PhaseDAO::readCoeffDiffParametersForIsProspectUseLambertian(	const int & in
 																	bool& useProspectGen,
 																	int& lambertianDefinition) {
 	useProspectGen = false;
-	if (_useYaML) {
-		return true;
-	} else {
-		try {
-			ostringstream oss;
-			oss << index;
-			string temp = "Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti[" + oss.str();
-			DartSAParameters::get(temp + "].lambertianDefinition", lambertianDefinition);
-			if (lambertianDefinition == 0) {
-				DartSAParameters::get(temp + "].Lambertian.ProspectExternalModule.useProspectExternalModule", useProspectGen);
-			}
-		} catch (DartException &E) {
-			cerr << E.getOriginMessage() << endl;
-			return false;
+	try {
+		ostringstream oss;
+		oss << index;
+		string temp = "Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti[" + oss.str();
+		DartSAParameters::get(temp + "].lambertianDefinition", lambertianDefinition);
+		if (lambertianDefinition == 0) {
+			DartSAParameters::get(temp + "].Lambertian.ProspectExternalModule.useProspectExternalModule", useProspectGen);
 		}
+	} catch (DartException &E) {
+		cerr << E.getOriginMessage() << endl;
+		return false;
 	}
 	return true;
 }
@@ -624,27 +617,22 @@ bool PhaseDAO::readCoeffDiffParametersForIsProspectUseFoliar(	const int & index,
 																bool& hasDifferentModelForBottom) {
 	useProspectGen = false;
 	bottomProspectGen = false;
-	if (_useYaML) {
-		return true;
-	} else {
-		string temp, modelKey;
-		ostringstream oss;
-		try {
-			oss << index;
-			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-			DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentModelForBottom);
-			modelKey = hasDifferentModelForBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
-			DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
-			if (hasDifferentModelForBottom) {
-				string bottomModelKey;
-				bottomModelKey = "UnderstoryMultiBottomModel";
-				DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);
-			}
-		} catch (DartException &E) {
-			cerr << E.getOriginMessage() << endl;
-			return false;
+	string temp, modelKey;
+	ostringstream oss;
+	try {
+		oss << index;
+		temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
+		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentModelForBottom);
+		modelKey = hasDifferentModelForBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
+		DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
+		if (hasDifferentModelForBottom) {
+			string bottomModelKey;
+			bottomModelKey = "UnderstoryMultiBottomModel";
+			DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);
 		}
-		return true;
+	} catch (DartException &E) {
+		cerr << E.getOriginMessage() << endl;
+		return false;
 	}
 	return true;
 }

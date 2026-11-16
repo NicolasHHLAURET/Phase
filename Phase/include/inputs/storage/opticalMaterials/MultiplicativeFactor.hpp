@@ -58,7 +58,7 @@ public:
 	boost::optional<OpticalFactorMatrix> bandCommonOpticalFactors;
 	std::vector<std::shared_ptr<MultiplicativeFactor> > factors;
 
-	void loadFromParameters(const std::string& prefix) {
+	virtual void loadFromParameters(const std::string& prefix) {
 		useSameFactorForAllBands = DartSAParameters::get<bool>(prefix + ".useSameFactorForAllBands");
 		useSameOpticalFactorMatrixForAllBands = DartSAParameters::get<bool>(prefix + ".useSameOpticalFactorMatrixForAllBands");
 

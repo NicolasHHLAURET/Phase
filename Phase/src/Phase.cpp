@@ -50,7 +50,7 @@
 /*                                                          */
 /************************************************************/
 #include "../include/Phase.hpp"
-#include "../../../../libDartGeometry/include/Plan.hpp"
+#include "../../../libDartGeometry/include/Plan.hpp"
 #include "../../libDartBase/include/Lib_physic.h"
 
 #include <stdlib.h>
@@ -964,44 +964,7 @@ void writePhasePropertiesNumberOfModels(ofstream & outCoeffSpecProperties,
 	outCoeffSpecProperties << pkmg.cleNombreFonctionDePhase() << 0 << endl;
 
 	// If available, write the UI corresponding indices
-	if (PhaseDAO::useYaMl()) {
-		pkmg.setTypeFonctionDePhase(globalReferences::LAMBERTIEN);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getLambertianProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getLambertianProperties()[i]->getItemId() << endl;
-		}
-		pkmg.setTypeFonctionDePhase(globalReferences::RPV_PHASE);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getRPVProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getRPVProperties()[i]->getItemId() << endl;
-		}
-		pkmg.setTypeFonctionDePhase(globalReferences::HAPKE_SPEC);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getHapkeProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getHapkeProperties()[i]->getItemId() << endl;
-		}
-		pkmg.setTypeFonctionDePhase(globalReferences::HAPKE2_SPEC);
-				for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getHapke2Properties().size();++i){
-					pkmg.setNumeroFonctionDePhase(i);
-					outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getHapke2Properties()[i]->getItemId() << endl;
-				}
-		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getVegetationProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getVegetationProperties()[i]->getItemId() << endl;
-		}
-		pkmg.setTypeFonctionDePhase(globalReferences::AIR_FP);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getFluidProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getFluidProperties()[i]->getItemId() << endl;
-		}
-		pkmg.setTypeFonctionDePhase(globalReferences::PHASE_EXTERN);
-		for (unsigned int i = 0; i < PhaseDAO::getInputsDAO().getDartOpticalProperties().getPhaseExternProperties().size();++i){
-			pkmg.setNumeroFonctionDePhase(i);
-			outCoeffSpecProperties << pkmg.cleEquivalentYAMLIndice() << PhaseDAO::getInputsDAO().getDartOpticalProperties().getPhaseExternProperties()[i]->getItemId() << endl;
-			cout<<"setTypefunction:ok"<<endl;
-		}
-	}
+
 }
 
 void readMultiplicativeFactor(	int & iterationStepPhi,
@@ -1528,6 +1491,44 @@ FTFoliar foliarPrecomputing(const PhaseGeneralParametersDTO & genDTO,
 	return fTFoliar;
 }
 
+static void computeFoliarFluorescenceMatrices(phase::FluorescenceResults & fluorescenceResults,
+		std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
+		unsigned int modelIndex,
+		const FluorescenceParameters & fluorescenceParameters,
+		const PhaseGeneralParametersDTO & genDTO,
+		unsigned int face) {
+	phsdata::ProspectExternParameters prospectParams;
+	prospectParams.anthocyanin = fluorescenceParameters.anthocyanin;
+	prospectParams.cBrown = fluorescenceParameters.brownPigment;
+	prospectParams.cab = fluorescenceParameters.chlorophyll;
+	prospectParams.car = fluorescenceParameters.carotenoid;
+	prospectParams.cbc = fluorescenceParameters.Cbc;
+	prospectParams.cm = fluorescenceParameters.leafMassPerArea;
+	prospectParams.cp = fluorescenceParameters.Cp;
+	prospectParams.cw = fluorescenceParameters.waterThickness;
+	prospectParams.n = fluorescenceParameters.structureCoeff;
+	prospectParams.useCm = fluorescenceParameters.useNewCm;
+	prospectParams.v2z = fluorescenceParameters.v2z;
+
+	phsdata::FluorescenceExternParameters fluorescenceExtern;
+	fluorescenceExtern.forceYields = fluorescenceParameters.forceYield;
+	fluorescenceExtern.useCombinedYields = fluorescenceParameters.useCombinedYields;
+	fluorescenceExtern.yieldPSI = fluorescenceParameters.yieldPSI;
+	fluorescenceExtern.yieldPSII = fluorescenceParameters.yieldPSII;
+
+	phase::InterpolatedMatrices interpolatedMatrices(genDTO.numberOfSpectralBands);
+	phase::FluorescenceService().computeMatrices(fluorescenceResults, interpolatedMatrices, globalReferences::FOLIAIRE, modelIndex,
+			prospectParams, fluorescenceExtern, genDTO, face);
+
+	for (unsigned int sbi1 = 0; sbi1 < genDTO.numberOfSpectralBands; ++sbi1) {
+		for (unsigned int sbi2 = 0; sbi2 < genDTO.numberOfSpectralBands; ++sbi2) {
+			for (unsigned int k = 0; k < 4; ++k) {
+				fluorescenceMatrix[sbi1][sbi2][k] = interpolatedMatrices.at(sbi1, sbi2, k);
+			}
+		}
+	}
+}
+
 void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 					const vector<bool> & useSpectralIrradianceForReflectance,
 					PhaseKeyMappingGenerator & pkmg,
@@ -1577,10 +1578,10 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 	pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
 	pkmg.setNumeroFonctionDePhase(modelIndex);
 	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(modelIndex) << endl;
-	FluorescenceResults topFluorescenceResults;
+	phase::FluorescenceResults topFluorescenceResults;
 	topFluorescenceResults.useBioCLimaticProfileEta = false;
 	topFluorescenceResults.isFluorescent = false;
-	FluorescenceResults bottomFluorescenceResults;
+	phase::FluorescenceResults bottomFluorescenceResults;
 	bottomFluorescenceResults.useBioCLimaticProfileEta = false;
 	bottomFluorescenceResults.isFluorescent = false;
 	foliarComputer.setTopFluorescenceComputation(false);
@@ -1591,7 +1592,7 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 	if (PhaseProperty::getFluorescence()) {
 		foliarComputer.resetFrontFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
 		if (fluorescenceParameters.isFluorescent) {
-			computeFluorescenceMatrices(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), globalReferences::FOLIAIRE, modelIndex,
+			computeFoliarFluorescenceMatrices(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), modelIndex,
 				fluorescenceParameters, genDTO, 0);
 			foliarComputer.setTopFluorescenceComputation(true);
 			if (topFluorescenceResults.useBioCLimaticProfileEta) {
@@ -1604,7 +1605,7 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 		if (hasDifferentBottom) {
 			PhaseDAO::readCoeffDiffParametersForFoliarFluspect(modelIndex, fluorescenceParameters, hasDifferentBottom, true);
 			if (fluorescenceParameters.isFluorescent) {
-				computeFluorescenceMatrices(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), globalReferences::FOLIAIRE, modelIndex,
+				computeFoliarFluorescenceMatrices(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), modelIndex,
 					fluorescenceParameters, genDTO, 1);
 				foliarComputer.setBottomFluorescenceComputation(true);
 				if (bottomFluorescenceResults.useBioCLimaticProfileEta) {
@@ -1679,10 +1680,10 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 		outCoeffSpecProperties << pkmg.cleEquivalentBackLambertianIndex() << (foliarModel.getEquivalentBackLambertianIndex(modelIndex)) << endl;
 		pkmg.setTypeFonctionDePhase(globalReferences::LAMBERTIEN);
 		pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentFrontLambertianIndex(modelIndex));
-		writeFluorescenceToSimulationProperties(topFluorescenceResults, pkmg, outCoeffSpecProperties);
+		phase::FluorescenceService().writeSimulationProperties(topFluorescenceResults, pkmg, outCoeffSpecProperties);
 		if (foliarModel.getEquivalentBackLambertianIndex(modelIndex) != foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) {
 			pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentBackLambertianIndex(modelIndex));
-			writeFluorescenceToSimulationProperties(bottomFluorescenceResults, pkmg, outCoeffSpecProperties);
+			phase::FluorescenceService().writeSimulationProperties(bottomFluorescenceResults, pkmg, outCoeffSpecProperties);
 		}
 	}
 
@@ -2655,7 +2656,11 @@ void processingAtmosphere(	PhaseGeneralParametersDTO & genDTO,
 			AirPhaseFunction temp(PhaseProperty::getNumberOfSpectralBands());
 			boaAerosolPhaseFunction[0] = temp;
 			cout << "   -> without database" << endl;
+#ifdef DART_WITH_NETCDF
 			executeAtmosphereNcWithoutDatabase(atmosphereParameters, boaMoleculePhaseFunction, boaAerosolPhaseFunction[0], listDirections, genDTO.solarDirection);
+#else
+			cerr << "Atmosphere without database requires a build with DART_WITH_NETCDF enabled" << endl;
+#endif
 
 			if (!atmosphereParameters.fullyPrecomputed
 					&& ((PhaseProperty::getComputationMethodeOfToaToBoa() == 2) || atmosphereParameters.airInEarthSceneDefinedForRadiativeTransfer)) {
@@ -3089,9 +3094,12 @@ void executeAtmosphereWithDatabase(	PhaseGeneralParametersDTO & genDTO,
 		aerosolAFP.push_back(singleAerosolAFP);
 	}
 	atmosphereParameters.numberOfAbsorbingGas = CrossSectionDatabaseDAO::_molecule.size(); //co2 + h2o + o3 + ch4 + n2o
+#ifdef DART_WITH_NETCDF
 	writeAtmosphereNcWithDatabase(atmosphereParameters, atmospherePerBandMeanValues, henleyGreensteinMeanParameters);
+#endif
 }
 
+#ifdef DART_WITH_NETCDF
 void executeAtmosphereNcWithoutDatabase(	AtmosphereParameters& atmosphereParameters,
 											AirPhaseFunction & moleculeAFP,
 											AirPhaseFunction & aerosolAFP,
@@ -3213,6 +3221,8 @@ void executeAtmosphereNcWithoutDatabase(	AtmosphereParameters& atmosphereParamet
 		PhaseProperty::setMeanSKYL(k, computedSKYL);
 	}
 }
+#endif // DART_WITH_NETCDF
+
 
 /**
  * Need to delete this function as soon as netcdf file is ok to force user to use it !
@@ -3430,6 +3440,7 @@ void writeAtmosphereWithDatabase(	PhaseGeneralParametersDTO & genDTO,
 	writingOuput.close();
 }
 
+#ifdef DART_WITH_NETCDF
 void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParameters,
 						vector<AtmosphereComposition>& atmospherePerBandMeanValues,
 						const std::vector<std::vector<HenyeyGreensteinParameters> > &henleyGreensteinMeanParameters) {
@@ -3580,6 +3591,8 @@ void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParame
 	PhaseProperty::readAndWriteAtmosphereComponentAsNcdfGroup(atmosphereNcFile, atmospherePerBandMeanValues, atmosphereParameters);
 	atmosphereNcFile.close();
 }
+#endif // DART_WITH_NETCDF
+
 
 vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands) {
 	vector<OpticalPropertyParameters> phaseOpticalProperties;
