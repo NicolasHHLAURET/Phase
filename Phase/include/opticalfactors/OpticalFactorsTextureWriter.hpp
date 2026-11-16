@@ -16,13 +16,13 @@ class OpticalFactorsTextureWriter {
 public:
     // Writes the interleaved .bin matrix and declares the LuxCore texture keys.
     // Returns false if no usable optical factor matrix exists or the file could not be written.
-    bool writeTexture(const PhaseGeneralParametersDTO & genDTO,
+    bool writeTexture(PhaseGeneralParametersDTO & genDTO,
                       const std::string & textureName,
                       const phsdata::MultiplicativeFactorList & mfl,
                       const std::string & outputFolder) const;
 
 private:
-    bool writeBinaryFile(const PhaseGeneralParametersDTO & genDTO,
+    bool writeBinaryFile(PhaseGeneralParametersDTO & genDTO,
                         const std::string & textureName,
                         const phsdata::MultiplicativeFactorList & mfl,
                         const std::string & outputFolder) const;
@@ -30,7 +30,7 @@ private:
                                   unsigned int nbBands, unsigned int bandOffset, bool replicate) const;
     const phsdata::OpticalFactorMatrix * referenceMatrix(const phsdata::MultiplicativeFactorList & mfl) const;
     unsigned int referenceNbVoxels(const phsdata::MultiplicativeFactorList & mfl) const;
-    void writeVoxelKeys(const PhaseGeneralParametersDTO & genDTO, const std::string & keyRoot,
+    void writeVoxelKeys(PhaseGeneralParametersDTO & genDTO, const std::string & keyRoot,
                         const phsdata::OpticalFactorMatrix & ofm) const;
 };
 

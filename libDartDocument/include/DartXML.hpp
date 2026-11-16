@@ -78,7 +78,7 @@ T DartXML::get(const string & keyDart) {
  * renvoit la valeur, pour un string sans un bug chelou quand il y a un espace
  * dans le paramètre (commentaire en FR parce que le reste est en FR)
  */
-std::string DartXML::getStringWithPossibleWhiteSpace(const string & keyDart) {
+inline std::string DartXML::getStringWithPossibleWhiteSpace(const string & keyDart) {
 	string val = keyMap[getFileName(keyDart)][keyDart];
 
 	// si on trouve la valeur on la renvoit

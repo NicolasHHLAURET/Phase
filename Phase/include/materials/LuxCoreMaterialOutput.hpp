@@ -16,7 +16,7 @@ namespace phase::luxcore {
 // Number of extra simulated bands appended after the real spectral bands:
 // 3 Stokes components (Q,U,V) when polarization is enabled, 2 photosystems (PSI,PSII)
 // when fluorescence is enabled.
-unsigned int nbExtraSimulatedBands() {
+inline unsigned int nbExtraSimulatedBands() {
     unsigned int nb = 0;
     if (PhaseProperty::getPolarization())
         nb += 3;
@@ -46,7 +46,7 @@ void appendPerBandZeroPadded(std::ostringstream & os, unsigned int nbBands, cons
         os << " 0";
 }
 
-std::string writeLuxCoreDirectTransmittance(const vector<double> & directTransmittance) {
+inline std::string writeLuxCoreDirectTransmittance(const vector<double> & directTransmittance) {
 	static atomic<unsigned int> fileIndex = 0;
 	std::string fileName = "transmittance_" + std::to_string(fileIndex++) + ".txt";
 	createOutputDirectory(DartEnv::getCurrentSimulationPath() + pathSeparator + DartEnv::getRelativePathToLibPhase());

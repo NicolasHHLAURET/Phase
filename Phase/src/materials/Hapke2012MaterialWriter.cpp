@@ -15,6 +15,10 @@
 #include "database/model/TransmittanceDatabaseParameters.hpp"
 
 namespace phase {
+
+Hapke2012MaterialWriter::Hapke2012MaterialWriter(	const FluorescenceService & fluorescenceService,
+												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
+		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
 bool Hapke2012MaterialWriter::treat(const phsdata::SurfaceFunction & sf,
 									 PhaseGeneralParametersDTO & genDTO,
 									 const std::vector<bool> & useSpectralIrradianceForReflectance,

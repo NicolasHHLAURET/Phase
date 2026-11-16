@@ -13,4 +13,6 @@
 void PhaseDAO::parseOpticalMaterials(PhaseGeneralParametersDTO & genDTO) {
 	if (DartSAParameters::exists("Materials.Surfaces"))
 		genDTO._surfaceMaterials.loadFromParameters("Materials.Surfaces");
+	if (DartSAParameters::exists("Materials.Volumes"))
+		genDTO._volumesMaterials.loadFromParameters("Materials.Volumes");
 }

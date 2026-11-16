@@ -12,6 +12,10 @@
 #include "containers/phaseModel/OpticalPropertyParameters.hpp"
 #include "database/model/LambertianDatabaseParameters.hpp"
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 namespace phase {
 LambertianMaterialWriter::LambertianMaterialWriter(	const FluorescenceService & fluorescenceService,
 													const OpticalFactorsTextureWriter & opticalFactorsWriter) :
@@ -57,7 +61,7 @@ bool LambertianMaterialWriter::prepareDatabase(	const phsdata::LambertianMulti &
         MarmitComputation marmit(lm.marmit->smc, lm.marmit->d, lm.marmit->marmitModel, databaseName);
         if (!marmit.runMarmitDatabaseGeneration()) {
         	cerr << "Marmit run failed on lambertian phase function : " << lm.functionName << " using " << lm.marmit->marmitModel << ". Phase function skipped." << endl;
-            return;
+            return false;
         }
         if (lm.marmit->keepOutputFile)
             marmit.runMarmitOutputFileGeneration();

@@ -15,6 +15,10 @@
 #include "database/model/TransmittanceDatabaseParameters.hpp"
 
 namespace phase {
+
+RPVMaterialWriter::RPVMaterialWriter(	const FluorescenceService & fluorescenceService,
+												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
+		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
 bool RPVMaterialWriter::prepareDatabase(const phsdata::RPVMulti & r,
 										 const PhaseGeneralParametersDTO & genDTO,
 										 OpticalPropertyParameters & opticalProperty) const {

@@ -14,10 +14,10 @@
 namespace phsdata {
 class DirectionSetLink {
 public:
-    int indexDirectionSetLink = 0;
+    unsigned int indexDirectionSetLink = 0;
 
     void loadFromParameters(const std::string & prefix) {
-        indexDirectionSetLink = DartSAParameters::get<int>(prefix + ".indexDirectionSetLink");
+        indexDirectionSetLink = DartSAParameters::get<unsigned int>(prefix + ".indexDirectionSetLink");
     }
 };
 }

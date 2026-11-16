@@ -419,8 +419,6 @@ public:
 	static bool readSecondarySourcesOfLight(LightsContainer & lightsContainer);
 	static bool readSecondarySourcesOfLightXML(LightsContainer & lightsContainer);
 
-	static bool readTemperatureProperties(std::vector<TemperatureFunction> & temperatureFunctions);
-	static bool readTemperaturePropertiesXML(std::vector<TemperatureFunction> & temperatureFunctions);
 
 	static bool readDirectionalDirectTransmittanceForLambertian(unsigned int modelIndex,
 																bool & useDirectionalDirectTransmittance,

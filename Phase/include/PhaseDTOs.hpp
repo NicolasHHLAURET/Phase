@@ -20,6 +20,7 @@
 #include "inputs/storage/EmissionMaterials.hpp"
 #include "inputs/storage/DirectionSet.hpp"
 #include "inputs/storage/opticalMaterials/SurfacesMaterials.hpp"
+#include "inputs/storage/opticalMaterials/VolumesMaterials.hpp"
 
 #include "DartSAParameters.h"
 #include "FichierProperties.hpp"
@@ -70,6 +71,7 @@ struct PhaseGeneralParametersDTO {
 	double atmosphericApparentTemperature;
 
 	phsdata::SurfacesMaterials _surfaceMaterials;
+	phsdata::VolumesMaterials _volumesMaterials;
 	phsdata::EmissionMaterials _emissionMaterials;
 	std::vector<phsdata::DirectionSet> _directionSet;
 

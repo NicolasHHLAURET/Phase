@@ -9,7 +9,7 @@
 #include "opticalfactors/OpticalFactorsTextureWriter.hpp"
 
 namespace phase {
-bool OpticalFactorsTextureWriter::writeTexture(const PhaseGeneralParametersDTO & genDTO,
+bool OpticalFactorsTextureWriter::writeTexture(PhaseGeneralParametersDTO & genDTO,
 								const std::string & textureName,
 								const phsdata::MultiplicativeFactorList & mfl,
 								const std::string & outputFolder) const {
@@ -29,7 +29,7 @@ bool OpticalFactorsTextureWriter::writeTexture(const PhaseGeneralParametersDTO &
 	return true;
 }
 
-bool OpticalFactorsTextureWriter::writeBinaryFile(const PhaseGeneralParametersDTO & genDTO,
+bool OpticalFactorsTextureWriter::writeBinaryFile(PhaseGeneralParametersDTO & genDTO,
 							 const std::string & textureName,
 							 const phsdata::MultiplicativeFactorList & mfl,
 							 const std::string & outputFolder) const {
@@ -94,7 +94,7 @@ bool OpticalFactorsTextureWriter::fillFromOpticalFactorFile(std::vector<float> &
 	return true;
 }
 
-void OpticalFactorsTextureWriter::writeVoxelKeys(	const PhaseGeneralParametersDTO & genDTO,
+void OpticalFactorsTextureWriter::writeVoxelKeys(	PhaseGeneralParametersDTO & genDTO,
 													const std::string & textureKeyRoot,
 													const phsdata::OpticalFactorMatrix & ofm) const {
 	const phsdata::VoxelNumber & vn = ofm.voxelNumber;

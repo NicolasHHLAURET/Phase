@@ -50,22 +50,49 @@
 /*                                                          */
 /************************************************************/
 #include "../include/Phase.hpp"
-#include "../../../libDartGeometry/include/Plan.hpp"
+#include "../../libDartGeometry/include/Plan.hpp"
 #include "../../libDartBase/include/Lib_physic.h"
 
 #include <stdlib.h>
 #include <sstream>
 
-#include "../../libDependencies/memory_tools.hpp"
 #if defined(USE_GPERFTOOLS) && defined(ENABLE_TCMALLOC_PROFILER)
 	#include "../../gperftools/src/gperftools/heap-profiler.h"
 	#include "../../gperftools/src/gperftools/profiler.h"
 #endif
 #include <new>
 
-#include "../libSQLite/sqlite3.h"
+#define _ONE_GIGABYTE (1024. * 1024. * 1024.)
 
-extern "C" SQLITE_API int sqlite3_initialize(void);
+#if defined(_WIN32)
+#include <windows.h>
+static double getTotalSystemMemory() {
+	MEMORYSTATUSEX status;
+	status.dwLength = sizeof(status);
+	GlobalMemoryStatusEx(&status);
+	return (double) status.ullTotalPhys;
+}
+static double getAvailableSystemMemory() {
+	MEMORYSTATUSEX status;
+	status.dwLength = sizeof(status);
+	GlobalMemoryStatusEx(&status);
+	return (double) status.ullAvailPhys;
+}
+#else
+#include <unistd.h>
+static double getTotalSystemMemory() {
+	const long pages = sysconf(_SC_PHYS_PAGES);
+	const long pageSize = sysconf(_SC_PAGESIZE);
+	return pages > 0 ? (double) pages * (double) pageSize : 0.;
+}
+static double getAvailableSystemMemory() {
+	const long pages = sysconf(_SC_AVPHYS_PAGES);
+	const long pageSize = sysconf(_SC_PAGESIZE);
+	return pages > 0 ? (double) pages * (double) pageSize : 0.;
+}
+#endif
+
+extern "C" int sqlite3_initialize(void);
 #define TYPE_MODELISATION_LAMBERTIEN 	4
 #define TYPE_MODELISATION_SPEC 			7
 #define TYPE_MODELISATION_RPV_SPEC 	    10
@@ -523,9 +550,6 @@ int main(	int argc,
 	gest.ajouterType("profile_memory", false, "Enable memory profiling. Env variables and doc => https://gperftools.github.io/gperftools/heapprofile.html", 0, vector<string>(0));
 	gest.ajouterType("profile_cpu", false, "Enable cpu profiling. Env variables and doc => https://gperftools.github.io/gperftools/cpuprofile.html", 0, vector<string>(0));
 #endif
-	gest.ajouterType("yaml", false,
-		"The presence of this parameter indicate that input files are stored as YaMLs.\nOtherwise, it means they are stored as XMLs.", 0,
-		vector<string>(0));
 	if (!gest.parser(argc, argv)) {
 		//LOG4CPLUS_ERROR(phaseLogger, gest.getErreur());
 		cout << "Echec lancement phase:" << endl;
@@ -539,7 +563,6 @@ int main(	int argc,
 	if(gest.estPresent("profile_cpu")) ProfilerStart("");
 #endif
 
-	PhaseDAO::setYaMlUsage(gest.estPresent("yaml"));
 	// multiplicativeFactorForSpecularReflectance partir d'ici, il suffira d'appeler les macros LOG4CPLUS_XXXXX (phaseLogger, message)
 	// pour logger un message (ou XXXXX est le niveau du message : INFO, DEBUG, WARN, ERROR ou FATAL)
 	cout << endl << "               PHASE Module   " << DartEnv::getFullDARTversion() << endl;
@@ -1809,29 +1832,22 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 			tempLP.reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
 			tempLP.directTransmittance = 0.;
 			tempLP.diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
-			tempLP.standardDeviation = 0.;
-			tempLP.temperatureData.directTransmittanceTemperature = foliarProperty[spectralBandIndex].temperatureData.transmittanceTemperature;
-			tempLP.specularData.isSpecular = false;
-			tempLP.specularData._useRefraction = false;
-			tempLP.diffuseTransmittanceAccelerationFactor = foliarProperty[spectralBandIndex].diffuseTransmittanceAccelerationFactor;
-			writeLambertian(foliarModel.getEquivalentFrontLambertianIndex(modelIndex), foliarPropertyParameters.getModelName(), spectralBandIndex,
-				pkmg, outCoeffSpecProperties, tempLP, foliarProperty[spectralBandIndex].transmittance, foliarComputer.getAlbedo(spectralBandIndex),
-				listDirections);
+			// TODO: write the equivalent lambertian phase functions once the writer
+			// pipeline covers foliar-generated lambertians (writeLambertian was never
+			// implemented).
 
 			if (foliarModel.getEquivalentBackLambertianIndex(modelIndex) != foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) {
 				tempLP.reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
 				tempLP.diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
-				tempLP.diffuseTransmittanceAccelerationFactor = foliarProperty[spectralBandIndex].bottomDiffuseTransmittanceAccelerationFactor;
-				writeLambertian(foliarModel.getEquivalentBackLambertianIndex(modelIndex), foliarPropertyParameters.getModelName(),
-					spectralBandIndex, pkmg, outCoeffSpecProperties, tempLP, foliarProperty[spectralBandIndex].transmittance,
-					foliarComputer.getAlbedo(spectralBandIndex), listDirections);
+
 			}
 		}
 	}
 
 	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
-		std::vector<TemperatureFunction> temperatureFunctions;
-		PhaseDAO::readTemperatureProperties(temperatureFunctions);
+		// TODO: read the temperature functions once the equivalent-lambertian
+		// thermal keys are re-enabled (readTemperatureProperties was never
+		// implemented).
 //		for (unsigned int tmpIndex = 0; tmpIndex < temperatureFunctions.size(); tmpIndex++) {
 			// Top leave property
 			std::ostringstream keyRoot;
@@ -2668,13 +2684,13 @@ void processingAtmosphere(	PhaseGeneralParametersDTO & genDTO,
 				{
 					// Disable atmosphere phase function computation
 				} else {
-					PhaseProperty::atmospherePhaseFunction(listDirections, atmosphereParameters.minimumNumberOfDivisions);
+					PhaseProperty::atmospherePhaseFunction(listDirections, genDTO.solarDirection, atmosphereParameters.minimumNumberOfDivisions);
 					PhaseProperty::writeAtmospherePhaseFunction(listDirections);
 					if (PhaseProperty::getPolarization()) {
 						for (unsigned int spectralBandIndex = 0; spectralBandIndex < PhaseProperty::getNumberOfSpectralBands(); spectralBandIndex++) {
 							/* At the moment, concerning the polarization, the fluids are treated like Rayleigh molecules */
 							/* TODO Treat fluids "like fluids" by finding their scattering Mueller matrices (An idea: Light scattering reviews 10) */
-							PhasePolarization::computeAndWritePolarizationMatrixAtmosphere(listDirections, spectralBandIndex);
+							PhasePolarization::computeAndWritePolarizationMatrixAtmosphere(listDirections, genDTO.solarDirection, spectralBandIndex);
 						}
 					}
 				}
@@ -2772,7 +2788,8 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 
 	prepareProspect(genDTO);
 	processSurfaceMaterials(genDTO, pkmg, outCoeffSpecProperties);
-	processVegetationVolumeMaterials(genDTO);
+	VegetationVolumeMaterials vegetationMaterials = processVegetationVolumeMaterials(genDTO);
+	writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
 
 //	// Lecture des bases de données
 //	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
@@ -2847,6 +2864,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 	outCoeffSpecProperties.close();
 
 	// Databases self destruct procedure
+	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
 	vector<OpticalPropertyParameters>::iterator selfDestructEndIterator = opticalPropertiesDatabases.end();
 	for (vector<OpticalPropertyParameters>::iterator selfDestructIterator = opticalPropertiesDatabases.begin(); selfDestructIterator < selfDestructEndIterator; ++selfDestructIterator) {
 		for (unsigned int numPropertyDatabase = 0; numPropertyDatabase < selfDestructIterator->getNbDatabaseForProperty(); ++numPropertyDatabase) {
@@ -2881,7 +2899,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 
 }
 
-void processSurfaceMaterials(	const PhaseGeneralParametersDTO & genDTO,
+void processSurfaceMaterials(	PhaseGeneralParametersDTO & genDTO,
 								PhaseKeyMappingGenerator & pkmg,
 								ofstream & outCoeffSpecProperties) {
     phase::SurfaceMaterialProcessor processor;
@@ -3593,6 +3611,9 @@ void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParame
 }
 #endif // DART_WITH_NETCDF
 
+
+static std::map<unsigned int, std::string> mapPrepareProspectFoliarTop;
+static std::map<unsigned int, std::string> mapPrepareProspectFoliarBottom;
 
 vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands) {
 	vector<OpticalPropertyParameters> phaseOpticalProperties;

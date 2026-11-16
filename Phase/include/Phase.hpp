@@ -268,7 +268,7 @@ void computeOpticalPropertiesSpecular(const unsigned int& spectralBandIndex,
 										double & albedo,
 										double & dTauMoy);
 
-void processSurfaceMaterials(const PhaseGeneralParametersDTO & genDTO,  PhaseKeyMappingGenerator & pkmg, ofstream & outCoeffSpecProperties);
+void processSurfaceMaterials(PhaseGeneralParametersDTO & genDTO,  PhaseKeyMappingGenerator & pkmg, ofstream & outCoeffSpecProperties);
 
 void computeOpticalPropertiesLambertian(const unsigned int& spectralBandIndex,
 										OpticalPropertyParameters & lambertianPropertyParameters,
@@ -277,15 +277,6 @@ void computeOpticalPropertiesLambertian(const unsigned int& spectralBandIndex,
 										double & dTauMoy,
 										double & albedo);
 
-void writeLambertian(	const unsigned int& modelIndex,
-						const std::string & modelName,
-						const unsigned int& spectralBandIndex,
-						PhaseKeyMappingGenerator & pkmg,
-						std::ofstream & outCoeffSpecProperties,
-						PropertyLambertian & lambertianProperty,
-						const double & dTauMoy,
-						const double & albedo,
-						const std::vector<DirectionCartesienne> & listDirections);
 
 /* Phase Extern */
 void treatPhaseExtern(OpticalPropertyParameters & PhaseExternPropertyParameters,
@@ -391,7 +382,28 @@ void treatMixedMaterial(PhaseGeneralParametersDTO & genDTO,	unsigned int opIndex
 std::string getMaterialName(unsigned int modelType, unsigned int modelIndex);
 
 /* Foliar */
-void processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO);
+struct VegetationVolumeMaterials {
+	std::unique_ptr<FoliarModel> foliarModel;
+	std::unique_ptr<FoliarComputation> foliarComputation;
+	std::unique_ptr<LADComputation> ladComputation;
+	FTFoliar fTFoliar;
+	PointsListsNCIntegration<DirectionCartesienne> pointsListSpec;
+	PointsListsNCIntegration<DirectionCartesienne> pointsListDiff;
+	std::vector<bool> useSpectralIrradianceForReflectance;
+};
+VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO);
+double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirections,
+								double & solidAnglesSum);
+void printNumberOfFoliarModels();
+void readMultiplicativeFactor(	int & iterationStepPhi,
+								int & iterationStepTheta,
+								FoliarModel & foliarModel,
+								const PhaseGeneralParametersDTO & genDTO);
+FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
+								const vector<DirectionCartesienne> & listDirections,
+								const unsigned int & iterationStepTheta,
+								const unsigned int & iterationStepPhi,
+								const double & solidAnglesSum);
 void computeLadData(const PhaseGeneralParametersDTO & genDTO,
 					LADComputation & foliarComputer,
 					FoliarModel & foliarModel);
