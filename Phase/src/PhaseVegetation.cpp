@@ -72,7 +72,7 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
 
     /* FOLIAR precomputing */
     if (PhaseProperty::getNumberOfFoliarModels() > 0) {
-		cout << "\\tProcessing Vegetation models" << endl;
+		cout << "\tProcessing Vegetation models" << endl;
     }
 	double solidAnglesSum = 0.;
 	numberOfAngularSectors(listDirections, solidAnglesSum);
