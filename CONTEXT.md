@@ -108,9 +108,20 @@ Sandbox notes for rebuilding the prefix (no root available):
 
 ## Known TODOs / open points (next sessions)
 
-- Equivalent-lambertian from vegetation: writeLambertian and
-  PhaseDAO::readTemperatureProperties were never implemented (any commit);
-  calls dropped, marked TODO in Phase.cpp treatFoliar.
+- EQUIVALENT-LAMBERTIAN FROM VEGETATION: DONE (this session). treatFoliar now
+  builds front/back PropertyLambertian vectors and calls the public
+  LambertianMaterialWriter::writeLuxCoreMaterial(genDTO, materialIndex,
+  materialID, properties, fluorescenceResults) core (the LambertianMulti
+  overload delegates to it + adds nodeMultiplicativeFactor handling). This
+  fixes the emissivity padding (extra Q,U,V / PSI,PSII bands now zero-padded
+  via appendPerBandZeroPadded) and adds the bioClimaticFilePath key for
+  fluorescent materials. Thermal/temperature keys dropped (EmissionMaterial).
+  Foliar optical factors ("v<model>OF") still written in treatFoliar.
+  NOTE for owner: "fluorescencefiles" now comes from
+  FluorescenceResults.fileName (includes ".txt"; the old foliar block wrote
+  "fluorescence_5_<model>_<face>" WITHOUT the extension) and the material
+  "id" key is now written (old block had none) with the equivalent index.
+  PhaseDAO::readTemperatureProperties stays dropped (never implemented).
 - Prospect generation for foliar models is commented out in prepareProspect;
   mapPrepareProspectFoliarTop/Bottom are static empty maps (consumer branch
   is dead until this is finished).

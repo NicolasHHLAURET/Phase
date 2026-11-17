@@ -38,7 +38,19 @@ public:
 								const FluorescenceResults & fluorescence,
 								unsigned int materialID) const;
 
+	// Writes the LuxCore scene keys of a lambertian material. materialIndex is
+	// the phase-function index (opIndex), materialID the LuxCore material id.
+	// Usable for any lambertian-like material, including the equivalent
+	// lambertians generated from the foliar models (which have no LambertianMulti
+	// storage: the optical factors, if any, are written by the caller).
+	void writeLuxCoreMaterial(	PhaseGeneralParametersDTO & genDTO,
+									unsigned int materialIndex,
+									unsigned int materialID,
+									const std::vector<PropertyLambertian> & lambertianProperties,
+									const FluorescenceResults & fluorescenceResults) const;
+
 private:
+
 	// --- pipeline steps (private, in call order) ---
 	bool prepareDatabase(	const phsdata::LambertianMulti & lm,
 							const PhaseGeneralParametersDTO & genDTO,

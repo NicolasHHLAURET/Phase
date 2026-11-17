@@ -1818,7 +1818,8 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
 		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
 
-	PropertyLambertian tempLP;
+	std::vector<PropertyLambertian> frontEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
+	std::vector<PropertyLambertian> backEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
 	unsigned int numberOfFresnelCoefficient = 20;
 	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
 		foliarComputer.testAlbedo(spectralBandIndex, modelIndex);
@@ -1829,255 +1830,47 @@ void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
 				numberOfFresnelCoefficient, foliarModel, ladComputation);
 		}
 		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
-			tempLP.reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
-			tempLP.directTransmittance = 0.;
-			tempLP.diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
-			// TODO: write the equivalent lambertian phase functions once the writer
-			// pipeline covers foliar-generated lambertians (writeLambertian was never
-			// implemented).
-
-			if (foliarModel.getEquivalentBackLambertianIndex(modelIndex) != foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) {
-				tempLP.reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
-				tempLP.diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
-
-			}
+			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
+			frontEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+			frontEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
+			backEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
+			backEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+			backEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
 		}
 	}
 
+	/* Equivalent lambertian phase functions generated from the foliar model: the LuxCore
+	 * material keys are written by the same writer as for real lambertians (the emissivity
+	 * is padded with zeros on the extra simulated Q,U,V / PSI,PSII bands). Thermal keys
+	 * are handled separately by the EmissionMaterial. */
 	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
-		// TODO: read the temperature functions once the equivalent-lambertian
-		// thermal keys are re-enabled (readTemperatureProperties was never
-		// implemented).
-//		for (unsigned int tmpIndex = 0; tmpIndex < temperatureFunctions.size(); tmpIndex++) {
-			// Top leave property
-			std::ostringstream keyRoot;
-			keyRoot << "scene.materials." << "lambertian" << foliarModel.getEquivalentFrontLambertianIndex(modelIndex) /*<< "_" << tmpIndex*/ << ".";
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "mattetranslucent");
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "generator", "phase");
-//			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "temperatureIndex", std::to_string(tmpIndex));
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "opIndex", std::to_string(foliarModel.getEquivalentFrontLambertianIndex(modelIndex)));
-			std::ostringstream valueKr, valueKt, emissivity;
-			valueKr << setprecision(15);
-			valueKt << setprecision(15);
-			emissivity << setprecision(15);
-			valueKr << foliarProperty[0].reflectanceTop;
-			if(abs(1 - foliarProperty[0].reflectanceTop - foliarProperty[0].transmittance)<1e-15)
-				emissivity << 0.0;
-			else
-				emissivity << 1 - foliarProperty[0].reflectanceTop - foliarProperty[0].transmittance;
-			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-				valueKr << " " << foliarProperty[spectralBandIndex].reflectanceTop;
-				if(abs(1 - foliarProperty[spectralBandIndex].reflectanceTop - foliarProperty[spectralBandIndex].transmittance)<1e-15)
-					emissivity <<" "<< 0.0;
-				else
-					emissivity <<" "<< 1 - foliarProperty[spectralBandIndex].reflectanceTop - foliarProperty[spectralBandIndex].transmittance;
-			}
+		const phase::FluorescenceService fluorescenceService;
+		const phase::OpticalFactorsTextureWriter opticalFactorsTextureWriter;
+		const phase::LambertianMaterialWriter lambertianMaterialWriter(fluorescenceService, opticalFactorsTextureWriter);
 
-			if (PhaseProperty::getPolarization()) {
-				// 3 * numberOfSpectralBands are added to simulate Q, U, V
-				// The optical properties are repeated in these bands
-				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						valueKr << " " << foliarProperty[spectralBandIndex].reflectanceTop;
-					}
-				}
-			}
+		const unsigned int frontEquivalentLambertianIndex = foliarModel.getEquivalentFrontLambertianIndex(modelIndex);
+		const unsigned int backEquivalentLambertianIndex = foliarModel.getEquivalentBackLambertianIndex(modelIndex);
 
-			if (PhaseProperty::getFluorescence()) {
-				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
-				// The optical properties are repeated in these bands
-				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						valueKr << " " << foliarProperty[spectralBandIndex].reflectanceTop;
-					}
-				}
-			}
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "kr", valueKr.str());
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "emission.gain", emissivity.str());
-			if (foliarProperty[0].reflectanceTop == 1) {
-				valueKt << "0" << endl;
-			} else {
-				valueKt << (foliarProperty[0].transmittance / (1. - foliarProperty[0].reflectanceTop));
-			}
-			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-				if (foliarProperty[spectralBandIndex].reflectanceTop == 1) {
-					valueKt << " 0" << endl;
-				} else {
-					valueKt << " " << (foliarProperty[spectralBandIndex].transmittance / (1. - foliarProperty[spectralBandIndex].reflectanceTop));
-				}
-			}
+		lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, frontEquivalentLambertianIndex, frontEquivalentLambertianIndex,
+				frontEquivalentLambertianProperties, topFluorescenceResults);
 
-			if (PhaseProperty::getPolarization()) {
-				// 3 * numberOfSpectralBands are added to simulate Q, U, V
-				// The optical properties are repeated in these bands
-				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						if (foliarProperty[spectralBandIndex].reflectanceTop == 1) {
-							valueKt << " 0" << endl;
-						} else {
-							valueKt << " " << (foliarProperty[spectralBandIndex].transmittance / (1. - foliarProperty[spectralBandIndex].reflectanceTop));
-						}
-					}
-				}
-			}
+		if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+			lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, backEquivalentLambertianIndex, backEquivalentLambertianIndex,
+					backEquivalentLambertianProperties, bottomFluorescenceResults);
+		}
 
-			if (PhaseProperty::getFluorescence()) {
-				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
-				// The optical properties are repeated in these bands
-				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						if (foliarProperty[spectralBandIndex].reflectanceTop == 1) {
-							valueKt << " 0" << endl;
-						} else {
-							valueKt << " " << (foliarProperty[spectralBandIndex].transmittance / (1. - foliarProperty[spectralBandIndex].reflectanceTop));
-						}
-					}
-				}
-			}
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "kt", valueKt.str());
-
-			if (PhaseProperty::getFluorescence() && topFluorescenceResults.isFluorescent) {
-				if (topFluorescenceResults.useBioCLimaticProfileEta) {
-					string bcFilePath = DartEnv::getFilePathForRead(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
-					vector<double> bioClimaticThetaValues, bioClimaticPhiValues;
-					vector<vector<vector<double> > > bioClimaticProfileEta;
-					readBioClimaticFile(bcFilePath, bioClimaticThetaValues, bioClimaticPhiValues, bioClimaticProfileEta);
-				}
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "fluorescent");
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "fluorescencefiles", "fluorescence_5_" + std::to_string(modelIndex) + "_0");
-				if (topFluorescenceResults.useBioCLimaticProfileEta) {
-					genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "useBioCLimaticProfileEta", "1");
-//					string bioClimaticFileRelativePath = DartEnv::getFilePath(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
-					genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "bioClimaticFilePath", topFluorescenceResults.bioClimaticFileRelativePath);
-				} else {
-					genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "useBioCLimaticProfileEta", "0");
-				}
-			}
-
-			OpticalFactorParameters opticalFactorParameters;
-			if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
-				std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "opticalFactors", textureName);
-			}
-
-			if (foliarModel.getEquivalentBackLambertianIndex(modelIndex) != foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) {
-				// Bottom leave property
-				keyRoot.str("");
-				keyRoot << "scene.materials." << "lambertian" << foliarModel.getEquivalentBackLambertianIndex(modelIndex) /*<< "_" << tmpIndex*/ << ".";
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "mattetranslucent");
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "generator", "phase");
-//				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "temperatureIndex", std::to_string(tmpIndex));
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "opIndex", std::to_string(foliarModel.getEquivalentBackLambertianIndex(modelIndex)));
-				valueKr.str("");
-				emissivity.str("");
-				valueKr << foliarProperty[0].reflectanceBottom;
-				if(abs(1 - foliarProperty[0].reflectanceBottom - foliarProperty[0].bottomTransmittance)<1e-15)
-					emissivity << 0.0;
-				else
-					emissivity << 1 - foliarProperty[0].reflectanceBottom - foliarProperty[0].bottomTransmittance;
-				for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-					valueKr << " " << foliarProperty[spectralBandIndex].reflectanceBottom;
-					if(abs(1 - foliarProperty[spectralBandIndex].reflectanceBottom - foliarProperty[spectralBandIndex].bottomTransmittance)<1e-15)
-						emissivity <<" "<< 0.0;
-					else
-						emissivity <<" "<< 1 - foliarProperty[spectralBandIndex].reflectanceBottom - foliarProperty[spectralBandIndex].bottomTransmittance;
-				}
-
-				if (PhaseProperty::getPolarization()) {
-					// 3 * numberOfSpectralBands are added to simulate Q, U, V
-					// The optical properties are repeated in these bands
-					for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
-						for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-							valueKr << " " << foliarProperty[spectralBandIndex].reflectanceBottom;
-						}
-					}
-				}
-
-				if (PhaseProperty::getFluorescence()) {
-					// 2 * numberOfSpectralBands are added to simulate PSI and PSII
-					// The optical properties are repeated in these bands
-					for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
-						for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-							valueKr << " " << foliarProperty[spectralBandIndex].reflectanceBottom;
-						}
-					}
-				}
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "kr", valueKr.str());
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "emission.gain", emissivity.str());
-				valueKt.str("");
-				if (foliarProperty[0].reflectanceBottom == 1) {
-					valueKt << "0" << endl;
-				} else {
-					valueKt << (foliarProperty[0].bottomTransmittance / (1. - foliarProperty[0].reflectanceBottom));
-				}
-				for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-					if (foliarProperty[spectralBandIndex].reflectanceBottom == 1) {
-						valueKt << " 0" << endl;
-					} else {
-						valueKt << " " << (foliarProperty[spectralBandIndex].bottomTransmittance / (1. - foliarProperty[spectralBandIndex].reflectanceBottom));
-					}
-				}
-
-				if (PhaseProperty::getPolarization()) {
-					// 3 * numberOfSpectralBands are added to simulate Q, U, V
-					// The optical properties are repeated in these bands
-					for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
-						for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-							if (foliarProperty[spectralBandIndex].reflectanceBottom == 1) {
-								valueKt << " 0" << endl;
-							} else {
-								valueKt << " " << (foliarProperty[spectralBandIndex].bottomTransmittance / (1. - foliarProperty[spectralBandIndex].reflectanceBottom));
-							}
-						}
-					}
-				}
-
-				if (PhaseProperty::getFluorescence()) {
-					// 2 * numberOfSpectralBands are added to simulate PSI and PSII
-					// The optical properties are repeated in these bands
-					for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
-						for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-							if (foliarProperty[spectralBandIndex].reflectanceBottom == 1) {
-								valueKt << " 0" << endl;
-							} else {
-								valueKt << " " << (foliarProperty[spectralBandIndex].bottomTransmittance / (1. - foliarProperty[spectralBandIndex].reflectanceBottom));
-							}
-						}
-					}
-				}
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "kt", valueKt.str());
-
-				if (PhaseProperty::getFluorescence() && bottomFluorescenceResults.isFluorescent) {
-					if (hasDifferentBottom) {
-						if (bottomFluorescenceResults.useBioCLimaticProfileEta) {
-							string bcFilePath = DartEnv::getFilePathForRead(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
-							vector<double> bioClimaticThetaValues, bioClimaticPhiValues;
-							vector<vector<vector<double> > > bioClimaticProfileEta;
-							readBioClimaticFile(bcFilePath, bioClimaticThetaValues, bioClimaticPhiValues, bioClimaticProfileEta);
-						}
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "fluorescent");
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "fluorescencefiles", "fluorescence_5_" + std::to_string(modelIndex) + "_1");
-					} else {
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "fluorescent");
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "fluorescencefiles", "fluorescence_5_" + std::to_string(modelIndex) + "_0");
-					}
-					if (bottomFluorescenceResults.useBioCLimaticProfileEta) {
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "useBioCLimaticProfileEta", "1");
-	//					string bioClimaticFileRelativePath = DartEnv::getFilePath(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "bioClimaticFilePath", bottomFluorescenceResults.bioClimaticFileRelativePath);
-					} else {
-						genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "useBioCLimaticProfileEta", "0");
-					}
-				}
-
-				OpticalFactorParameters opticalFactorParameters;
-				if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
-					std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
-					genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "opticalFactors", textureName);
-				}
+		/* Optical factors of the equivalent lambertians come from the foliar model */
+		OpticalFactorParameters opticalFactorParameters;
+		if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
+			const std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(
+					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", textureName);
+			if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+				genDTO.luxCoreRenderSceneProperties.ajouterCle(
+						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", textureName);
 			}
 		}
-//	}
+	}
 }
 
 void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaValues,

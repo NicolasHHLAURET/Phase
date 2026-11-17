@@ -137,8 +137,35 @@ void LambertianMaterialWriter::writeLuxCoreMaterial(const phsdata::LambertianMul
 							  const std::vector<PropertyLambertian> & lambertianProperties,
 							  const FluorescenceResults & fluorescenceResults,
 							  unsigned int materialID) const {
+	writeLuxCoreMaterial(genDTO, lm.indexFunction, materialID, lambertianProperties, fluorescenceResults);
+
+	if (lm.nodeMultiplicativeFactor.is_initialized()) {
+		const phsdata::MultiplicativeFactorList & mfl = *lm.nodeMultiplicativeFactor;
+		bool useOpticalFactorMatrix = mfl.useSameOpticalFactorMatrixForAllBands && mfl.bandCommonOpticalFactors.is_initialized();
+		if (!useOpticalFactorMatrix) {
+			const unsigned int nbFactors = std::min<unsigned int>(genDTO.numberOfSpectralBands, mfl.factors.size());
+			for (unsigned int sbi = 0; sbi < nbFactors && !useOpticalFactorMatrix; sbi++)
+				useOpticalFactorMatrix = mfl.factors[sbi]->useOpticalFactorMatrix && mfl.factors[sbi]->opticalFactorMatrix.is_initialized();
+		}
+
+		if (useOpticalFactorMatrix) {
+			const std::string textureName = "l" + std::to_string(lm.indexFunction) + "OF";
+			const boost::filesystem::path outputDir = boost::filesystem::path(DartEnv::getCurrentSimulationOutputPath()) / PhaseUtils::getOutputFolder();
+			if (outputDir.empty())
+				throw std::runtime_error("Output directory path is empty");
+			if (_opticalFactorsWriter.writeTexture(genDTO, textureName, mfl, outputDir.string()))
+				genDTO.luxCoreRenderSceneProperties.ajouterCle("scene.materials.lambertian" + std::to_string(lm.indexFunction) + ".opticalFactors", textureName);
+		}
+	}
+}
+
+void LambertianMaterialWriter::writeLuxCoreMaterial(	PhaseGeneralParametersDTO & genDTO,
+							unsigned int materialIndex,
+							unsigned int materialID,
+							const std::vector<PropertyLambertian> & lambertianProperties,
+							const FluorescenceResults & fluorescenceResults) const {
 	const unsigned int nbBands = genDTO.numberOfSpectralBands;
-	const std::string keyRoot = "scene.materials.lambertian" + std::to_string(lm.indexFunction) + ".";
+	const std::string keyRoot = "scene.materials.lambertian" + std::to_string(materialIndex) + ".";
 
    // Fluorescent only if the matrices were actually computed and written successfully.
 	const bool fluorescentMaterial = PhaseProperty::getFluorescence() && fluorescenceResults.isFluorescent;
@@ -155,7 +182,7 @@ void LambertianMaterialWriter::writeLuxCoreMaterial(const phsdata::LambertianMul
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "type", materialType);
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "generator", "phase");
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "id", std::to_string(materialID));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "opIndex", std::to_string(lm.indexFunction));
+	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "opIndex", std::to_string(materialIndex));
 
 	const bool hasDirectTransmittance = std::any_of(lambertianProperties.begin(), lambertianProperties.end(), [](const PropertyLambertian & p) {return p.directTransmittance > 0.;});
 	if (hasDirectTransmittance) {
@@ -207,26 +234,10 @@ void LambertianMaterialWriter::writeLuxCoreMaterial(const phsdata::LambertianMul
 	if (fluorescentMaterial) {
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "fluorescencefiles", fluorescenceResults.fileName);
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "useBioCLimaticProfileEta", fluorescenceResults.useBioCLimaticProfileEta ? "1" : "0");
+		if (fluorescenceResults.useBioCLimaticProfileEta)
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "bioClimaticFilePath", fluorescenceResults.bioClimaticFileRelativePath);
 	}
 
-	if (lm.nodeMultiplicativeFactor.is_initialized()) {
-		const phsdata::MultiplicativeFactorList & mfl = *lm.nodeMultiplicativeFactor;
-		bool useOpticalFactorMatrix = mfl.useSameOpticalFactorMatrixForAllBands && mfl.bandCommonOpticalFactors.is_initialized();
-		if (!useOpticalFactorMatrix) {
-			const unsigned int nbFactors = std::min<unsigned int>(nbBands, mfl.factors.size());
-			for (unsigned int sbi = 0; sbi < nbFactors && !useOpticalFactorMatrix; sbi++)
-				useOpticalFactorMatrix = mfl.factors[sbi]->useOpticalFactorMatrix && mfl.factors[sbi]->opticalFactorMatrix.is_initialized();
-		}
-
-		if (useOpticalFactorMatrix) {
-			const std::string textureName = "l" + std::to_string(lm.indexFunction) + "OF";
-			const boost::filesystem::path outputDir = boost::filesystem::path(DartEnv::getCurrentSimulationOutputPath()) / PhaseUtils::getOutputFolder();
-			if (outputDir.empty())
-				throw std::runtime_error("Output directory path is empty");
-			if (_opticalFactorsWriter.writeTexture(genDTO, textureName, mfl, outputDir.string()))
-				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "opticalFactors", textureName);
-		}
-	}
 }
 
 void LambertianMaterialWriter::checkAlbedo(	const string & modelName,
