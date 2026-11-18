@@ -1,0 +1,101 @@
+From 810cfe038bdd5e21f855bc6296a55c1e9849b80d Mon Sep 17 00:00:00 2001
+From: Vibe <vibe@localhost>
+Date: Wed, 18 Nov 2026 15:11:42 +0000
+Subject: [PATCH] Document verified patch-transfer pitfalls and
+ hash-verification protocol in CONTEXT.md
+
+Records the two lossy modes observed while delivering the equivalent-lambertian
+patch (receiver-side tab/whitespace mangling of plain patches; sender-side
+character slips in long base64 pastes, incl. silent ones), with the evidence
+commits (b708ea6, 11a774d, f65f439, 39e3635), and the chunked-base64 +
+per-chunk sha256 protocol to use while git push is unavailable.
+---
+ CONTEXT.md | 62 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 54 insertions(+), 8 deletions(-)
+
+diff --git a/CONTEXT.md b/CONTEXT.md
+index c42b748..705a8e6 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -18,10 +18,12 @@ Decisions taken by the owner:
+   CMake option DART_WITH_NETCDF (default OFF). Atmosphere "without database"
+   prints an error when built without it.
+ - Libraries stay separate for now; dead-code removal comes last.
+-- Patch-based delivery: the assistant cannot push (no GitHub connector),
+-  so changes are delivered as `git format-patch` output pasted in chat and
+-  applied with `git am` (use `git am --ignore-whitespace` if tabs get mangled;
+-  the `index <sha>..<sha>` lines are informational and may be hand-fixed).
++- Patch-based delivery: sessions have no GitHub connector and cannot push
++  (anonymous clone/fetch of this public repo works, push does not), so changes
++  are delivered as patches pasted in chat. Always use the "Patch transfer
++  protocol" section at the end of this file: long payloads go as base64 in
++  small hash-verified chunks; raw pasted patches risk whitespace mangling and
++  sender-side character slips.
+ 
+ ## Build state (last verified)
+ 
+@@ -140,13 +142,57 @@ Sandbox notes for rebuilding the prefix (no root available):
+ 
+ ## Pitfalls encountered (do not rediscover)
+ 
+-- git format-patch pasted in chat can get mangled (tabs). If git am fails on
+-  whitespace, retry with --ignore-whitespace; blob shas in headers are not
+-  verified and may be edited by hand.
+-- Sessions cannot push to GitHub (connector disabled). Delivery = patches.
++- Chat transfer of patches is lossy in TWO ways (see the "Patch transfer
++  protocol" section at the end of this file):
++  (a) receiver-side whitespace mangling: tabs in pasted plain patches become
++      spaces or a literal "\t" (observed on the test patch committed in
++      b708ea6: git am "Corrupt patch at line 59", git apply "corrupt patch at
++      line 76"; the "\t" slip was fixed in 11a774d). Retry with
++      `git am --ignore-whitespace`; `index  lines and blob shas in headers are
++      not verified and may be hand-fixed.
++  (b) sender-side character slips in long pastes, on ANY character, not just
++      tabs -- plain patches included. Verified on eqLambertian.b64 (added in
++      f65f439, removed in 39e3635): a 489-line base64 arrived with 3 harmful
++      edits (lines 23 and 231: one substituted char each; line 379: one
++      inserted char making 77 chars, so the stream length mod 4 = 1 and
++      `base64 -d` fails with "invalid input") plus one harmless line split
++      (lines 249-252). Two of the three harmful edits were SILENT: base64
++      decoded fine, to wrong bytes. In a plain patch a slipped char usually
++      fails loudly at apply time; in base64 it can pass silently. Rule:
++      successful decode/apply proves nothing -- only a sha256 match does.
++- Sessions cannot push to GitHub (connector disabled). Delivery = patches per
++  the protocol below; the owner pushes, sessions fetch anonymously.
+ - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
+   Boost::filesystem etc. only exist when requested. Boost::lexical_cast does
+   NOT exist as a target (header-only): use Boost::boost.
+ - SOCI 4.2 use() does not accept temporaries (dangling-ref protection).
+ - The sandbox has no root; no apt mirrors; build deps from github clones.
+ - Long/background builds die between tool calls; keep builds in one command.
++
++## Patch transfer protocol (no push access) — verified 2026-11-18
++
++Two corruption modes exist (see Pitfalls): whitespace mangling of plain
++patches, and sender-side character slips in long pastes. Neither is visible by
++the eye, so every payload is hash-verified:
++
++1. Default payload is base64 (plain ASCII lines, immune to whitespace
++   mangling): `base64 -w 76 0005-x.patch > 0005-x.patch.b64`.
++2. Send it in chunks of <= 50 lines (`split -l 50 0005-x.patch.b64 chunk_`),
++   one code block per chunk, each preceded by its `sha256sum`. The receiver
++   saves and verifies each chunk; on mismatch the sender re-sends only that
++   chunk. Reassemble in order: `cat chunk_* > 0005-x.patch.b64`.
++3. Receiver's authoritative check: `base64 -d 0005-x.patch.b64 | sha256sum`
++   must equal the sender's decoded-patch sha256 (the whole-file sha256 may
++   differ by a trailing newline; the decoded hash may not). Then:
++   `base64 -d 0005-x.patch.b64 > 0005-x.patch && git am 0005-x.patch`.
++4. Small plain-text patches (< ~100 lines) may be pasted raw; on tab mangling
++   retry `git am --ignore-whitespace`.
++5. Surgical repair of a nearly-correct received payload: the sender sends only
++   the differing lines, each with its own sha256; the receiver patches by line
++   number with a short script, then verifies the final decoded hash. Proven on
++   eqLambertian.b64: all four fix-snippet hashes matched the reconstructed
++   original byte-exactly.
++6. Never paste a > ~500-line payload in one block -- that is exactly how the
++   four eqLambertian.b64 corruptions happened. Prefer several small patches
++   over one big one: small blocks + per-chunk hashes make any slip detectable
++   and cheap to repair.
+-- 
+2.47.3
+
