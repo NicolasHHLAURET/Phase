@@ -1,0 +1,116 @@
+From 3f8c27e4a54d84a93e5b3f87644aae78ccedc493 Mon Sep 17 00:00:00 2001
+From: Vibe <vibe@localhost>
+Date: Wed, 18 Nov 2026 16:01:47 +0000
+Subject: [PATCH] Revise patch transfer protocol: plain-text default +
+ push-back repair loop; base64 as fallback
+
+Two verified sender-side slip incidents in base64 payloads: eqLambertian.b64
+(f65f439/39e3635) had an insertion (77-char dciIg line -> stream shift ->
+base64 'invalid input') plus two silent substitutions; the CONTEXT.md patch
+chunk_aa (receiver evidence in 416dcfb) had a single substitution corrupting
+one quantum inside an ADDED diff line, so git am applied it silently and only
+the per-chunk sha256 caught it. Plain patches fail loudly ('corrupt patch at
+line N'), so they are now the default, gated by sha256 + git apply --check,
+with a repair loop (receiver pushes the received file to transfer/failed/,
+sender fetches, diffs locally, sends only a minimal correction).
+---
+ CONTEXT.md | 74 ++++++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 66 insertions(+), 8 deletions(-)
+
+diff --git a/CONTEXT.md b/CONTEXT.md
+index c42b748..552c079 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -18,10 +18,12 @@ Decisions taken by the owner:
+   CMake option DART_WITH_NETCDF (default OFF). Atmosphere "without database"
+   prints an error when built without it.
+ - Libraries stay separate for now; dead-code removal comes last.
+-- Patch-based delivery: the assistant cannot push (no GitHub connector),
+-  so changes are delivered as `git format-patch` output pasted in chat and
+-  applied with `git am` (use `git am --ignore-whitespace` if tabs get mangled;
+-  the `index <sha>..<sha>` lines are informational and may be hand-fixed).
++- Patch-based delivery: sessions have no GitHub connector and cannot push
++  (anonymous clone/fetch of this public repo works, push does not), so changes
++  are delivered as patches pasted in chat. Follow the "Patch transfer
++  protocol" section at the end of this file: small PLAIN-TEXT patches with a
++  sha256 gate + `git apply --check`, a push-back repair loop on failure, and
++  chunked base64 only as a fallback for whitespace-critical payloads.
+
+ ## Build state (last verified)
+
+@@ -140,13 +142,69 @@ Sandbox notes for rebuilding the prefix (no root available):
+
+ ## Pitfalls encountered (do not rediscover)
+
+-- git format-patch pasted in chat can get mangled (tabs). If git am fails on
+-  whitespace, retry with --ignore-whitespace; blob shas in headers are not
+-  verified and may be edited by hand.
+-- Sessions cannot push to GitHub (connector disabled). Delivery = patches.
++- Chat transfer of patches is lossy in TWO ways (see the "Patch transfer
++  protocol" section at the end of this file):
++  (a) receiver-side whitespace mangling: tabs in pasted plain patches become
++      spaces or a literal "\t" (observed on the test patch committed in
++      b708ea6: git am "Corrupt patch at line 59", git apply "corrupt patch at
++      line 76"; the "\t" slip was fixed in 11a774d). Retry with
++      `git am --ignore-whitespace`; `index` lines and blob shas in headers are
++      not verified and may be hand-fixed.
++  (b) sender-side character slips in long pastes, on ANY character, not just
++      tabs -- plain patches included. Verified on eqLambertian.b64 (added in
++      f65f439, removed in 39e3635): a 489-line base64 arrived with 3 harmful
++      edits (lines 23 and 231: one substituted char each; line 379: one
++      inserted char making 77 chars, so the stream length mod 4 = 1 and
++      `base64 -d` fails with "invalid input") plus one harmless line split
++      (lines 249-252). Two of the three harmful edits were SILENT: base64
++      decoded fine, to wrong bytes. In a plain patch a slipped char usually
++      fails loudly at apply time; in base64 it can pass silently. Rule:
++      successful decode/apply proves nothing -- only a sha256 match does.
++      Second incident (same day: the CONTEXT.md patch sent as 3 base64 chunks,
++      receiver evidence in commit 416dcfb): one SUBSTITUTED char in chunk_aa
++      line 48 corrupted a single 4-char quantum; the bad bytes landed in an
++      ADDED diff line, so `git am` applied it silently (typo "`index`" ->
++      "`index  " in the new text) and only the per-chunk sha256 flagged
++      chunk_aa (ab/ac matched). Substitutions keep the stream aligned;
++      insertions/deletions shift it (the dciIg 77-char line above).
++- Sessions cannot push to GitHub (connector disabled). Delivery = patches per
++  the protocol below; the owner pushes, sessions fetch anonymously.
+ - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
+   Boost::filesystem etc. only exist when requested. Boost::lexical_cast does
+   NOT exist as a target (header-only): use Boost::boost.
+ - SOCI 4.2 use() does not accept temporaries (dangling-ref protection).
+ - The sandbox has no root; no apt mirrors; build deps from github clones.
+ - Long/background builds die between tool calls; keep builds in one command.
++
++## Patch transfer protocol (no push access) — verified 2026-11-18, revised same day
++
++Corruption modes (see Pitfalls): receiver-side whitespace mangling of plain
++patches, and sender-side character slips in long pastes. Base64 slips have two
++shapes: a SUBSTITUTION keeps the stream aligned and corrupts only its own
++4-char quantum (up to 3 bytes) -- it can even apply silently if the bad bytes
++land in an added diff line (observed: CONTEXT.md patch chunk_aa, commit
++416dcfb), so only the hash catches it; an INSERTION/DELETION shifts the whole
++stream (the dciIg 77-char line of eqLambertian.b64 -> "invalid input").
++Plain-text patch slips fail LOUDLY ("corrupt patch at line N"), and structured
++text is emitted more reliably than base64 -- so plain text is the default:
++
++1. Prefer PLAIN-TEXT patches, kept small: split one logical change into
++   several patches of <= ~100 lines each (slip probability grows with payload
++   length).
++2. Every patch travels with its `sha256sum` in the message. Receiver gates, in
++   order: (a) sha256sum match; (b) `git apply --check`; then `git am`. On tab
++   mangling, `git am --ignore-whitespace` (index/blob-sha lines are not
++   verified and may be hand-fixed).
++3. Repair loop on ANY gate failure: the receiver pushes the file as received
++   into a dedicated folder (e.g. `transfer/failed/`) on the repo; the sender
++   fetches it anonymously, diffs locally against the true file, and sends back
++   ONLY a minimal correction -- the differing lines by number, each with its
++   own sha256, or a short python script -- never the whole payload. Final
++   check: sha256 of the repaired file.
++4. Base64 fallback only for whitespace-critical payloads (tabs inside string
++   literals, ...) or after repeated plain-text failures: `base64 -w 76`, then
++   chunks of <= 50 lines (`split -l 50`), one code block per chunk, each
++   preceded by its `sha256sum`; re-send only the failed chunk(s); reassemble
++   `cat chunk_* > p.b64`; authoritative check `base64 -d p.b64 | sha256sum`
++   == sender's decoded-patch sha256 (the whole-file hash may differ by a
++   trailing newline). Decode/apply success proves nothing -- only the hash.
+--
+2.47.3
