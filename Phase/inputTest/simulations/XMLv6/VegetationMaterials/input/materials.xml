@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Materials useCombinedYield="0">
+        <Surfaces>
+            <LambertianMultiFunctions>
+                <LambertianMulti useMultiplicativeFactorForLUT="1" indexFunction="0" functionName="Lambertian_001" lambertianDefinition="0">
+                    <Lambertian modelName="reflect_equal_1_trans_equal_0_0" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="0"/>
+                    </Lambertian>
+                    <LambertianNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                        <LambertianMultiplicativeFactorForLUT useOpticalFactorMatrix="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                    </LambertianNodeMultiplicativeFactorForLUT>
+                </LambertianMulti>
+                <LambertianMulti useMultiplicativeFactorForLUT="1" indexFunction="1" functionName="Lambertian_002" lambertianDefinition="0">
+                    <Lambertian modelName="reflect_equal_1_trans_equal_0_0" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="1">
+                            <ProspectExternParameters isV2Z="0" cbc="0.009" cp="0.001" cm="0.01" anthocyanin="0.0" useCm="0" cw="0.012" cBrown="0.0" car="10.0" cab="40.0" n="1.5"/>
+                        </ProspectExternalModule>
+                    </Lambertian>
+                    <LambertianNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                        <LambertianMultiplicativeFactorForLUT useOpticalFactorMatrix="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                    </LambertianNodeMultiplicativeFactorForLUT>
+                </LambertianMulti>
+                <LambertianMulti useMultiplicativeFactorForLUT="1" indexFunction="2" functionName="Lambertian_003" lambertianDefinition="0">
+                    <Lambertian modelName="reflect_equal_1_trans_equal_0_0" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="1" useProspectExternalModule="0">
+                            <ProspectExternParameters isV2Z="0" cbc="0.009" cp="0.001" cm="0.01" anthocyanin="0.0" useCm="0" cw="0.012" cBrown="0.0" car="10.0" cab="40.0" n="1.5"/>
+                            <FluorescenceYields forceYields="0"/>
+                        </ProspectExternalModule>
+                    </Lambertian>
+                    <LambertianNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                        <LambertianMultiplicativeFactorForLUT useOpticalFactorMatrix="0" diffuseTransmittanceFactor="1.0" directTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                    </LambertianNodeMultiplicativeFactorForLUT>
+                </LambertianMulti>
+            </LambertianMultiFunctions>
+            <HapkeSpecularMultiFunctions/>
+            <RPVMultiFunctions/>
+            <PhaseExternMultiFunctions/>
+            <SpecularMultiFunctions/>
+            <MixedMultiFunctions/>
+        </Surfaces>
+        <Volumes>
+            <UnderstoryMultiFunctions integrationStepOnPhi="10" integrationStepOnTheta="1" outputLADFile="0">
+                <UnderstoryMulti hasDifferentModelForBottom="0" thermalHotSpotFactor="0.1" dimFoliar="0.01" lad="1" indexFunction="0" functionName="Vegetation_001">
+                    <UnderstoryMultiModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="0"/>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiModel>
+                    <DirectionalClumpingIndexProperties clumpingb="0.0" clumpinga="0.0" omegaMax="0.0" omegaMin="1.0"/>
+                    <DirectionSetLink indexDirectionSetLink="0"/>
+                </UnderstoryMulti>
+                <UnderstoryMulti hasDifferentModelForBottom="1" thermalHotSpotFactor="0.1" dimFoliar="0.01" lad="1" indexFunction="1" functionName="Vegetation_002">
+                    <UnderstoryMultiTopModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="0"/>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiTopModel>
+                    <UnderstoryMultiBottomModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="1" useProspectExternalModule="0">
+                            <ProspectExternParameters isV2Z="0" cbc="0.009" cp="0.001" cm="0.01" anthocyanin="0.0" useCm="0" cw="0.012" cBrown="0.0" car="10.0" cab="40.0" n="1.5"/>
+                            <FluorescenceYields forceYields="1">
+<Yields yieldPSII="0.01" yieldPSI="0.002"/>
+                            </FluorescenceYields>
+                        </ProspectExternalModule>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiBottomModel>
+                    <DirectionalClumpingIndexProperties clumpingb="0.0" clumpinga="0.0" omegaMax="0.0" omegaMin="1.0"/>
+                    <DirectionSetLink indexDirectionSetLink="0"/>
+                </UnderstoryMulti>
+                <UnderstoryMulti hasDifferentModelForBottom="1" thermalHotSpotFactor="0.1" dimFoliar="0.01" lad="1" indexFunction="2" functionName="Vegetation_003">
+                    <UnderstoryMultiTopModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="1">
+                            <ProspectExternParameters isV2Z="0" cbc="0.009" cp="0.001" cm="0.01" anthocyanin="0.0" useCm="0" cw="0.012" cBrown="0.0" car="10.0" cab="40.0" n="1.5"/>
+                        </ProspectExternalModule>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiTopModel>
+                    <UnderstoryMultiBottomModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="0"/>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiBottomModel>
+                    <DirectionalClumpingIndexProperties clumpingb="0.0" clumpinga="0.0" omegaMax="0.0" omegaMin="1.0"/>
+                    <DirectionSetLink indexDirectionSetLink="0"/>
+                </UnderstoryMulti>
+                <UnderstoryMulti hasDifferentModelForBottom="1" thermalHotSpotFactor="0.1" dimFoliar="0.01" lad="1" indexFunction="3" functionName="Vegetation_004">
+                    <UnderstoryMultiTopModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="0" useProspectExternalModule="0"/>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiTopModel>
+                    <UnderstoryMultiBottomModel useMultiplicativeFactorForLUT="1" modelName="leaf_deciduous" databaseName="Lambertian_vegetation.db">
+                        <ProspectExternalModule isFluorescent="1" useProspectExternalModule="1">
+                            <ProspectExternParameters isV2Z="0" cbc="0.009" cp="0.001" cm="0.01" anthocyanin="0.0" useCm="0" cw="0.012" cBrown="0.0" car="10.0" cab="40.0" n="1.5"/>
+                            <FluorescenceYields forceYields="0"/>
+                        </ProspectExternalModule>
+                        <UnderstoryNodeMultiplicativeFactorForLUT useSameOpticalFactorMatrixForAllBands="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0" useSameFactorForAllBands="1">
+                            <UnderstoryMultiplicativeFactorForLUT useOpticalFactorMatrix="0" leafTransmittanceFactor="1.0" reflectanceFactor="1.0"/>
+                        </UnderstoryNodeMultiplicativeFactorForLUT>
+                    </UnderstoryMultiBottomModel>
+                    <DirectionalClumpingIndexProperties clumpingb="0.0" clumpinga="0.0" omegaMax="0.0" omegaMin="1.0"/>
+                    <DirectionSetLink indexDirectionSetLink="0"/>
+                </UnderstoryMulti>
+            </UnderstoryMultiFunctions>
+            <AirMultiFunctions/>
+        </Volumes>
+        <EmissionFunction skylForIlluminatioRatio="0.0">
+            <IlluminationRatio precomputed="1" profile="0" frontIlluminationOnly="0" emissionUnit="0" indexEmission="0" emissionName="Temperature_290_310">
+                <TemperatureRange maxK="320.0" minK="280.0"/>
+            </IlluminationRatio>
+        </EmissionFunction>
+        <Types>
+            <Type indexType="0" typeColor="255 255 255" typeName="Empty"/>
+            <Type indexType="1" typeColor="0 255 255" typeName="Air"/>
+            <Type indexType="2" typeColor="200 123 8" typeName="Soil"/>
+            <Type indexType="3" typeColor="0 0 255" typeName="Water"/>
+            <Type indexType="5" typeColor="0 255 0" typeName="Plot"/>
+            <Type indexType="6" typeColor="0 175 0" typeName="Canopy"/>
+            <Type indexType="10" typeColor="244 226 164" typeName="Wall"/>
+            <Type indexType="11" typeColor="71 55 25" typeName="Trunc"/>
+            <Type indexType="12" typeColor="255 107 0" typeName="Roof"/>
+            <Type indexType="15" typeColor="81 55 25" typeName="Twig"/>
+            <Type indexType="20" typeColor="0 255 255" typeName="Atmosphere"/>
+            <Type indexType="21" typeColor="255 255 0" typeName="Sun"/>
+            <Type indexType="23" typeColor="200 20 255" typeName="Lidar"/>
+            <Type indexType="24" typeColor="150 150 0" typeName="Other_light"/>
+            <Type indexType="101" typeColor="125 0 125" typeName="Default_Object"/>
+            <Type indexType="102" typeColor="0 175 0" typeName="Leaf"/>
+            <Type indexType="103" typeColor="71 55 25" typeName="Trunk"/>
+        </Types>
+    </Materials>
+</DartFile>

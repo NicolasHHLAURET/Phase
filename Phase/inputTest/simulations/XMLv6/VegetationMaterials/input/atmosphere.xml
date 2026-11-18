@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Atmosphere indexTypeLink="20" transfer_TOAtoBOA="2">
+        <IsAtmosphere typeOfAtmosphere="1">
+            <AtmosphericOpticalPropertyModel scaleOtherGases="0" ignoreGasForExtrapolation="0" co2MixRate="365.0" correctionBandModel="1" redefTemperature="0" precipitableWaterAmountCkeckbox="0" gasGroup="1" temperatureModelName="USSTD76" gasCumulativeModelName="USSTD76" gasModelName="USSTD76" databaseName="dart_atmosphere.db"/>
+        </IsAtmosphere>
+        <Aerosol>
+            <AerosolProperties aerosolOptDepthFactor="1.0" hgParametersModelName="RURALV23" aerosolCumulativeModelName="RURALV23" aerosolsModelName="USSTD76_RURALV23" databaseName="dart_atmosphere.db"/>
+        </Aerosol>
+        <AtmosphereRadiativeTransfer atmosphericRadiativeTransfer="0">
+            <DirectionSetLink indexDirectionSetLink="0"/>
+            <HybridAtmosphere useDifferentCellDimensions="0" isRadiativeTransfertInBottomAtmosphereDefined="0">
+                <HybridAtmosphereBRFMap targetRayDensityPerDirection="50" brfResolution="1.0"/>
+            </HybridAtmosphere>
+            <AtmosphereGeometry heightOfSensor="3000.0">
+                <MidAtmosphere hCFAI="4000.0" zAI="500.0"/>
+                <UpperAtmosphere hCFHA="80000.0" zHA="2000.0"/>
+            </AtmosphereGeometry>
+        </AtmosphereRadiativeTransfer>
+    </Atmosphere>
+</DartFile>

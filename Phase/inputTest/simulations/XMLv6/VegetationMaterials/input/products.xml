@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Products>
+        <SensorProducts additionnalProduct="0">
+            <ImageSimulationProducts/>
+            <BRFCameraProducts>
+                <BRFCameraProduct perLightSource="0" periodicSaveMethod="1" writeBrf="1" generatePerTypeProduct="0" targetRayDensityPerDirection="50" brfResolution="1.0" luminanceProducts="0" productName="IMPORT_DART6_GLOBAL_BRF_MAP" indexCameraLink="0">
+                    <PeriodicSaveByTime periodicSaveTime="20"/>
+                    <BRFProduct indexDirectionSetLink="0"/>
+                </BRFCameraProduct>
+            </BRFCameraProducts>
+            <LidarProducts/>
+            <RadiativeBudgetProducts/>
+        </SensorProducts>
+        <MaketProducts objectGeneration="0" areaMaketProducts="0" laiProducts="0"/>
+        <AtmosphereProducts atmosphereReport="0" ordreUnAtmos="0" atmosphereBRF_TOA="0" atmosphereRadiance_BOA_apresCouplage="0" atmosphereRadiance_BOA_avantCouplage="0"/>
+        <FluorescenceProducts useFluorescenceProducts="0"/>
+        <FluxTrackingProducts sunlitPerCell="0" sunlitPerTrianglePerCell="0" temperaturePerTrianglePerCell="0"/>
+        <HybridAtmosphereBRFMap targetRayDensityPerDirection="50" brfResolution="1.0"/>
+    </Products>
+</DartFile>

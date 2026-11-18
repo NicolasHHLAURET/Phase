@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Settings useExternalScripts="0" nbThreads="4">
+        <LuxCoreRenderEngineParameters maximumScatteringOrder="80">
+            <LuxCoreRenderExecutionParameters lightPropagationThreshold="1.0E-5" russianRouletteEnable="0" sampler="1" checkFrequency="1000" useLuxCoreRandomGenerationSeed="0">
+                <SamplerProperties adaptativeStrength="0.0"/>
+                <LuxCoreGenerationSeed generationSeed="0"/>
+            </LuxCoreRenderExecutionParameters>
+            <CellDimensions cellZ="1.0" cellX="1.0" roundToExact="0"/>
+        </LuxCoreRenderEngineParameters>
+    </Settings>
+</DartFile>

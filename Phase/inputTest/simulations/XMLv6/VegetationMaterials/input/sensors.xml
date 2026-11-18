@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Sensors>
+        <SensorImageSimulation importMultipleSensors="0"/>
+        <SensorBRFCamera>
+            <BRFCamera defineRandomSeed="1" camera_Definition="0" defineCustomPlane="0" cameraName="IMPORT_DART6_GLOBAL_BRF" sensorDisabled="0" indexCamera="0">
+                <SensorLuxCoreParameters maximumRenderingTime="60" targetRayDensityPerPixel="50"/>
+                <BRFCamera_subregion>
+                    <BRFCamera_subregion_position camera_phi2="360.0" camera_theta2="90.0" camera_phi1="0.0" camera_theta1="0.0"/>
+                </BRFCamera_subregion>
+                <SensorRandomSeed seed="16648915"/>
+            </BRFCamera>
+        </SensorBRFCamera>
+        <SensorLidar/>
+        <SensorRadiativeBudget>
+            <RadiativeBudget useDifferentCellDimensions="0" wholeScene="1" nbIncidentDirections="50" meshGridZ="0.1" meshGridXY="0.1" radiativeBudgetName="Radiative_budget_1" indexRadiativeBudget="0" radiativeBudgetDisabled="0"/>
+        </SensorRadiativeBudget>
+    </Sensors>
+</DartFile>

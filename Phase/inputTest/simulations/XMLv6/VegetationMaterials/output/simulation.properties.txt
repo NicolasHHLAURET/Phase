@@ -1,0 +1,5 @@
+direction.dirset.Direction_set_1.file:ds0_Direction_set_1.csv
+direction.dirset.Direction_set_1.index:0
+direction.sun.useDate:0
+direction.dayOfTheYear:-1
+direction.sun.angles:150 495

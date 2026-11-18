@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Directions>
+        <Direction numberOfLayers="0" ifCosWeighted="0" numberOfPropagationDirections="100" directionSetName="Direction_set_1" indexDirectionSet="0">
+            <HotSpotProperties hotSpotParallelPlane="0" hotSpotPerpendicularPlane="0" oversampleDownwardRegion="0" oversampleUpwardRegion="0"/>
+        </Direction>
+    </Directions>
+</DartFile>

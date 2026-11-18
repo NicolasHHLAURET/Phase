@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DartFile build="v1500" version="6.0.0">
+    <Sources>
+        <PrimaryIlluminationSource indexTypeLink="21" exactDate="2" disableSun="0">
+            <SunViewingAngles dayOfTheYear="-1" sunViewingAzimuthAngle="225.0" sunViewingZenithAngle="30.0"/>
+            <Penumbra mode="0"/>
+            <AzimuthalOffset directionalAzimuthalOffset="0.0" sunAzimuthalOffset="0.0"/>
+            <NodeIlluminationMode irradianceMode="0">
+                <IrradianceDatabaseNode weightReflectanceParameters="1" weightAtmosphereParameters="1" irradianceColumn="irradiance" irradianceTable="TOASolar_THKUR" databaseName="Solar_constant.db">
+                    <WeightingParameters sceneAverageTemperatureForPonderation="300.0"/>
+                </IrradianceDatabaseNode>
+                <SpectralIrradiance irraDef="1" commonIrradianceCheckBox="1" commonSkylCheckBox="1">
+                    <SpectralIrradianceValue skyl="0.0" irradiance="1000.0" bandNumber="0"/>
+                </SpectralIrradiance>
+            </NodeIlluminationMode>
+        </PrimaryIlluminationSource>
+    </Sources>
+</DartFile>
