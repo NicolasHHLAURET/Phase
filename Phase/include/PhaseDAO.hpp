@@ -122,11 +122,6 @@ public:
 	static bool readCoeffDiffParametersForIsProspectUseLambertian(	const int & index,
 																	bool& useProspectGen,
 																	int& lambertianDefinition);
-	static bool readCoeffDiffParametersForIsProspectUseFoliar(	const int & index,
-																bool& useProspectGen,
-																bool& bottomProspectGen,
-																bool& hasDifferentModelForBottom);
-
 	static bool readCoeffDiffParametersForPhaseExtern(	const int & index,
 														string & phaseName,
 														string & modelName,
@@ -147,12 +142,6 @@ public:
 	static bool readCoeffDiffParametersOpticalFactorsXML(	const string & key,
 															const string & subNodeKey,
 															OpticalFactorParameters & opticalFactorParameters);
-	static bool readCoeffDiffParametersForProspect(		const int & modelIndex,
-															const int & prospectFunction,
-															ProspectParameters & prospectParameters);
-	static bool readCoeffDiffParametersForProspectXML(	const std::string & prefixKey,
-														ProspectParameters & prospectParameters);
-
 	static bool readCoeffDiffParametersForFluspect(	const string & key,
 													FluorescenceParameters & fluorescenceParameters);
 
@@ -357,31 +346,6 @@ public:
 														std::string & databaseNameDown,
 														std::string & databaseModelUp,
 														std::string & databaseModelDown);
-
-	static bool readCoeffDiffParametersForFoliarDatabases(	const unsigned int & modelIndex,
-															std::string & phaseName,
-															std::string & modelName,
-															std::string & databaseName,
-															bool & isSpecular,
-															bool & useProspectGen,
-															bool & hasDifferentBottom,
-															std::string & specularDatabaseName,
-															std::string & specularDatabaseModel,
-															std::string & bottomDatabase,
-															std::string & bottomModel,
-															bool & bottomProspectGen);
-	static bool readCoeffDiffParametersForFoliarDatabasesXML(	const unsigned int & modelIndex,
-																std::string & phaseName,
-																std::string & modelName,
-																std::string & databaseName,
-																bool & isSpecular,
-																bool & useProspectGen,
-																bool & hasDifferentBottom,
-																std::string & specularDatabaseName,
-																std::string & specularDatabaseModel,
-																std::string & bottomDatabase,
-																std::string & bottomModel,
-																bool & bottomProspectGen);
 
 	static bool readParametersForTemperature(	std::vector<int> &arviIdTemperature,
 												const int & avinb_leaf);

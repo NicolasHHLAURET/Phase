@@ -2585,7 +2585,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 	writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
 
 //	// Lecture des bases de données
-//	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
+//	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
 //	vector<OpticalPropertyParameters>::iterator endIterator = opticalPropertiesDatabases.end();
 //
 //	unsigned int currentOPIndex = 0;
@@ -2657,7 +2657,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 	outCoeffSpecProperties.close();
 
 	// Databases self destruct procedure
-	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
+	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
 	vector<OpticalPropertyParameters>::iterator selfDestructEndIterator = opticalPropertiesDatabases.end();
 	for (vector<OpticalPropertyParameters>::iterator selfDestructIterator = opticalPropertiesDatabases.begin(); selfDestructIterator < selfDestructEndIterator; ++selfDestructIterator) {
 		for (unsigned int numPropertyDatabase = 0; numPropertyDatabase < selfDestructIterator->getNbDatabaseForProperty(); ++numPropertyDatabase) {
@@ -2737,42 +2737,29 @@ void prepareProspect(PhaseGeneralParametersDTO & genDTO) {
 			}
 		}
 	}
-	// TODO
-//	// Prospect detection & preparation for foliar phase functions ...
-//	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfFoliarModels(); modelIndex++) {
-//		bool bottomProspectGen = false;
-//		bool hasDifferentModelForBottom = false;
-//		EXIT_IF(!PhaseDAO::readCoeffDiffParametersForIsProspectUseFoliar(modelIndex, useProspectGen, bottomProspectGen, hasDifferentModelForBottom), "");
-//		if (useProspectGen)
-//		{
-//			ProspectParameters prospectParameters;
-//			if (hasDifferentModelForBottom) {
-//				PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE_TOP, prospectParameters);
-//			} else {
-//				PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE, prospectParameters);
-//			}
-//			// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
-//			boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
-//			databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";
-//			// Prepare prospect for later run
-//			prospect.prepareProspect(databaseName, prospectParameters);
-//			// Save the path to future generated database
-//			mapPrepareProspectFoliarTop[modelIndex] = databaseName;
-//		}
-//
-//		if (bottomProspectGen) {
-//			ProspectParameters prospectParameters;
-//			PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE_BOTTOM, prospectParameters);
-//
-//			// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
-//			boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
-//			databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";
-//			// Prepare prospect for later run
-//			prospect.prepareProspect(databaseName, prospectParameters);
-//			// Save the path to future generated database
-//			mapPrepareProspectFoliarBottom[modelIndex] = databaseName;
-//		}
-//	}
+	// Prospect detection & preparation for foliar phase functions (top and bottom faces)
+	for (std::shared_ptr<phsdata::UnderstoryMulti> & understory : genDTO._volumesMaterials.understoryMultiFunctions) {
+		phsdata::UnderstoryModel * foliarModels[2] = { understory->getTopModel(), understory->getBottomModel() };
+		for (phsdata::UnderstoryModel * foliarModel : foliarModels) {
+			if (foliarModel == nullptr)
+				continue;
+			if ((foliarModel->prospectExternalModule.useProspectExternalModule
+						|| foliarModel->prospectExternalModule.isFluorescent)
+					&& foliarModel->prospectExternalModule.externParameters.is_initialized()) {
+
+				// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
+				boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
+				databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";
+
+				// Save the path to the future generated database in the model itself
+				foliarModel->databaseName = databaseName;
+
+				// Prepare prospect for later run
+				prospect.prepareProspect(databaseName, foliarModel->prospectExternalModule.externParameters.value());
+				++prospectCount;
+			}
+		}
+	}
 	// RUN ALL PROSPECTS
 	if (prospectCount > 0) {
 		cout << "    -> Compute "<< prospectCount << " prospect(s) functions ..."<< endl;
@@ -3405,17 +3392,13 @@ void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParame
 #endif // DART_WITH_NETCDF
 
 
-static std::map<unsigned int, std::string> mapPrepareProspectFoliarTop;
-static std::map<unsigned int, std::string> mapPrepareProspectFoliarBottom;
-
-vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands) {
+vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGeneralParametersDTO & genDTO) {
 	vector<OpticalPropertyParameters> phaseOpticalProperties;
 
 	double deviation = 0, smc = 0, delta = 0;
 	string phaseName = "", modelName = "", niModelName = "", ntModelName = "", databaseName = "",databasePath="", temp = "";
-	string specularModelName = "", specularDatabase = "";
 	string transmittanceModelName = "", transmittanceDatabaseName = "";
-	bool isSpecular = false, useRefraction = false, hasDifferentModelForBottom = false, keepOutputFile = false, useProspectGen = false;
+	bool useRefraction = false, keepOutputFile = false;
 	int specularRadianceDistribution = 0, lambertianDefinition = 0, indexOrder=-1;
 
 	/* PHASE EXTERN */
@@ -3423,7 +3406,7 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
 		EXIT_IF(!PhaseDAO::readCoeffDiffParametersForPhaseExtern(modelIndex, phaseName, modelName, databaseName), "");
 		OpticalPropertyParameters opticalProperty(PHASE_EXTERN_PROPERTY, modelIndex, phaseName, indexOrder);
 		shared_ptr<PhaseExternDatabaseParameters> phaseExternDatabaseParameters(
-			new PhaseExternDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), modelName, numberOfBands));
+			new PhaseExternDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), modelName, genDTO.numberOfSpectralBands));
 		opticalProperty.addDatabaseToProperty(phaseExternDatabaseParameters);
 		phaseOpticalProperties.push_back(opticalProperty);
 	}
@@ -3438,7 +3421,7 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
 		EXIT_IF(!PhaseDAO::readDirectionalDirectTransmittanceForSpecular(modelIndex, opticalProperty._useDirectionalDirectTransmittance, opticalProperty._ddtFilePath, opticalProperty._angularStep), "");
 
 		shared_ptr<RefractiveIndexDatabaseParameters> refractiveIndexDatabaseParameters(
-			new RefractiveIndexDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), niModelName, numberOfBands, true,
+			new RefractiveIndexDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), niModelName, genDTO.numberOfSpectralBands, true,
 				ntModelName));
 
 		opticalProperty.addDatabaseToProperty(refractiveIndexDatabaseParameters);
@@ -3454,20 +3437,20 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
 	}
 
 	/* Foliar*/
-	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfFoliarModels(); modelIndex++) {
+	for (unsigned int modelIndex = 0; modelIndex < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelIndex) {
+		const phsdata::UnderstoryMulti & understory = *genDTO._volumesMaterials.understoryMultiFunctions[modelIndex];
+		const phsdata::UnderstoryModel * topModel = understory.getTopModel();
+		const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
+		EXIT_IF(topModel == nullptr, "");
 
-		// Bottom foliar model
-		string bottomDatabaseName;
-		string bottomDatabasePath;
-		string bottomModel;
-		bool bottomProspectGen = false;
+		phaseName = understory.functionName;
 
-		EXIT_IF(
-			!PhaseDAO::readCoeffDiffParametersForFoliarDatabases(modelIndex, phaseName, modelName, databaseName, isSpecular, useProspectGen,
-				hasDifferentModelForBottom, specularDatabase, specularModelName, bottomDatabaseName, bottomModel, bottomProspectGen), "");
-
+		bool useProspectGen = (topModel->prospectExternalModule.useProspectExternalModule
+				|| topModel->prospectExternalModule.isFluorescent)
+				&& topModel->prospectExternalModule.externParameters.is_initialized();
+		databaseName = topModel->databaseName;
+		modelName = topModel->modelName;
 		if (useProspectGen) {
-			databaseName = mapPrepareProspectFoliarTop[modelIndex];
 			databasePath = DartEnv::getOutputTempDatabasePath(true);
 			// Maybe change the model name in the future, but this modelName are not findable by the user.
 			// Spaces and special caracters are not allowed in modelName so ...
@@ -3475,20 +3458,32 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
 		} else {
 			databasePath = DartEnv::getDatabasePath(databaseName);
 		}
-		if (bottomProspectGen) {
-			bottomDatabaseName = mapPrepareProspectFoliarBottom[modelIndex];
-			bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
-			// Maybe change the model name in the future, but this modelName are not findable by the user.
-			// Spaces and special caracters are not allowed in modelName so ...
-			bottomModel = "Model";
-		}else {
-			bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
+
+		// Bottom foliar model
+		string bottomDatabaseName;
+		string bottomDatabasePath;
+		string bottomModelName;
+		bool bottomProspectGen = false;
+		if (bottomModel != nullptr) {
+			bottomProspectGen = (bottomModel->prospectExternalModule.useProspectExternalModule
+					|| bottomModel->prospectExternalModule.isFluorescent)
+					&& bottomModel->prospectExternalModule.externParameters.is_initialized();
+			bottomDatabaseName = bottomModel->databaseName;
+			bottomModelName = bottomModel->modelName;
+			if (bottomProspectGen) {
+				bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
+				// Maybe change the model name in the future, but this modelName are not findable by the user.
+				// Spaces and special caracters are not allowed in modelName so ...
+				bottomModelName = "Model";
+			} else {
+				bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
+			}
 		}
 
 		OpticalPropertyParameters opticalProperty(FOLIAR_PROPERTY, modelIndex, phaseName, indexOrder);
 		shared_ptr<FoliarDatabaseParameters> foliarDatabaseParameters(
-			new FoliarDatabaseParameters(databaseName, databasePath, modelName, numberOfBands, hasDifferentModelForBottom,
-					bottomDatabaseName, bottomDatabasePath, bottomModel));
+			new FoliarDatabaseParameters(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands, understory.hasDifferentModelForBottom,
+					bottomDatabaseName, bottomDatabasePath, bottomModelName));
 		if (useProspectGen) {
 			foliarDatabaseParameters.get()->setSelfDestructDatabase(true);
 		}
@@ -3496,13 +3491,6 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
 			foliarDatabaseParameters.get()->setSelfDestructBottomDatabase(true);
 		}
 		opticalProperty.addDatabaseToProperty(foliarDatabaseParameters);
-
-		if (isSpecular) {
-			shared_ptr<SpecularFoliarDatabaseParameters> specularFoliarDatabaseParameters(
-				new SpecularFoliarDatabaseParameters(specularDatabase, DartEnv::getDatabasePath(specularDatabase), specularModelName, numberOfBands));
-			opticalProperty.addDatabaseToProperty(specularFoliarDatabaseParameters);
-			opticalProperty.setSpecular(true);
-		}
 
 		phaseOpticalProperties.push_back(opticalProperty);
 	}

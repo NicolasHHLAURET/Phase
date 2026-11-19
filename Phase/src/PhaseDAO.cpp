@@ -611,32 +611,6 @@ bool PhaseDAO::readCoeffDiffParametersForIsProspectUseLambertian(	const int & in
 	return true;
 }
 
-bool PhaseDAO::readCoeffDiffParametersForIsProspectUseFoliar(	const int & index,
-																bool& useProspectGen,
-																bool& bottomProspectGen,
-																bool& hasDifferentModelForBottom) {
-	useProspectGen = false;
-	bottomProspectGen = false;
-	string temp, modelKey;
-	ostringstream oss;
-	try {
-		oss << index;
-		temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentModelForBottom);
-		modelKey = hasDifferentModelForBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
-		DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
-		if (hasDifferentModelForBottom) {
-			string bottomModelKey;
-			bottomModelKey = "UnderstoryMultiBottomModel";
-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);
-		}
-	} catch (DartException &E) {
-		cerr << E.getOriginMessage() << endl;
-		return false;
-	}
-	return true;
-}
-
 bool PhaseDAO::readCoeffDiffParametersForLambertian(const int & index,
 													string & phaseName,
 													string & modelName,
@@ -797,85 +771,6 @@ bool PhaseDAO::readCoeffDiffParametersForFoliarFluspect(const int & index,
 		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentBottom);
 		string modelKey = hasDifferentBottom ? (bottom ? "UnderstoryMultiBottomModel" : "UnderstoryMultiTopModel") : "UnderstoryMultiModel";
 		return readCoeffDiffParametersForFluspect(temp + "]." + modelKey + ".ProspectExternalModule.", fluorescenceParameters);
-}
-
-bool PhaseDAO::readCoeffDiffParametersForProspect(		const int & modelIndex,
-														const int & prospectFunction,
-														ProspectParameters & prospectParameters) {
-	string temp;
-	ostringstream oss;
-	oss << modelIndex;
-	switch(prospectFunction) {
-		case globalReferences::PROSPECT_LAMBERTIEN:
-			temp = "Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti[" + oss.str();
-			temp += "].Lambertian.ProspectExternalModule.";
-			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
-		case globalReferences::PROSPECT_FOLIAIRE:
-			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-			temp += "].UnderstoryMultiModel.ProspectExternalModule.";
-			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
-		case globalReferences::PROSPECT_FOLIAIRE_TOP:
-			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-			temp += "].UnderstoryMultiTopModel.ProspectExternalModule.";
-			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
-		case globalReferences::PROSPECT_FOLIAIRE_BOTTOM:
-			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-			temp += "].UnderstoryMultiBottomModel.ProspectExternalModule.";
-			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
-		default:
-			break;
-	}
-	return false;
-}
-
-
-bool PhaseDAO::readCoeffDiffParametersForProspectXML(	const std::string & prefixKey,
-														ProspectParameters & prospectParameters) {
-	try {
-		bool useProspectGen = false;
-		DartSAParameters::get(prefixKey + "useProspectExternalModule", useProspectGen);
-		if (useProspectGen) {
-			prospectParameters.pythonScript = "Fluspect_B_CX_PRO.py";
-
-			string prospectKey = prefixKey + "ProspectExternParameters.";
-			DartSAParameters::get(prospectKey + "inputProspectFile", prospectParameters.inputProspectFile);
-			DartSAParameters::get(prospectKey + "N", prospectParameters.structureCoeff);
-			DartSAParameters::get(prospectKey + "Cab", prospectParameters.chlorophyll);
-			DartSAParameters::get(prospectKey + "Car", prospectParameters.carotenoid);
-			DartSAParameters::get(prospectKey + "CBrown", prospectParameters.brownPigment);
-			DartSAParameters::get(prospectKey + "Cw", prospectParameters.waterThickness);
-
-			DartSAParameters::get(prospectKey + "useCm", prospectParameters.useNewCm);
-
-			bool isv2z = false;
-			DartSAParameters::get(prospectKey + "isV2Z", isv2z);
-			if (isv2z) {
-				DartSAParameters::get(prospectKey + "V2Z.v2z", prospectParameters.v2z);
-			} else {
-				prospectParameters.v2z = -999;
-			}
-
-			if (prospectParameters.useNewCm) {
-				DartSAParameters::get(prospectKey + "Cbc", prospectParameters.Cbc);
-				DartSAParameters::get(prospectKey + "Cp", prospectParameters.Cp);
-				// Retrocompatibility if need to use the old script
-				prospectParameters.leafMassPerArea = prospectParameters.Cbc+prospectParameters.Cp;
-			} else {
-				DartSAParameters::get(prospectKey + "Cm", prospectParameters.leafMassPerArea);
-				prospectParameters.Cbc = 0;
-				prospectParameters.Cp = 0;
-			}
-
-			DartSAParameters::get(prospectKey + "Cm", prospectParameters.leafMassPerArea);
-			if (DartSAParameters::exists(prospectKey + "anthocyanin")) {
-				DartSAParameters::get(prospectKey + "anthocyanin", prospectParameters.anthocyanin);
-			}
-		}
-	} catch (DartException &E) {
-		cerr << E.getOriginMessage() << endl;
-		return false;
-	}
-	return true;
 }
 
 bool PhaseDAO::readCoeffDiffParametersForFluspect(	const std::string & key,
@@ -1366,64 +1261,6 @@ bool PhaseDAO::readCoeffDiffParametersForRPVXML(const int & indice,
 		return false;
 	}
 
-	return true;
-}
-
-bool PhaseDAO::readCoeffDiffParametersForFoliarDatabases(	const unsigned int & modelIndex,
-															string & phaseName,
-															string & modelName,
-															string & databaseName,
-															bool & isSpecular,
-															bool & useProspectGen,
-															bool & hasDifferentBottom,
-															string & specularDatabaseName,
-															string & specularDatabaseModel,
-															string & bottomDatabase,
-															string & bottomModel,
-															bool & bottomProspectGen) {
-	return readCoeffDiffParametersForFoliarDatabasesXML(modelIndex, phaseName, modelName, databaseName, isSpecular, useProspectGen, hasDifferentBottom,
-		specularDatabaseName, specularDatabaseModel, bottomDatabase, bottomModel, bottomProspectGen);
-}
-bool PhaseDAO::readCoeffDiffParametersForFoliarDatabasesXML(const unsigned int & modelIndex,
-															string & phaseName,
-															string & modelName,
-															string & databaseName,
-															bool & isSpecular,
-															bool & useProspectGen,
-															bool & hasDifferentBottom,
-															string & specularDatabaseName,
-															string & specularDatabaseModel,
-															string & bottomDatabase,
-															string & bottomModel,
-															bool & bottomProspectGen) {
-	string temp, modelKey;
-	ostringstream oss;
-
-	try {
-		oss << modelIndex;
-		temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
-		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentBottom);
-		modelKey = hasDifferentBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
-		DartSAParameters::get(temp + "].ident", phaseName);
-		DartSAParameters::get(temp + "]." + modelKey + ".ModelName", modelName);
-		DartSAParameters::get(temp + "]." + modelKey + ".databaseName", databaseName);
-		DartSAParameters::get(temp + "]." + modelKey + ".useSpecular", isSpecular);
-		DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
-		if (isSpecular) {
-			DartSAParameters::get(temp + "]." + modelKey + ".SpecularData.specularModelName", specularDatabaseModel);
-			DartSAParameters::get(temp + "]." + modelKey + ".SpecularData.specularDatabaseName", specularDatabaseName);
-		}
-		if (hasDifferentBottom) {
-			string bottomModelKey;
-			bottomModelKey = "UnderstoryMultiBottomModel";
-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ModelName", bottomModel);
-			DartSAParameters::get(temp + "]." + bottomModelKey + ".databaseName", bottomDatabase);
-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);
-		}
-	} catch (DartException &E) {
-		cerr << E.getOriginMessage() << endl;
-		return false;
-	}
 	return true;
 }
 

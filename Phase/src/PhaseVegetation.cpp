@@ -40,7 +40,7 @@ static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersD
 VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO) {
 	VegetationVolumeMaterials vegetation;
 
-	const unsigned int numberOfFoliarModels = PhaseProperty::_reflectanceModelsParameters.numberOfFoliarModels;
+	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
 	const unsigned int directionSetIndex = getVegetationDirectionSetIndex(genDTO);
 	const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
 	const unsigned int numberOfDirections = listDirections.size();

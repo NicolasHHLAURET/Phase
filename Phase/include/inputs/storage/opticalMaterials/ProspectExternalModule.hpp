@@ -1,0 +1,96 @@
+/*
+ * ProspectExternalModule.hpp
+ *
+ *  Shared Prospect/Fluorescence external module storage, used by both
+ *  surface (e.g. Lambertian) and volume (e.g. UnderstoryMulti) materials.
+ */
+
+#ifndef INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
+#define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
+
+#include <string>
+#include <boost/optional.hpp>
+
+#include "DartSAParameters.h"
+
+namespace phsdata {
+class FluorescenceExternParameters {
+public:
+	bool forceYields = true;
+	bool useCombinedYields = false;
+	double yieldPSI = 0.02;
+	double yieldPSII = 0.;
+
+	void loadFromParameters(const std::string& prefix) {
+		forceYields = DartSAParameters::get<bool>(prefix + ".forceYields");
+
+		if (DartSAParameters::exists(prefix + ".Yields.yieldPSI")) {
+			useCombinedYields = false;
+			yieldPSI = DartSAParameters::get<double>(prefix + ".Yields.yieldPSI");
+			yieldPSII = DartSAParameters::get<double>(prefix + ".Yields.yieldPSII");
+		}
+		if (DartSAParameters::exists(prefix + ".Yield.yieldPS")) {
+			useCombinedYields = true; // => yieldPSII is unused
+			yieldPSI = DartSAParameters::get<double>(prefix + ".Yield.yieldPS");
+		}
+	}
+};
+
+class ProspectExternParameters {
+public:
+	double anthocyanin = 0.;
+	double cBrown = 0.; // Brown Pigments
+	double cab = 40.; // Chlorophyll
+	double car = 10.; // Carotenoid
+	double cbc = 0.009; //
+	double cm = 0.01; // Leaf Mass per Area
+	double cp = 0;
+	double cw = 0.012; // Water Thickness
+	std::string inputProspectFile = "Prospect_Fluspect/Optipar2021_ProspectPRO.txt";
+	bool isV2Z = false;
+	double v2z = -999;
+	double n = 1.5; // Structure Coefficient
+	bool useCm = false;
+
+	void loadFromParameters(const std::string& prefix) {
+		anthocyanin = DartSAParameters::get<double>(prefix + ".anthocyanin");
+		cBrown = DartSAParameters::get<double>(prefix + ".cBrown");
+		cab = DartSAParameters::get<double>(prefix + ".cab");
+		car = DartSAParameters::get<double>(prefix + ".car");
+		cbc = DartSAParameters::get<double>(prefix + ".cbc");
+		cm = DartSAParameters::get<double>(prefix + ".cm");
+		cp = DartSAParameters::get<double>(prefix + ".cp");
+		cw = DartSAParameters::get<double>(prefix + ".cw");
+		inputProspectFile = DartSAParameters::get<std::string>(prefix + ".inputProspectFile");
+		isV2Z = DartSAParameters::get<bool>(prefix + ".isV2Z");
+		n = DartSAParameters::get<double>(prefix + ".n");
+		useCm = DartSAParameters::get<bool>(prefix + ".useCm");
+		if (isV2Z)
+			v2z = DartSAParameters::get<double>(prefix + ".V2Z.v2z");
+	}
+};
+
+class ProspectExternalModule {
+public:
+	bool isFluorescent = false;
+	bool useProspectExternalModule = false;
+	boost::optional<ProspectExternParameters> externParameters;  // Optional child
+	boost::optional<FluorescenceExternParameters> fluorescence;  // Optional child
+
+	void loadFromParameters(const std::string& prefix) {
+		isFluorescent = DartSAParameters::get<bool>(prefix + ".isFluorescent");
+		useProspectExternalModule = DartSAParameters::get<bool>(prefix + ".useProspectExternalModule");
+
+		if (DartSAParameters::exists(prefix + ".ProspectExternParameters")) {
+			externParameters = ProspectExternParameters();
+			externParameters->loadFromParameters(prefix + ".ProspectExternParameters");
+		}
+		if (DartSAParameters::exists(prefix + ".FluorescenceYields")) {
+			fluorescence = FluorescenceExternParameters();
+			fluorescence->loadFromParameters(prefix + ".FluorescenceYields");
+		}
+	}
+};
+}
+
+#endif /* INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_ */

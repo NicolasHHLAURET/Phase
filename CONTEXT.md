@@ -107,6 +107,25 @@ Sandbox notes for rebuilding the prefix (no root available):
     sites updated to new sunDirection signatures; processSurfaceMaterials and
     OpticalFactorsTextureWriter take non-const genDTO (they write LuxCore keys);
     self-destruct database list rebuilt via createDatabasesReadingProperties.
+11. Foliar prospect generation ported to the phsdata storage (was the open TODO):
+    ProspectExternParameters/ProspectExternalModule/FluorescenceExternParameters
+    moved from lambertian/Lambertian.hpp to the shared
+    opticalMaterials/ProspectExternalModule.hpp; new phsdata::UnderstoryModel
+    (modelName, databaseName, prospectExternalModule) and extended
+    phsdata::UnderstoryMulti (hasDifferentModelForBottom, functionName,
+    indexFunction, UnderstoryMultiModel/Top/Bottom optional nodes,
+    getTopModel()/getBottomModel()); prepareProspect() now iterates
+    genDTO._volumesMaterials.understoryMultiFunctions and stores the generated
+    uuid database name in each face's databaseName (trigger mirrors Lambertian:
+    useProspectExternalModule || isFluorescent, externParameters required);
+    createDatabasesReadingProperties() takes genDTO and builds the foliar
+    entries from the struct (specular foliar data dropped -- old XML handled by
+    the external upgrader); static mapPrepareProspectFoliarTop/Bottom and the
+    dead PhaseDAO readers (readCoeffDiffParametersForIsProspectUseFoliar,
+    readCoeffDiffParametersForFoliarDatabases(XML),
+    readCoeffDiffParametersForProspect(XML)) removed;
+    processVegetationVolumeMaterials takes numberOfFoliarModels from
+    genDTO._volumesMaterials.
 
 ## Known TODOs / open points (next sessions)
 
@@ -124,9 +143,9 @@ Sandbox notes for rebuilding the prefix (no root available):
   "fluorescence_5_<model>_<face>" WITHOUT the extension) and the material
   "id" key is now written (old block had none) with the equivalent index.
   PhaseDAO::readTemperatureProperties stays dropped (never implemented).
-- Prospect generation for foliar models is commented out in prepareProspect;
-  mapPrepareProspectFoliarTop/Bottom are static empty maps (consumer branch
-  is dead until this is finished).
+- FOLIAR PROSPECT GENERATION: DONE (see history item 11). prepareProspect()
+  covers surface lambertians AND vegetation (top/bottom faces) from the
+  phsdata structs; no more PhaseDAO reads or static maps on this path.
 - Per-model direction sets (see item 9).
 - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
   prefix and flip DART_WITH_NETCDF to finish gating work.

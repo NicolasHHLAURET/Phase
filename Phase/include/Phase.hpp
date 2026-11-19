@@ -241,7 +241,7 @@ void removePreviousPhaseKeys(FichierProperties & luxCoreRenderSceneProperties);
 void reorganiseLightsId(PhaseGeneralParametersDTO & genDTO, FichierProperties & luxCoreLightProperties);
 unsigned int getLightIDFromType(PhaseGeneralParametersDTO & genDTO, unsigned int lightTypeId, const std::string & lightName);
 /* Databases */
-std::vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands);
+std::vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGeneralParametersDTO & genDTO);
 
 void prepareProspect(PhaseGeneralParametersDTO & genDTO);
 void processSurfaceMaterials(const PhaseGeneralParametersDTO & genDTO);
