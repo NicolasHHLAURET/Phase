@@ -126,6 +126,14 @@ Sandbox notes for rebuilding the prefix (no root available):
     readCoeffDiffParametersForProspect(XML)) removed;
     processVegetationVolumeMaterials takes numberOfFoliarModels from
     genDTO._volumesMaterials.
+12. Patch-transfer repair validated on the foliar patch (this session):
+    the plain-text patch arrived with 2 whitespace-only lines DELETED
+    (structural "corrupt patch at line 457") plus tab mangling on
+    context/removed lines; after reinserting the 2 dropped lines and
+    `git am --ignore-whitespace`, the post-am tree hash matched exactly
+    (0a98de5222a12372f4f27e22b73f753bdc5f9a9b on top of ce3c619; receiver
+    evidence in transfer/failed/, applied in commit 965fa10). See new
+    pitfall (d) and protocol point 5.
 
 ## Known TODOs / open points (next sessions)
 
@@ -196,6 +204,26 @@ Sandbox notes for rebuilding the prefix (no root available):
       treats an empty line in a hunk as an empty context line. Benign for
       blank lines and the signature; dangerous if trailing spaces of
       NON-blank context lines get stripped (then use --ignore-whitespace).
+  (d) the current chat transport DELETES lines whose post-marker content is
+      empty/whitespace-only: an empty added line "+" and a single-space
+      context line " " vanish entirely (a trailing blank line after the
+      "-- " signature too). Unlike (c) this is STRUCTURAL: the hunk then has
+      fewer lines than its @@ header claims and git fails with
+      "corrupt patch at line N". Verified on the foliar-prospect patch
+      (receiver evidence: transfer/failed/chunk_* in commits 09ca36a/ee376b6,
+      applied in 965fa10): exactly 2 code lines dropped (my lines 406 "+"
+      and 801 " "), while ALL added "+" lines with real content arrived
+      byte-intact, and the tab mangling hit only context/removed lines
+      (leading tabs -> 4-stop spaces; long tab runs after "-" shortened).
+      Repair (validated): reinsert the dropped lines at their received-file
+      positions with a 3-line python script, then
+      `git apply --check --ignore-whitespace` + `git am --ignore-whitespace`;
+      the post-am tree hash matched the sender's exactly
+      (0a98de5222a12372f4f27e22b73f753bdc5f9a9b). One extra benign slip was
+      observed: a char inserted in a diffstat header line (ignored by
+      git apply). Note: plain `git apply --check` FAILS on the tab/space
+      mangling of context lines even when the structure is fine -- always
+      gate with --ignore-whitespace plus the tree hash.
 - Sessions cannot push to GitHub (connector disabled). Delivery = patches per
   the protocol below; the owner pushes, sessions fetch anonymously.
 - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
@@ -244,3 +272,36 @@ text is emitted more reliably than base64 -- so plain text is the default:
    `cat chunk_* > p.b64`; authoritative check `base64 -d p.b64 | sha256sum`
    == sender's decoded-patch sha256 (the whole-file hash may differ by a
    trailing newline). Decode/apply success proves nothing -- only the hash.
+5. Validated plain-text repair loop (2026-11-19, foliar patch, evidence in
+   transfer/failed/ + commit 965fa10): receiver compares PER-CHUNK sha256
+   first (cheap, localizes the damage), pushes received chunks to
+   transfer/failed/, sender fetches and diffs against the true chunks,
+   classifies each difference (benign tab/space mangling on context/removed
+   lines and in diffstat headers vs harmful drops/substitutions). For
+   pitfall (d) drops the correction is a tiny script reinserting the missing
+   lines at received-file positions -- never resend the whole payload. Apply
+   with `git am --ignore-whitespace` (plain --check is expected to fail on
+   tab mangling) and gate on the post-am tree hash. For tab-indented C++
+   patches with many added lines, plain text + this repair loop worked, but
+   going straight to base64 (point 4) is legitimate when the added lines are
+   whitespace-critical.
+
+## Session handoff checklist (for AI agents)
+
+1. `git fetch origin` (anonymous fetch works; push does NOT -- no connector,
+   org/workspace policy blocks it). Read this file end-to-end, then
+   `git log --oneline -10`.
+2. Work in an anonymous clone of https://github.com/NicolasHHLAURET/Phase
+   (e.g. /workspace/Phase). The GitHub connector cannot be enabled from a
+   session; do not try ask_enable_connector (only pubmed is listed).
+3. Commit locally as `Vibe <vibe@localhost>` -- the owner uses this identity
+   to tell AI-made commits apart from his own.
+4. Deliver changes as `git format-patch` plain-text chunks of <= ~100 lines
+   (one code block per chunk), each chunk with its sha256, plus the full
+   patch sha256 and the post-am tree hash; give the `cat chunk_* > p.patch`
+   reassembly command. On any receiver-side failure, expect the received
+   files in transfer/failed/ and follow protocol point 3/5.
+5. Update this file at the end of each session (history item + TODOs +
+   pitfalls); it is the only handoff between sessions.
+6. Build only if needed: no DART_DEPS_PREFIX in a fresh sandbox; see "Build
+   state" for rebuilding it (foreground single command, no background).
