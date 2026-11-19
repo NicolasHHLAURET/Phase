@@ -1,0 +1,100 @@
+From add6385d2f531b693d134b85a9341469b5bee057 Mon Sep 17 00:00:00 2001
+From: Vibe <vibe@localhost>
+Date: Thu, 19 Nov 2026 12:18:05 +0000
+Subject: [PATCH] Port foliar prospect generation to the phsdata storage
+ (prepareProspect/createDatabasesReadingProperties)
+
+- Move ProspectExternParameters/ProspectExternalModule/FluorescenceExternParameters
+  to shared opticalMaterials/ProspectExternalModule.hpp
+- New phsdata::UnderstoryModel (modelName, databaseName, prospectExternalModule);
+  phsdata::UnderstoryMulti extended with top/bottom model nodes + getters
+- prepareProspect(): foliar loop over genDTO._volumesMaterials, uuid database
+  stored in the model's databaseName (trigger mirrors Lambertian)
+- createDatabasesReadingProperties(genDTO): foliar entries built from the struct,
+  static mapPrepareProspectFoliarTop/Bottom and dead PhaseDAO readers removed,
+  foliar specular data dropped (external XML upgrader handles old inputs)
+- processVegetationVolumeMaterials: foliar model count from genDTO._volumesMaterials
+---
+ CONTEXT.md                                    |  25 ++-
+ Phase/include/Phase.hpp                       |   2 +-
+ Phase/include/PhaseDAO.hpp                    |  36 ----
+ .../ProspectExternalModule.hpp                |  96 +++++++++++
+ .../lambertian/Lambertian.hpp                 |  79 +--------
+ .../vegetation/UnderstoryModel.hpp            |  32 ++++
+ .../vegetation/UnderstoryMulti.hpp            |  51 +++++++
+ Phase/src/Phase.cpp                           | 140 +++++++--------
+ Phase/src/PhaseDAO.cpp                        | 163 ------------------
+ Phase/src/PhaseVegetation.cpp                 |   2 +-
+ 10 files changed, 268 insertions(+), 358 deletions(-)
+ create mode 100644 Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp
+ create mode 100644 Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp
+
+diff --git a/CONTEXT.md b/CONTEXT.md
+index daa2e12..d480135 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -107,6 +107,25 @@ Sandbox notes for rebuilding the prefix (no root available):
+     sites updated to new sunDirection signatures; processSurfaceMaterials and
+     OpticalFactorsTextureWriter take non-const genDTO (they write LuxCore keys);
+     self-destruct database list rebuilt via createDatabasesReadingProperties.
++11. Foliar prospect generation ported to the phsdata storage (was the open TODO):
++    ProspectExternParameters/ProspectExternalModule/FluorescenceExternParameters
++    moved from lambertian/Lambertian.hpp to the shared
++    opticalMaterials/ProspectExternalModule.hpp; new phsdata::UnderstoryModel
++    (modelName, databaseName, prospectExternalModule) and extended
++    phsdata::UnderstoryMulti (hasDifferentModelForBottom, functionName,
++    indexFunction, UnderstoryMultiModel/Top/Bottom optional nodes,
++    getTopModel()/getBottomModel()); prepareProspect() now iterates
++    genDTO._volumesMaterials.understoryMultiFunctions and stores the generated
++    uuid database name in each face's databaseName (trigger mirrors Lambertian:
++    useProspectExternalModule || isFluorescent, externParameters required);
++    createDatabasesReadingProperties() takes genDTO and builds the foliar
++    entries from the struct (specular foliar data dropped -- old XML handled by
++    the external upgrader); static mapPrepareProspectFoliarTop/Bottom and the
++    dead PhaseDAO readers (readCoeffDiffParametersForIsProspectUseFoliar,
++    readCoeffDiffParametersForFoliarDatabases(XML),
++    readCoeffDiffParametersForProspect(XML)) removed;
++    processVegetationVolumeMaterials takes numberOfFoliarModels from
++    genDTO._volumesMaterials.
+ 
+ ## Known TODOs / open points (next sessions)
+ 
+@@ -124,9 +143,9 @@ Sandbox notes for rebuilding the prefix (no root available):
+   "fluorescence_5_<model>_<face>" WITHOUT the extension) and the material
+   "id" key is now written (old block had none) with the equivalent index.
+   PhaseDAO::readTemperatureProperties stays dropped (never implemented).
+-- Prospect generation for foliar models is commented out in prepareProspect;
+-  mapPrepareProspectFoliarTop/Bottom are static empty maps (consumer branch
+-  is dead until this is finished).
++- FOLIAR PROSPECT GENERATION: DONE (see history item 11). prepareProspect()
++  covers surface lambertians AND vegetation (top/bottom faces) from the
++  phsdata structs; no more PhaseDAO reads or static maps on this path.
+ - Per-model direction sets (see item 9).
+ - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
+   prefix and flip DART_WITH_NETCDF to finish gating work.
+diff --git a/Phase/include/Phase.hpp b/Phase/include/Phase.hpp
+index 95d54c5..f504447 100644
+--- a/Phase/include/Phase.hpp
++++ b/Phase/include/Phase.hpp
+@@ -241,7 +241,7 @@ void removePreviousPhaseKeys(FichierProperties & luxCoreRenderSceneProperties);
+ void reorganiseLightsId(PhaseGeneralParametersDTO & genDTO, FichierProperties & luxCoreLightProperties);
+ unsigned int getLightIDFromType(PhaseGeneralParametersDTO & genDTO, unsigned int lightTypeId, const std::string & lightName);
+ /* Databases */
+-std::vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands);
++std::vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGeneralParametersDTO & genDTO);
+ 
+ void prepareProspect(PhaseGeneralParametersDTO & genDTO);
+ void processSurfaceMaterials(const PhaseGeneralParametersDTO & genDTO);
+diff --git a/Phase/include/PhaseDAO.hpp b/Phase/include/PhaseDAO.hpp
+index 3749385..914a616 100644
+--- a/Phase/include/PhaseDAO.hpp
++++ b/Phase/include/PhaseDAO.hpp
+@@ -122,11 +122,6 @@ public:
+    static bool readCoeffDiffParametersForIsProspectUseLambertian(	const int & index,
+                    bool& useProspectGen,
+                    int& lambertianDefinition);
+-	static bool readCoeffDiffParametersForIsProspectUseFoliar(	const int & index,
+-					bool& useProspectGen,
+-					bool& bottomProspectGen,
+-					bool& hasDifferentModelForBottom);
+-

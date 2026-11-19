@@ -1,0 +1,100 @@
++		const phsdata::UnderstoryMulti & understory = *genDTO._volumesMaterials.understoryMultiFunctions[modelIndex];
++		const phsdata::UnderstoryModel * topModel = understory.getTopModel();
++		const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
++		EXIT_IF(topModel == nullptr, "");
++
++		phaseName = understory.functionName;
++
++		bool useProspectGen = (topModel->prospectExternalModule.useProspectExternalModule
++				|| topModel->prospectExternalModule.isFluorescent)
++				&& topModel->prospectExternalModule.externParameters.is_initialized();
++		databaseName = topModel->databaseName;
++		modelName = topModel->modelName;
+        if (useProspectGen) {
+-			databaseName = mapPrepareProspectFoliarTop[modelIndex];
+            databasePath = DartEnv::getOutputTempDatabasePath(true);
+            // Maybe change the model name in the future, but this modelName are not findable by the user.
+            // Spaces and special caracters are not allowed in modelName so ...
+@@ -3475,20 +3458,32 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
+        } else {
+            databasePath = DartEnv::getDatabasePath(databaseName);
+        }
+-		if (bottomProspectGen) {
+-			bottomDatabaseName = mapPrepareProspectFoliarBottom[modelIndex];
+-			bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
+-			// Maybe change the model name in the future, but this modelName are not findable by the user.
+-			// Spaces and special caracters are not allowed in modelName so ...
+-			bottomModel = "Model";
+-		}else {
+-			bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
++
++		// Bottom foliar model
++		string bottomDatabaseName;
++		string bottomDatabasePath;
++		string bottomModelName;
++		bool bottomProspectGen = false;
++		if (bottomModel != nullptr) {
++			bottomProspectGen = (bottomModel->prospectExternalModule.useProspectExternalModule
++					|| bottomModel->prospectExternalModule.isFluorescent)
++					&& bottomModel->prospectExternalModule.externParameters.is_initialized();
++			bottomDatabaseName = bottomModel->databaseName;
++			bottomModelName = bottomModel->modelName;
++			if (bottomProspectGen) {
++				bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
++				// Maybe change the model name in the future, but this modelName are not findable by the user.
++				// Spaces and special caracters are not allowed in modelName so ...
++				bottomModelName = "Model";
++			} else {
++				bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
++			}
+        }
+ 
+        OpticalPropertyParameters opticalProperty(FOLIAR_PROPERTY, modelIndex, phaseName, indexOrder);
+        shared_ptr<FoliarDatabaseParameters> foliarDatabaseParameters(
+-			new FoliarDatabaseParameters(databaseName, databasePath, modelName, numberOfBands, hasDifferentModelForBottom,
+-					bottomDatabaseName, bottomDatabasePath, bottomModel));
++			new FoliarDatabaseParameters(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands, understory.hasDifferentModelForBottom,
++					bottomDatabaseName, bottomDatabasePath, bottomModelName));
+        if (useProspectGen) {
+            foliarDatabaseParameters.get()->setSelfDestructDatabase(true);
+        }
+@@ -3497,13 +3492,6 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
+        }
+        opticalProperty.addDatabaseToProperty(foliarDatabaseParameters);
+ 
+-		if (isSpecular) {
+-			shared_ptr<SpecularFoliarDatabaseParameters> specularFoliarDatabaseParameters(
+-				new SpecularFoliarDatabaseParameters(specularDatabase, DartEnv::getDatabasePath(specularDatabase), specularModelName, numberOfBands));
+-			opticalProperty.addDatabaseToProperty(specularFoliarDatabaseParameters);
+-			opticalProperty.setSpecular(true);
+-		}
+-
+        phaseOpticalProperties.push_back(opticalProperty);
+    }
+    return phaseOpticalProperties;
+diff --git a/Phase/src/PhaseDAO.cpp b/Phase/src/PhaseDAO.cpp
+index 51a68c0..66d0106 100755
+--- a/Phase/src/PhaseDAO.cpp
++++ b/Phase/src/PhaseDAO.cpp
+@@ -611,32 +611,6 @@ bool PhaseDAO::readCoeffDiffParametersForIsProspectUseLambertian(	const int & in
+    return true;
+ }
+ 
+-bool PhaseDAO::readCoeffDiffParametersForIsProspectUseFoliar(	const int & index,
+-					bool& useProspectGen,
+-					bool& bottomProspectGen,
+-					bool& hasDifferentModelForBottom) {
+-	useProspectGen = false;
+-	bottomProspectGen = false;
+-	string temp, modelKey;
+-	ostringstream oss;
+-	try {
+-		oss << index;
+-		temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
+-		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentModelForBottom);
+-		modelKey = hasDifferentModelForBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
+-		DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
+-		if (hasDifferentModelForBottom) {
+-			string bottomModelKey;
+-			bottomModelKey = "UnderstoryMultiBottomModel";
+-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);

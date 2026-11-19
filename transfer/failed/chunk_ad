@@ -1,0 +1,100 @@
+-	void loadFromParameters(const std::string& prefix) {
+-		anthocyanin = DartSAParameters::get<double>(prefix + ".anthocyanin");
+-		cBrown = DartSAParameters::get<double>(prefix + ".cBrown");
+-		cab = DartSAParameters::get<double>(prefix + ".cab");
+-		car = DartSAParameters::get<double>(prefix + ".car");
+-		cbc = DartSAParameters::get<double>(prefix + ".cbc");
+-		cm = DartSAParameters::get<double>(prefix + ".cm");
+-		cp = DartSAParameters::get<double>(prefix + ".cp");
+-		cw = DartSAParameters::get<double>(prefix + ".cw");
+-		inputProspectFile = DartSAParameters::get<std::string>(prefix + ".inputProspectFile");
+-		isV2Z = DartSAParameters::get<bool>(prefix + ".isV2Z");
+-		n = DartSAParameters::get<double>(prefix + ".n");
+-		useCm = DartSAParameters::get<bool>(prefix + ".useCm");
+-		if (isV2Z)
+-			v2z = DartSAParameters::get<double>(prefix + ".V2Z.v2z");
+-	}
+-};
+-
+-class ProspectExternalModule {
+-public:
+-	bool isFluorescent = false;
+-	bool useProspectExternalModule = false;
+-	boost::optional<ProspectExternParameters> externParameters;  // Optional child
+-	boost::optional<FluorescenceExternParameters> fluorescence;  // Optional child
+-
+-	void loadFromParameters(const std::string& prefix) {
+-		isFluorescent = DartSAParameters::get<bool>(prefix + ".isFluorescent");
+-		useProspectExternalModule = DartSAParameters::get<bool>(prefix + ".useProspectExternalModule");
+-
+-		if (DartSAParameters::exists(prefix + ".ProspectExternParameters")) {
+-			externParameters = ProspectExternParameters();
+-			externParameters->loadFromParameters(prefix + ".ProspectExternParameters");
+-		}
+-		if (DartSAParameters::exists(prefix + ".FluorescenceYields")) {
+-			fluorescence = FluorescenceExternParameters();
+-			fluorescence->loadFromParameters(prefix + ".FluorescenceYields");
+-		}
+-	}
+-};
+-
+ class Marmit {
+ public:
+    std::string marmitDatabase;
+diff --git a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp
+new file mode 100644
+index 0000000..d0bb996
+--- /dev/null
++++ b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp
+@@ -0,0 +1,32 @@
++/*
++ * UnderstoryModel.hpp
++ *
++ *  Foliar (vegetation) model of one UnderstoryMulti face: database/model
++ *  pair plus the prospect/fluorescence external module.
++ */
++
++#ifndef INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_
++#define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_
++
++#include <string>
++
++#include "DartSAParameters.h"
++#include "../ProspectExternalModule.hpp"
++
++namespace phsdata {
++class UnderstoryModel {
++public:
++	std::string modelName;
++	std::string databaseName;  // Overwritten by prepareProspect() when a prospect database is generated
++	ProspectExternalModule prospectExternalModule;
++
++	void loadFromParameters(const std::string& prefix) {
++		modelName = DartSAParameters::get<std::string>(prefix + ".modelName");
++		databaseName = DartSAParameters::get<std::string>(prefix + ".databaseName");
++
++		prospectExternalModule.loadFromParameters(prefix + ".ProspectExternalModule");
++	}
++};
++}
++
++#endif /* INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_ */
+diff --git a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
+index 2b3b19d..0c58ffd 100644
+--- a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
++++ b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
+@@ -9,20 +9,71 @@
+ #define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMULTI_HPP_
+ 
+ #include <string>
++#include <boost/optional.hpp>
+ 
+ #include "DartSAParameters.h"
+ #include "../../DirectionSetLink.hpp"
++#include "UnderstoryModel.hpp"
+ 
+ namespace phsdata {
+ class UnderstoryMulti {
+ public:
++	bool hasDifferentModelForBottom = false;
++	std::string functionName = "undefined";

@@ -1,24 +1,23 @@
-From 3f8c27e4a54d84a93e5b3f87644aae78ccedc493 Mon Sep 17 00:00:00 2001
+From f106ad469d53da609285303da715e2e8f8c0bd90 Mon Sep 17 00:00:00 2001
 From: Vibe <vibe@localhost>
-Date: Wed, 18 Nov 2026 16:01:47 +0000
-Subject: [PATCH] Revise patch transfer protocol: plain-text default +
- push-back repair loop; base64 as fallback
+Date: Wed, 18 Nov 2026 16:38:48 +0000
+Subject: [PATCH] Add third transfer pitfall (trailing-whitespace stripping)
+ and tree-hash gate
 
-Two verified sender-side slip incidents in base64 payloads: eqLambertian.b64
-(f65f439/39e3635) had an insertion (77-char dciIg line -> stream shift ->
-base64 'invalid input') plus two silent substitutions; the CONTEXT.md patch
-chunk_aa (receiver evidence in 416dcfb) had a single substitution corrupting
-one quantum inside an ADDED diff line, so git am applied it silently and only
-the per-chunk sha256 caught it. Plain patches fail loudly ('corrupt patch at
-line N'), so they are now the default, gated by sha256 + git apply --check,
-with a repair loop (receiver pushes the received file to transfer/failed/,
-sender fetches, diffs locally, sends only a minimal correction).
+The protocol patch itself arrived with whitespace-only lines stripped
+(4 blank context lines and the '-- ' signature; evidence in 35d2120,
+transfer/failed/). It still applied to the IDENTICAL tree
+(220f8101d73bc884b2ee79a6b5763eea3ff7aa8f), because git treats an empty
+line in a hunk as an empty context line. Lesson: the raw file sha256 is only
+a difference detector; the authoritative gate for plain patches is git apply
+--check + the post-am tree/blob hash, which are immune to whitespace stripping
+and message edits.
 ---
- CONTEXT.md | 74 ++++++++++++++++++++++++++++++++++++++++++++++++------
- 1 file changed, 66 insertions(+), 8 deletions(-)
+ CONTEXT.md | 91 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 83 insertions(+), 8 deletions(-)
 
 diff --git a/CONTEXT.md b/CONTEXT.md
-index c42b748..552c079 100644
+index c42b748..daa2e12 100644
 --- a/CONTEXT.md
 +++ b/CONTEXT.md
 @@ -18,10 +18,12 @@ Decisions taken by the owner:
@@ -32,13 +31,13 @@ index c42b748..552c079 100644
 +- Patch-based delivery: sessions have no GitHub connector and cannot push
 +  (anonymous clone/fetch of this public repo works, push does not), so changes
 +  are delivered as patches pasted in chat. Follow the "Patch transfer
-+  protocol" section at the end of this file: small PLAIN-TEXT patches with a
-+  sha256 gate + `git apply --check`, a push-back repair loop on failure, and
-+  chunked base64 only as a fallback for whitespace-critical payloads.
++  protocol" section at the end of this file: small PLAIN-TEXT patches verified
++  by `git apply --check` + post-am tree hash, a push-back repair loop on any
++  mismatch, and chunked base64 only as a fallback.
 
  ## Build state (last verified)
 
-@@ -140,13 +142,69 @@ Sandbox notes for rebuilding the prefix (no root available):
+@@ -140,13 +142,86 @@ Sandbox notes for rebuilding the prefix (no root available):
 
  ## Pitfalls encountered (do not rediscover)
 
@@ -71,6 +70,16 @@ index c42b748..552c079 100644
 +      "`index  " in the new text) and only the per-chunk sha256 flagged
 +      chunk_aa (ab/ac matched). Substitutions keep the stream aligned;
 +      insertions/deletions shift it (the dciIg 77-char line above).
++  (c) editor/clipboard-side trailing-whitespace stripping on the RECEIVER
++      side: whitespace-only lines lose their trailing space (" " context
++      lines become truly empty, the "-- " git signature becomes "--").
++      Verified with the protocol patch itself (receiver evidence in commit
++      35d2120, transfer/failed/): the raw sha256 differed, yet the stripped
++      patch applied and produced the IDENTICAL tree
++      (220f8101d73bc884b2ee79a6b5763eea3ff7aa8f both ways), because git
++      treats an empty line in a hunk as an empty context line. Benign for
++      blank lines and the signature; dangerous if trailing spaces of
++      NON-blank context lines get stripped (then use --ignore-whitespace).
 +- Sessions cannot push to GitHub (connector disabled). Delivery = patches per
 +  the protocol below; the owner pushes, sessions fetch anonymously.
  - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
@@ -95,16 +104,23 @@ index c42b748..552c079 100644
 +1. Prefer PLAIN-TEXT patches, kept small: split one logical change into
 +   several patches of <= ~100 lines each (slip probability grows with payload
 +   length).
-+2. Every patch travels with its `sha256sum` in the message. Receiver gates, in
-+   order: (a) sha256sum match; (b) `git apply --check`; then `git am`. On tab
-+   mangling, `git am --ignore-whitespace` (index/blob-sha lines are not
-+   verified and may be hand-fixed).
-+3. Repair loop on ANY gate failure: the receiver pushes the file as received
-+   into a dedicated folder (e.g. `transfer/failed/`) on the repo; the sender
-+   fetches it anonymously, diffs locally against the true file, and sends back
-+   ONLY a minimal correction -- the differing lines by number, each with its
-+   own sha256, or a short python script -- never the whole payload. Final
-+   check: sha256 of the repaired file.
++2. Every patch travels with its `sha256sum` AND the sender's post-am tree
++   hash (`git rev-parse HEAD^{tree}` after am, or `git ls-tree HEAD -- <file>`
++   blob shas). Receiver gates, in order: (a) `git apply --check` (loud
++   structural failure); (b) `git am`; (c) AUTHORITATIVE: compare the tree/blob
++   hash -- only a match proves the content arrived intact, because it is
++   immune to trailing-whitespace stripping (pitfall c) and to commit-message
++   edits. The raw file sha256 is a DIFFERENCE DETECTOR, not a pass/fail gate
++   (benign whitespace-strips change it). On tab mangling,
++   `git am --ignore-whitespace` (index/blob-sha lines are not verified and
++   may be hand-fixed).
++3. Repair loop on ANY gate failure or raw-sha mismatch: the receiver pushes
++   the file as received into `transfer/failed/` on the repo; the sender
++   fetches it anonymously, diffs locally against the true file, and classifies
++   the difference (benign whitespace-strip vs harmful character slip). If
++   harmful, the sender sends back ONLY a minimal correction -- the differing
++   lines by number, each with its own sha256, or a short python script --
++   never the whole payload. Final check: the post-am tree/blob hash.
 +4. Base64 fallback only for whitespace-critical payloads (tabs inside string
 +   literals, ...) or after repeated plain-text failures: `base64 -w 76`, then
 +   chunks of <= 50 lines (`split -l 50`), one code block per chunk, each

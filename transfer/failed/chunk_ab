@@ -1,0 +1,100 @@
+    static bool readCoeffDiffParametersForPhaseExtern(	const int & index,
+                    string & phaseName,
+                    string & modelName,
+@@ -147,12 +142,6 @@ public:
+    static bool readCoeffDiffParametersOpticalFactorsXML(	const string & key,
+                    const string & subNodeKey,
+                    OpticalFactorParameters & opticalFactorParameters);
+-	static bool readCoeffDiffParametersForProspect(		const int & modelIndex,
+-					const int & prospectFunction,
+-					ProspectParameters & prospectParameters);
+-	static bool readCoeffDiffParametersForProspectXML(	const std::string & prefixKey,
+-					ProspectParameters & prospectParameters);
+-
+    static bool readCoeffDiffParametersForFluspect(	const string & key,
+                    FluorescenceParameters & fluorescenceParameters);
+ 
+@@ -358,31 +347,6 @@ public:
+                    std::string & databaseModelUp,
+                    std::string & databaseModelDown);
+ 
+-	static bool readCoeffDiffParametersForFoliarDatabases(	const unsigned int & modelIndex,
+-					std::string & phaseName,
+-					std::string & modelName,
+-					std::string & databaseName,
+-					bool & isSpecular,
+-					bool & useProspectGen,
+-					bool & hasDifferentBottom,
+-					std::string & specularDatabaseName,
+-					std::string & specularDatabaseModel,
+-					std::string & bottomDatabase,
+-					std::string & bottomModel,
+-					bool & bottomProspectGen);
+-	static bool readCoeffDiffParametersForFoliarDatabasesXML(	const unsigned int & modelIndex,
+-					std::string & phaseName,
+-					std::string & modelName,
+-					std::string & databaseName,
+-					bool & isSpecular,
+-					bool & useProspectGen,
+-					bool & hasDifferentBottom,
+-					std::string & specularDatabaseName,
+-					std::string & specularDatabaseModel,
+-					std::string & bottomDatabase,
+-					std::string & bottomModel,
+-					bool & bottomProspectGen);
+-
+    static bool readParametersForTemperature(	std::vector<int> &arviIdTemperature,
+                    const int & avinb_leaf);
+ 
+diff --git a/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp b/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp
+new file mode 100644
+index 0000000..42566ab
+--- /dev/null
++++ b/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp
+@@ -0,0 +1,96 @@
++/*
++ * ProspectExternalModule.hpp
++ *
++ *  Shared Prospect/Fluorescence external module storage, used by both
++ *  surface (e.g. Lambertian) and volume (e.g. UnderstoryMulti) materials.
++ */
++
++#ifndef INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
++#define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
++
++#include <string>
++#include <boost/optional.hpp>
++
++#include "DartSAParameters.h"
++
++namespace phsdata {
++class FluorescenceExternParameters {
++public:
++	bool forceYields = true;
++	bool useCombinedYields = false;
++	double yieldPSI = 0.02;
++	double yieldPSII = 0.;
++
++	void loadFromParameters(const std::string& prefix) {
++		forceYields = DartSAParameters::get<bool>(prefix + ".forceYields");
++
++		if (DartSAParameters::exists(prefix + ".Yields.yieldPSI")) {
++			useCombinedYields = false;
++			yieldPSI = DartSAParameters::get<double>(prefix + ".Yields.yieldPSI");
++			yieldPSII = DartSAParameters::get<double>(prefix + ".Yields.yieldPSII");
++		}
++		if (DartSAParameters::exists(prefix + ".Yield.yieldPS")) {
++			useCombinedYields = true; // => yieldPSII is unused
++			yieldPSI = DartSAParameters::get<double>(prefix + ".Yield.yieldPS");
++		}
++	}
++};
++
++class ProspectExternParameters {
++public:
++	double anthocyanin = 0.;
++	double cBrown = 0.; // Brown Pigments
++	double cab = 40.; // Chlorophyll
++	double car = 10.; // Carotenoid
++	double cbc = 0.009; //
++	double cm = 0.01; // Leaf Mass per Area

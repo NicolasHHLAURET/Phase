@@ -1,0 +1,99 @@
++	unsigned int indexFunction = 0;
++
++	boost::optional<UnderstoryModel> understoryMultiModel;       // Single model (top and bottom)
++	boost::optional<UnderstoryModel> understoryMultiTopModel;    // Used when hasDifferentModelForBottom
++	boost::optional<UnderstoryModel> understoryMultiBottomModel; // Used when hasDifferentModelForBottom
+    DirectionSetLink directionSetLink;
+ 
+    void loadFromParameters(const std::string & prefix) {
++		hasDifferentModelForBottom = DartSAParameters::get<bool>(prefix + ".hasDifferentModelForBottom");
++		functionName = DartSAParameters::get<std::string>(prefix + ".functionName");
++		indexFunction = DartSAParameters::get<unsigned int>(prefix + ".indexFunction");
++
++		if (DartSAParameters::exists(prefix + ".UnderstoryMultiModel")) {
++			understoryMultiModel = UnderstoryModel();
++			understoryMultiModel->loadFromParameters(prefix + ".UnderstoryMultiModel");
++		}
++		if (DartSAParameters::exists(prefix + ".UnderstoryMultiTopModel")) {
++			understoryMultiTopModel = UnderstoryModel();
++			understoryMultiTopModel->loadFromParameters(prefix + ".UnderstoryMultiTopModel");
++		}
++		if (DartSAParameters::exists(prefix + ".UnderstoryMultiBottomModel")) {
++			understoryMultiBottomModel = UnderstoryModel();
++			understoryMultiBottomModel->loadFromParameters(prefix + ".UnderstoryMultiBottomModel");
++		}
++
+        if (DartSAParameters::exists(prefix + ".DirectionSetLink")) {
+            directionSetLink.loadFromParameters(prefix + ".DirectionSetLink");
+        }
+    }
++
++	UnderstoryModel * getTopModel() {
++		if (hasDifferentModelForBottom)
++			return understoryMultiTopModel.is_initialized() ? &understoryMultiTopModel.value() : nullptr;
++		return understoryMultiModel.is_initialized() ? &understoryMultiModel.value() : nullptr;
++	}
++
++	const UnderstoryModel * getTopModel() const {
++		if (hasDifferentModelForBottom)
++			return understoryMultiTopModel.is_initialized() ? &understoryMultiTopModel.value() : nullptr;
++		return understoryMultiModel.is_initialized() ? &understoryMultiModel.value() : nullptr;
++	}
++
++	UnderstoryModel * getBottomModel() {
++		if (hasDifferentModelForBottom && understoryMultiBottomModel.is_initialized())
++			return &understoryMultiBottomModel.value();
++		return nullptr;
++	}
++
++	const UnderstoryModel * getBottomModel() const {
++		if (hasDifferentModelForBottom && understoryMultiBottomModel.is_initialized())
++			return &understoryMultiBottomModel.value();
++		return nullptr;
++	}
+ };
+ }
+ 
+diff --git a/Phase/src/Phase.cpp b/Phase/src/Phase.cpp
+index 037f515..c33ce8b 100755
+--- a/Phase/src/Phase.cpp
++++ b/Phase/src/Phase.cpp
+@@ -2585,7 +2585,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
+    writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
+ 
+ //	// Lecture des bases de données
+-//	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
++//	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
+ //	vector<OpticalPropertyParameters>::iterator endIterator = opticalPropertiesDatabases.end();
+ //
+ //	unsigned int currentOPIndex = 0;
+@@ -2657,7 +2657,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
+    outCoeffSpecProperties.close();
+ 
+    // Databases self destruct procedure
+-	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO.numberOfSpectralBands);
++	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
+    vector<OpticalPropertyParameters>::iterator selfDestructEndIterator = opticalPropertiesDatabases.end();
+    for (vector<OpticalPropertyParameters>::iterator selfDestructIterator = opticalPropertiesDatabases.begin(); selfDestructIterator < selfDestructEndIterator; ++selfDestructIterator) {
+        for (unsigned int numPropertyDatabase = 0; numPropertyDatabase < selfDestructIterator->getNbDatabaseForProperty(); ++numPropertyDatabase) {
+@@ -2737,42 +2737,29 @@ void prepareProspect(PhaseGeneralParametersDTO & genDTO) {
+            }
+        }
+    }
+-	// TODO
+-//	// Prospect detection & preparation for foliar phase functions ...
+-//	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfFoliarModels(); modelIndex++) {
+-//		bool bottomProspectGen = false;
+-//		bool hasDifferentModelForBottom = false;
+-//		EXIT_IF(!PhaseDAO::readCoeffDiffParametersForIsProspectUseFoliar(modelIndex, useProspectGen, bottomProspectGen, hasDifferentModelForBottom), "");
+-//		if (useProspectGen)
+-//		{
+-//			ProspectParameters prospectParameters;
+-//			if (hasDifferentModelForBottom) {
+-//				PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE_TOP, prospectParameters);
+-//			} else {
+-//				PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE, prospectParameters);
+-//			}
+-//			// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
+-//			boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
+-//			databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";

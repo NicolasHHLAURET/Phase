@@ -1,0 +1,76 @@
+-bool PhaseDAO::readCoeffDiffParametersForFoliarDatabases(	const unsigned int & modelIndex,
+-					string & phaseName,
+-					string & modelName,
+-					string & databaseName,
+-					bool & isSpecular,
+-					bool & useProspectGen,
+-					bool & hasDifferentBottom,
+-					string & specularDatabaseName,
+-					string & specularDatabaseModel,
+-					string & bottomDatabase,
+-					string & bottomModel,
+-					bool & bottomProspectGen) {
+-	return readCoeffDiffParametersForFoliarDatabasesXML(modelIndex, phaseName, modelName, databaseName, isSpecular, useProspectGen, hasDifferentBottom,
+-		specularDatabaseName, specularDatabaseModel, bottomDatabase, bottomModel, bottomProspectGen);
+-}
+-bool PhaseDAO::readCoeffDiffParametersForFoliarDatabasesXML(const unsigned int & modelIndex,
+-					string & phaseName,
+-					string & modelName,
+-					string & databaseName,
+-					bool & isSpecular,
+-					bool & useProspectGen,
+-					bool & hasDifferentBottom,
+-					string & specularDatabaseName,
+-					string & specularDatabaseModel,
+-					string & bottomDatabase,
+-					string & bottomModel,
+-					bool & bottomProspectGen) {
+-	string temp, modelKey;
+-	ostringstream oss;
+-
+-	try {
+-		oss << modelIndex;
+-		temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
+-		DartSAParameters::get(temp + "].hasDifferentModelForBottom", hasDifferentBottom);
+-		modelKey = hasDifferentBottom ? "UnderstoryMultiTopModel" : "UnderstoryMultiModel";
+-		DartSAParameters::get(temp + "].ident", phaseName);
+-		DartSAParameters::get(temp + "]." + modelKey + ".ModelName", modelName);
+-		DartSAParameters::get(temp + "]." + modelKey + ".databaseName", databaseName);
+-		DartSAParameters::get(temp + "]." + modelKey + ".useSpecular", isSpecular);
+-		DartSAParameters::get(temp + "]." + modelKey + ".ProspectExternalModule.useProspectExternalModule", useProspectGen);
+-		if (isSpecular) {
+-			DartSAParameters::get(temp + "]." + modelKey + ".SpecularData.specularModelName", specularDatabaseModel);
+-			DartSAParameters::get(temp + "]." + modelKey + ".SpecularData.specularDatabaseName", specularDatabaseName);
+-		}
+-		if (hasDifferentBottom) {
+-			string bottomModelKey;
+-			bottomModelKey = "UnderstoryMultiBottomModel";
+-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ModelName", bottomModel);
+-			DartSAParameters::get(temp + "]." + bottomModelKey + ".databaseName", bottomDatabase);
+-			DartSAParameters::get(temp + "]." + bottomModelKey + ".ProspectExternalModule.useProspectExternalModule", bottomProspectGen);
+-		}
+-	} catch (DartException &E) {
+-		cerr << E.getOriginMessage() << endl;
+-		return false;
+-	}
+-	return true;
+-}
+-
+ bool PhaseDAO::readCoeffDiffParametersForFoliar(const unsigned int & foliarModelindice,
+                    double &m,
+                    double &b0,
+diff --git a/Phase/src/PhaseVegetation.cpp b/Phase/src/PhaseVegetation.cpp
+index 8d51af3..24a1279 100644
+--- a/Phase/src/PhaseVegetation.cpp
++++ b/Phase/src/PhaseVegetation.cpp
+@@ -40,7 +40,7 @@ static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersD
+ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO) {
+    VegetationVolumeMaterials vegetation;
+ 
+-	const unsigned int numberOfFoliarModels = PhaseProperty::_reflectanceModelsParameters.numberOfFoliarModels;
++	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
+    const unsigned int directionSetIndex = getVegetationDirectionSetIndex(genDTO);
+    const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
+    const unsigned int numberOfDirections = listDirections.size();
+-- 
+2.47.3
