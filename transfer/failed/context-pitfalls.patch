@@ -1,0 +1,94 @@
+From 5a0c19b28215137998bdf65a5e00f17be9462fdf Mon Sep 17 00:00:00 2001
+From: Vibe <vibe@localhost>
+Date: Fri, 20 Nov 2026 15:03:06 +0000
+Subject: [PATCH] Document pitfalls (e)/(f) and protocol point 6: structural
+ patch corruption modes + sender-side case flips in repair scripts (base64 +
+ decoded-sha gate); history item 14; BioClimatic rename TODO
+
+---
+ CONTEXT.md | 48 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/CONTEXT.md b/CONTEXT.md
+index 0363223..5ba7abe 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -154,6 +154,20 @@ Sandbox notes for rebuilding the prefix (no root available):
+     Bug fix: LambertianMaterialWriter::prepareDatabase() now uses
+     DartEnv::getOutputTempDatabasePath(true) + selfDestruct for prospect-
+     generated databases (it wrongly used getDatabasePath -> wrong folder).
++14. Vegetation-writer patch delivery (same session, owner-applied as
++    015c6e8; post-am tree vs 37a77a6 =
+
++    5f7c0e047d2b798e75c0b8ae9954f5314463cbf7, `git diff -w` vs the sender's
++    commit b35bea3 empty -- the owner accepted the 32 whitespace-only-damaged
++    added lines, cosmetic rework planned): the repair loop ran a second time
++    with NEW structural corruption modes (pitfalls (e)/(f)): a split context
++    line, a dropped "-" line, a junk char on an @@ header, a marker flip
++    " " -> "-", backslash insertions before quotes in removed lines, and
++    sender-side CASE FLIPS inside the transmitted repair script (8x
++    useBioClimaticProfileEta instead of the code's useBioCLimaticProfileEta)
++    which passed `git apply --check` but failed `git am` at Phase.cpp:1514.
++    The corrected repair script was then sent base64-encoded with the
++    decoded-script sha256 as the gate, and the patch applied with
++    `git am --ignore-whitespace`.
+ 
+ ## Known TODOs / open points (next sessions)
+ 
+@@ -182,6 +196,9 @@ Sandbox notes for rebuilding the prefix (no root available):
+   (later round): readCoeffDiffParametersForFoliar (LAD params),
+   readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
+   readCoeffDiffParametersForFoliarOpticalFactors.
++- Rename the identifier useBioCLimaticProfileEta -> useBioClimaticProfileEta
++  (lowercase l -- the capital L is a typo, 9 occurrences at 015c6e8). Owner
++  decision, to be done after the vegetation-writer patch.
+ - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
+   prefix and flip DART_WITH_NETCDF to finish gating work.
+ - CRLF normalization (7 files).
+@@ -251,6 +268,30 @@ Sandbox notes for rebuilding the prefix (no root available):
+       git apply). Note: plain `git apply --check` FAILS on the tab/space
+       mangling of context lines even when the structure is fine -- always
+       gate with --ignore-whitespace plus the tree hash.
++  (e) second large patch (vegetation writer, 1334 lines; receiver evidence
++      in transfer/failed/ at e4fd093/64fe6b0): additional STRUCTURAL modes
++      on top of (a)-(d): a long context line full of tab runs SPLIT into two
++      lines; one "-" removed line DROPPED; a junk char prefixed to an "@@"
++      hunk header; a context-line marker flipped " " -> "-" (the line is then
++      counted as removed); backslashes INSERTED before quotes inside removed
++      lines; the trailing newline of the last chunk lost. Plus 32 added "+"
++      lines with whitespace-only damage (owner accepted: the tree is not
++      byte-exact; `git diff -w` against the sender's commit is the gate).
++      Repair = a minimal line-ops python script (18 ops, descending line
++      numbers, strings ASCII repr-escaped), validated in a scratch clone
++      (`git am` OK, post-am tree 5f7c0e047d2b798e75c0b8ae9954f5314463cbf7,
++      `git diff -w` vs b35bea3 empty), then applied by the owner as 015c6e8.
++  (f) sender-side CASE FLIPS hit the transmitted REPAIR SCRIPT itself: the
++      python patcher arrived with 8 case flips (useBioClimaticProfileEta
++      instead of the code's useBioCLimaticProfileEta). `git apply --check
++      --ignore-whitespace` PASSED but `git am` failed at Phase.cpp:1514 --
++      repair scripts are as slip-prone as patches. Rule: never transmit a
++      repair script (or any case-sensitive payload) as plain text; use the
++      base64 path (protocol points 4/6) and gate on the sha256 of the
++      DECODED file. Base64 is not immune either: a padding "=" was flipped
++      to "-" in transit (hand-fixed by the receiver; the decoded sha256
++      still mismatched due to further benign edits) -- again, only the
++      decoded-output hash is the gate, decode/apply success proves nothing.
+ - Sessions cannot push to GitHub (connector disabled). Delivery = patches per
+   the protocol below; the owner pushes, sessions fetch anonymously.
+ - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
+@@ -312,6 +353,13 @@ text is emitted more reliably than base64 -- so plain text is the default:
+    patches with many added lines, plain text + this repair loop worked, but
+    going straight to base64 (point 4) is legitimate when the added lines are
+    whitespace-critical.
++6. Repair scripts and other case-sensitive payloads (pitfall f): transmit
++   them base64-encoded (point 4 mechanics: `base64 -w 76`, chunks of
++   <= 50 lines, one code block per chunk with its sha256), reassemble
++   `cat chunk_* > p.b64`, and gate on `sha256sum` of the DECODED file
++   (`base64 -d p.b64 | sha256sum`) against the sender's value -- never on
++   decode/apply success. Expect "=" padding flips to "-" and silent
++   substitutions; only the hash catches them.
+ 
+ ## Session handoff checklist (for AI agents)
+ 
+-- 
+2.47.3
