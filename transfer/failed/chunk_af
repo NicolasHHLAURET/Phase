@@ -1,100 +1,100 @@
--//			// Prepare prospect for later run
--//			prospect.prepareProspect(databaseName, prospectParameters);
--//			// Save the path to future generated database
--//			mapPrepareProspectFoliarTop[modelIndex] = databaseName;
--//		}
--//
--//		if (bottomProspectGen) {
--//			ProspectParameters prospectParameters;
--//			PhaseDAO::readCoeffDiffParametersForProspect(modelIndex, globalReferences::PROSPECT_FOLIAIRE_BOTTOM, prospectParameters);
--//
--//			// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
--//			boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
--//			databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";
--//			// Prepare prospect for later run
--//			prospect.prepareProspect(databaseName, prospectParameters);
--//			// Save the path to future generated database
--//			mapPrepareProspectFoliarBottom[modelIndex] = databaseName;
--//		}
--//	}
-+	// Prospect detection & preparation for foliar phase functions (top and bottom faces)
-+	for (std::shared_ptr<phsdata::UnderstoryMulti> & understory : genDTO._volumesMaterials.understoryMultiFunctions) {
-+		phsdata::UnderstoryModel * foliarModels[2] = { understory->getTopModel(), understory->getBottomModel() };
-+		for (phsdata::UnderstoryModel * foliarModel : foliarModels) {
-+			if (foliarModel == nullptr)
-+				continue;
-+			if ((foliarModel->prospectExternalModule.useProspectExternalModule
-+						|| foliarModel->prospectExternalModule.isFluorescent)
-+					&& foliarModel->prospectExternalModule.externParameters.is_initialized()) {
-+
-+				// Generate an unique name for the database name (Unique for multithreading / will be deleted after)
-+				boost::uuids::uuid databaseUuid = boost::uuids::random_generator()();
-+				databaseName = boost::lexical_cast<std::string>(databaseUuid) + ".db";
-+
-+				// Save the path to the future generated database in the model itself
-+				foliarModel->databaseName = databaseName;
-+
-+				// Prepare prospect for later run
-+				prospect.prepareProspect(databaseName, foliarModel->prospectExternalModule.externParameters.value());
-+				++prospectCount;
-+			}
-+		}
-+	}
-    // RUN ALL PROSPECTS
-    if (prospectCount > 0) {
-        cout << "    -> Compute "<< prospectCount << " prospect(s) functions ..."<< endl;
-@@ -3405,17 +3392,13 @@ void writeAtmosphereNcWithDatabase(	const AtmosphereParameters& atmosphereParame
- #endif // DART_WITH_NETCDF
- 
- 
--static std::map<unsigned int, std::string> mapPrepareProspectFoliarTop;
--static std::map<unsigned int, std::string> mapPrepareProspectFoliarBottom;
+-			}
 -
--vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigned int & numberOfBands) {
-+vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGeneralParametersDTO & genDTO) {
-    vector<OpticalPropertyParameters> phaseOpticalProperties;
- 
-    double deviation = 0, smc = 0, delta = 0;
-    string phaseName = "", modelName = "", niModelName = "", ntModelName = "", databaseName = "",databasePath="", temp = "";
--	string specularModelName = "", specularDatabase = "";
-    string transmittanceModelName = "", transmittanceDatabaseName = "";
--	bool isSpecular = false, useRefraction = false, hasDifferentModelForBottom = false, keepOutputFile = false, useProspectGen = false;
-+	bool useRefraction = false, keepOutputFile = false;
-    int specularRadianceDistribution = 0, lambertianDefinition = 0, indexOrder=-1;
- 
-    /* PHASE EXTERN */
-@@ -3423,7 +3406,7 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
-        EXIT_IF(!PhaseDAO::readCoeffDiffParametersForPhaseExtern(modelIndex, phaseName, modelName, databaseName), "");
-        OpticalPropertyParameters opticalProperty(PHASE_EXTERN_PROPERTY, modelIndex, phaseName, indexOrder);
-        shared_ptr<PhaseExternDatabaseParameters> phaseExternDatabaseParameters(
--			new PhaseExternDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), modelName, numberOfBands));
-+			new PhaseExternDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), modelName, genDTO.numberOfSpectralBands));
-        opticalProperty.addDatabaseToProperty(phaseExternDatabaseParameters);
-        phaseOpticalProperties.push_back(opticalProperty);
-    }
-@@ -3438,7 +3421,7 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
-        EXIT_IF(!PhaseDAO::readDirectionalDirectTransmittanceForSpecular(modelIndex, opticalProperty._useDirectionalDirectTransmittance, opticalProperty._ddtFilePath, opticalProperty._angularStep), "");
- 
-        shared_ptr<RefractiveIndexDatabaseParameters> refractiveIndexDatabaseParameters(
--			new RefractiveIndexDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), niModelName, numberOfBands, true,
-+			new RefractiveIndexDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), niModelName, genDTO.numberOfSpectralBands, true,
-                ntModelName));
- 
-        opticalProperty.addDatabaseToProperty(refractiveIndexDatabaseParameters);
-@@ -3454,20 +3437,20 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const unsigne
-    }
- 
-    /* Foliar*/
--	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfFoliarModels(); modelIndex++) {
+-			if (PhaseProperty::getPolarization()) {
+-				// 3 * numberOfSpectralBands are added to simulate Q, U, V
+-				// The optical properties are repeated in these bands
+-				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
+-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
+-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
+-					}
+-				}
+-			}
 -
--		// Bottom foliar model
--		string bottomDatabaseName;
--		string bottomDatabasePath;
--		string bottomModel;
--		bool bottomProspectGen = false;
+-			if (PhaseProperty::getFluorescence()) {
+-				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
+-				// The optical properties are repeated in these bands
+-				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
+-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
+-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
+-					}
+-				}
+-			}
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", inputsOSS.str());
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", duplicationOSS.str());
+-		}
+-	}
+-	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
+-		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
 -
--		EXIT_IF(
--			!PhaseDAO::readCoeffDiffParametersForFoliarDatabases(modelIndex, phaseName, modelName, databaseName, isSpecular, useProspectGen,
--				hasDifferentModelForBottom, specularDatabase, specularModelName, bottomDatabaseName, bottomModel, bottomProspectGen), "");
+-	std::vector<PropertyLambertian> frontEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
+-	std::vector<PropertyLambertian> backEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
+-	unsigned int numberOfFresnelCoefficient = 20;
+-	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-		foliarComputer.testAlbedo(spectralBandIndex, modelIndex);
+-		foliarComputer.writeFoliar(modelIndex, spectralBandIndex, foliarPropertyParameters.getModelName(), pkmg, outCoeffSpecProperties,
+-			foliarProperty);
+-		if (PhaseProperty::getPolarization()) {
+-			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, sunDirection,
+-				numberOfFresnelCoefficient, foliarModel, ladComputation);
+-		}
+-		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
+-			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
+-			frontEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+-			frontEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
+-			backEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
+-			backEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+-			backEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
+-		}
+-	}
 -
-+	for (unsigned int modelIndex = 0; modelIndex < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelIndex) {
+-	/* Equivalent lambertian phase functions generated from the foliar model: the LuxCore
+-	 * material keys are written by the same writer as for real lambertians (the emissivity
+-	 * is padded with zeros on the extra simulated Q,U,V / PSI,PSII bands). Thermal keys
+-	 * are handled separately by the EmissionMaterial. */
+-	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
+-		const phase::FluorescenceService fluorescenceService;
+-		const phase::OpticalFactorsTextureWriter opticalFactorsTextureWriter;
+-		const phase::LambertianMaterialWriter lambertianMaterialWriter(fluorescenceService, opticalFactorsTextureWriter);
+-
+-		const unsigned int frontEquivalentLambertianIndex = foliarModel.getEquivalentFrontLambertianIndex(modelIndex);
+-		const unsigned int backEquivalentLambertianIndex = foliarModel.getEquivalentBackLambertianIndex(modelIndex);
+-
+-		lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, frontEquivalentLambertianIndex, frontEquivalentLambertianIndex,
+-				frontEquivalentLambertianProperties, topFluorescenceResults);
+-
+-		if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+-			lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, backEquivalentLambertianIndex, backEquivalentLambertianIndex,
+-					backEquivalentLambertianProperties, bottomFluorescenceResults);
+-		}
+-
+-		/* Optical factors of the equivalent lambertians come from the foliar model */
+-		OpticalFactorParameters opticalFactorParameters;
+-		if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
+-			const std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(
+-					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", textureName);
+-			if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+-				genDTO.luxCoreRenderSceneProperties.ajouterCle(
+-						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", textureName);
+-			}
+-		}
+-	}
+-}
+-
+ void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaValues,
+                    vector<double> & bioClimaticPhiValues,
+                    vector<vector<vector<double> > > & bioClimaticProfileEta) {
+n@@ -1999,20 +1641,6 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
+ 
+ }
+ 
+-void computeFoliarSpecular(	SpecularFoliarData & specularProperty,
+-					const unsigned int & spectralBandIndex,
+-					shared_ptr<SpecularFoliarDatabaseParameters> & foliarSpecularDatabaseParameters) {
+-
+-	if (specularProperty._isSpecular) {
+-		specularProperty.refractionIndexBottom = foliarSpecularDatabaseParameters->getBottomRefractionIndexForBand(spectralBandIndex);
+-		specularProperty.refractionIndexTop = foliarSpecularDatabaseParameters->getTopRefractionIndexForBand(spectralBandIndex);
+-		specularProperty.roughnessBottom = foliarSpecularDatabaseParameters->getBottomForBand(spectralBandIndex);

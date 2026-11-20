@@ -1,100 +1,100 @@
--	void loadFromParameters(const std::string& prefix) {
--		anthocyanin = DartSAParameters::get<double>(prefix + ".anthocyanin");
--		cBrown = DartSAParameters::get<double>(prefix + ".cBrown");
--		cab = DartSAParameters::get<double>(prefix + ".cab");
--		car = DartSAParameters::get<double>(prefix + ".car");
--		cbc = DartSAParameters::get<double>(prefix + ".cbc");
--		cm = DartSAParameters::get<double>(prefix + ".cm");
--		cp = DartSAParameters::get<double>(prefix + ".cp");
--		cw = DartSAParameters::get<double>(prefix + ".cw");
--		inputProspectFile = DartSAParameters::get<std::string>(prefix + ".inputProspectFile");
--		isV2Z = DartSAParameters::get<bool>(prefix + ".isV2Z");
--		n = DartSAParameters::get<double>(prefix + ".n");
--		useCm = DartSAParameters::get<bool>(prefix + ".useCm");
--		if (isV2Z)
--			v2z = DartSAParameters::get<double>(prefix + ".V2Z.v2z");
+-		foliarProperty[spectralBandIndex].foliarDimension = foliarModel.getFoliarDimension(modelIndex);
 -	}
--};
+-	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions(modelIndex);
+-	ostringstream val;
+-	val << modelIndex; //on ajoute le numero de la fx de phase dans le nom du fichier : sprintf (val, "%u.",j)
+-	string name = val.str() + "." + foliarPropertyParameters.getModelName();
 -
--class ProspectExternalModule {
--public:
--	bool isFluorescent = false;
--	bool useProspectExternalModule = false;
--	boost::optional<ProspectExternParameters> externParameters;  // Optional child
--	boost::optional<FluorescenceExternParameters> fluorescence;  // Optional child
+-//	PhaseUtils::setOutputFolder("lib_phase"); // Je suis un porc.
+-	createDirectory(DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder());
 -
--	void loadFromParameters(const std::string& prefix) {
--		isFluorescent = DartSAParameters::get<bool>(prefix + ".isFluorescent");
--		useProspectExternalModule = DartSAParameters::get<bool>(prefix + ".useProspectExternalModule");
--
--		if (DartSAParameters::exists(prefix + ".ProspectExternParameters")) {
--			externParameters = ProspectExternParameters();
--			externParameters->loadFromParameters(prefix + ".ProspectExternParameters");
+-	pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
+-	pkmg.setNumeroFonctionDePhase(modelIndex);
+-	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(modelIndex) << endl;
+-	phase::FluorescenceResults topFluorescenceResults;
+-	topFluorescenceResults.useBioCLimaticProfileEta = false;
+-	topFluorescenceResults.isFluorescent = false;
+-	phase::FluorescenceResults bottomFluorescenceResults;
+-	bottomFluorescenceResults.useBioCLimaticProfileEta = false;
+-	bottomFluorescenceResults.isFluorescent = false;
+-	foliarComputer.setTopFluorescenceComputation(false);
+-	foliarComputer.setBottomFluorescenceComputation(false);
+-	FluorescenceParameters fluorescenceParameters;
+-	bool hasDifferentBottom = false;
+-	PhaseDAO::readCoeffDiffParametersForFoliarFluspect(modelIndex, fluorescenceParameters, hasDifferentBottom, false);
+-	if (PhaseProperty::getFluorescence()) {
+-		foliarComputer.resetFrontFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
+-		if (fluorescenceParameters.isFluorescent) {
+-			computeFoliarFluorescenceMatrices(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), modelIndex,
+-				fluorescenceParameters, genDTO, 0);
+-			foliarComputer.setTopFluorescenceComputation(true);
+-			if (topFluorescenceResults.useBioClimaticProfileEta) {
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << "1" << endl;
+-			} else {
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << "0" << endl;
+-			}
 -		}
--		if (DartSAParameters::exists(prefix + ".FluorescenceYields")) {
--			fluorescence = FluorescenceExternParameters();
--			fluorescence->loadFromParameters(prefix + ".FluorescenceYields");
+-		foliarComputer.resetBackFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
+-		if (hasDifferentBottom) {
+-			PhaseDAO::readCoeffDiffParametersForFoliarFluspect(modelIndex, fluorescenceParameters, hasDifferentBottom, true);
+-			if (fluorescenceParameters.isFluorescent) {
+-				computeFoliarFluorescenceMatrices(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), modelIndex,
+-					fluorescenceParameters, genDTO, 1);
+-				foliarComputer.setBottomFluorescenceComputation(true);
+-				if (bottomFluorescenceResults.useBioClimaticProfileEta) {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "1" << endl;
+-				} else {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "0" << endl;
+-				}
+-			}
+-		} else {
+-			if (foliarComputer.isTopFluorescenceComputation()) {
+-				bottomFluorescenceResults = topFluorescenceResults;
+-				foliarComputer.getBackFaceFluorescenceMatrix() = foliarComputer.getFrontFaceFluorescenceMatrix();
+-				foliarComputer.setBottomFluorescenceComputation(true);
+-				if (topFluorescenceResults.useBioClimaticProfileEta) {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "1" << endl;
+-				} else {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "0" << endl;
+-				}
+-			}
+-		}
+-		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
+-		pkmg.setNumeroFonctionDePhase(modelIndex);
+-		if (foliarComputer.isTopFluorescenceComputation() || foliarComputer.isBottomFluorescenceComputation()) {
+-			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "1" << endl;
+-		} else {
+-			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "0" << endl;
+-		}
+-		if (foliarComputer.isTopFluorescenceComputation())
+-		{
+-			if (topFluorescenceResults.useBioClimaticProfileEta) {
+-				string topBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
+-				vector<double> topBioClimaticThetaValues, topBioClimaticPhiValues;
+-				vector<vector<vector<double> > > topBioClimaticProfileEta;
+-				readBioClimaticFile(topBCFilePath, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta);
+-				string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
+-				string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
+-				ofstream ofstreamTopAverageEta;
+-				ofstreamTopAverageEta.open(topAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
+-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticFile() << topAverageBioClimaticProfileFileName << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyType() << topFluorescenceResults.linkedOpticalPropertyType << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyIndex() << topFluorescenceResults.linkedOpticalPropertyIndex << endl;
+-			}
+-			if (bottomFluorescenceResults.useBioClimaticProfileEta) {
+-				string bottomBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
+-				vector<double> bottomBioClimaticThetaValues, bottomBioClimaticPhiValues;
+-				vector<vector<vector<double> > > bottomBioClimaticProfileEta;
+-				readBioClimaticFile(bottomBCFilePath, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta);
+-				string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
+-				string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
+-				ofstream ofstreamBottomAverageEta;
+-				ofstreamBottomAverageEta.open(bottomAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
+-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
+-				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticFile() << bottomAverageBioClimaticProfileFileName << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyType() << bottomFluorescenceResults.linkedOpticalPropertyType << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyIndex() << bottomFluorescenceResults.linkedOpticalPropertyIndex << endl;
+-			}
 -		}
 -	}
--};
--
- class Marmit {
- public:
-    std::string marmitDatabase;
-diff --git a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp
-new file mode 100644
-index 0000000..d0bb996
---- /dev/null
-+++ b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryModel.hpp
-@@ -0,0 +1,32 @@
-+/*
-+ * UnderstoryModel.hpp
-+ *
-+ *  Foliar (vegetation) model of one UnderstoryMulti face: database/model
-+ *  pair plus the prospect/fluorescence external module.
-+ */
-+
-+#ifndef INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_
-+#define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_
-+
-+#include <string>
-+
-+#include "DartSAParameters.h"
-+#include "../ProspectExternalModule.hpp"
-+
-+namespace phsdata {
-+class UnderstoryModel {
-+public:
-+	std::string modelName;
-+	std::string databaseName;  // Overwritten by prepareProspect() when a prospect database is generated
-+	ProspectExternalModule prospectExternalModule;
-+
-+	void loadFromParameters(const std::string& prefix) {
-+		modelName = DartSAParameters::get<std::string>(prefix + ".modelName");
-+		databaseName = DartSAParameters::get<std::string>(prefix + ".databaseName");
-+
-+		prospectExternalModule.loadFromParameters(prefix + ".ProspectExternalModule");
-+	}
-+};
-+}
-+
-+#endif /* INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMODEL_HPP_ */
-diff --git a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
-index 2b3b19d..0c58ffd 100644
---- a/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
-+++ b/Phase/include/inputs/storage/opticalMaterials/vegetation/UnderstoryMulti.hpp
-@@ -9,20 +9,71 @@
- #define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_VEGETATION_UNDERSTORYMULTI_HPP_
- 
- #include <string>
-+#include <boost/optional.hpp>
- 
- #include "DartSAParameters.h"
- #include "../../DirectionSetLink.hpp"
-+#include "UnderstoryModel.hpp"
- 
- namespace phsdata {
- class UnderstoryMulti {
- public:
-+	bool hasDifferentModelForBottom = false;
-+	std::string functionName = "undefined";

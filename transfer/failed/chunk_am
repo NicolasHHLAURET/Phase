@@ -1,0 +1,100 @@
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "ala", std::to_string(foliarModel.getFoliarAverageLeafAngle(foliarIndice)));
++
++	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
++		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction" + "_mc");
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "fluorescenceTransferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence" + "_mc");
++	}
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transmFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_TransmittanceFunction");
++	genDTO.luxCoreRenderSceneProperties.ajouterCle("scene.simPropertiesPath", "simulation.properties.txt");
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		if (topFluorescenceResults.useBioClimaticProfileEta) {
++			const string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "1");
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName);
++		} else {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "0");
++		}
++		if (bottomFluorescenceResults.useBioClimaticProfileEta) {
++			const string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "1");
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName);
++		} else {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "0");
++		}
++	}
++
++	OpticalFactorParameters opticalFactorParameters;
++	if (PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors(foliarIndice, opticalFactorParameters)) {
++		std::string textureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opticalFactors", textureName);
++
++		std::string textureKeyRoot = "scene.textures." + textureName;
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".type", "opticalFactors");
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".file", textureName + ".bin");
++
++		if (opticalFactorParameters.sameOpticalFactorForAllBands) {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", opticalFactorParameters.fileNames[0]);
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", opticalFactorParameters.duplicateFirstLayer[0] ? "1" : "0");
++		} else {
++			std::ostringstream inputsOSS, duplicationOSS;
++			inputsOSS << opticalFactorParameters.fileNames[0];
++			duplicationOSS << opticalFactorParameters.duplicateFirstLayer[0];
++			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++				inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++				duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++			}
++
++			if (PhaseProperty::getPolarization()) {
++				// 3 * numberOfSpectralBands are added to simulate Q, U, V
++				// The optical properties are repeated in these bands
++				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
++					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++					}
++				}
++			}
++
++			if (PhaseProperty::getFluorescence()) {
++				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
++				// The optical properties are repeated in these bands
++				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
++					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++					}
++				}
++			}
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", inputsOSS.str());
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", duplicationOSS.str());
++		}
++	}
++	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
++		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
++
++	std::vector<PropertyLambertian> frontEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
++	std::vector<PropertyLambertian> backEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
++	unsigned int numberOfFresnelCoefficient = 20;
++	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++		foliarComputer.testAlbedo(spectralBandIndex, foliarIndice);
++		foliarComputer.writeFoliar(foliarIndice, spectralBandIndex, foliarPropertyParameters.getModelName(), pkmg, outCoeffSpecProperties,
++			foliarProperty);
++		if (PhaseProperty::getPolarization()) {
++			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, genDTO.solarDirection,
++				numberOfFresnelCoefficient, foliarModel, ladComputation);
++		}
++		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
++			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
++			frontEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
++			frontEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
++			backEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
++			backEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
++			backEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
++		}
++	}
++
++	/* Equivalent lambertian phase functions generated from the foliar model: the LuxCore
++	 * material keys are written by the same writer as for real lambertians (the emissivity
++	 * is padded with zeros on the extra simulated Q,U,V / PSI,PSII bands). Thermal keys

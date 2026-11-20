@@ -1,0 +1,100 @@
++			if (foliarComputer.isTopFluorescenceComputation()) {
++				bottomFluorescenceResults = topFluorescenceResults;
++				foliarComputer.getBackFaceFluorescenceMatrix() = foliarComputer.getFrontFaceFluorescenceMatrix();
++				foliarComputer.setBottomFluorescenceComputation(true);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << (topFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++			}
++		}
++		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++		pkmg.setNumeroFonctionDePhase(modelIndex);
++		if (foliarComputer.isTopFluorescenceComputation() || foliarComputer.isBottomFluorescenceComputation()) {
++			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "1" << endl;
++		} else {
++			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "0" << endl;
++		}
++		if (foliarComputer.isTopFluorescenceComputation()) {
++			if (topFluorescenceResults.useBioClimaticProfileEta) {
++				string topBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
++				vector<double> topBioClimaticThetaValues, topBioClimaticPhiValues;
++				vector<vector<vector<double> > > topBioClimaticProfileEta;
++				readBioClimaticFile(topBCFilePath, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta);
++				string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
++				string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
++				ofstream ofstreamTopAverageEta;
++				ofstreamTopAverageEta.open(topAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
++				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
++				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticFile() << topAverageBioClimaticProfileFileName << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyType() << topFluorescenceResults.linkedOpticalPropertyType << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyIndex() << topFluorescenceResults.linkedOpticalPropertyIndex << endl;
++			}
++		}
++		if (foliarComputer.isBottomFluorescenceComputation()) {
++			if (bottomFluorescenceResults.useBioClimaticProfileEta) {
++				string bottomBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
++				vector<double> bottomBioClimaticThetaValues, bottomBioClimaticPhiValues;
++				vector<vector<vector<double> > > bottomBioClimaticProfileEta;
++				readBioClimaticFile(bottomBCFilePath, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta);
++				string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
++				string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
++				ofstream ofstreamBottomAverageEta;
++				ofstreamBottomAverageEta.open(bottomAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
++				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticFile() << bottomAverageBioClimaticProfileFileName << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyType() << bottomFluorescenceResults.linkedOpticalPropertyType << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyIndex() << bottomFluorescenceResults.linkedOpticalPropertyIndex << endl;
++			}
++		}
++	}
++
++	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
++		foliarModel.setEquivalentFrontLambertianIndex(foliarIndice, PhaseProperty::getNewEquivalentLambertianModelIndex());
++		if (!hasDifferentBottom) {
++			foliarModel.setEquivalentBackLambertianIndex(foliarIndice, foliarModel.getEquivalentFrontLambertianIndex(foliarIndice));
++		} else {
++			foliarModel.setEquivalentBackLambertianIndex(foliarIndice, PhaseProperty::getNewEquivalentLambertianModelIndex());
++		}
++
++		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++		pkmg.setNumeroFonctionDePhase(modelIndex);
++		outCoeffSpecProperties << pkmg.cleEquivalentFrontLambertianIndex() << (foliarModel.getEquivalentFrontLambertianIndex(foliarIndice)) << endl;
++		outCoeffSpecProperties << pkmg.cleEquivalentBackLambertianIndex() << (foliarModel.getEquivalentBackLambertianIndex(foliarIndice)) << endl;
++		pkmg.setTypeFonctionDePhase(globalReferences::LAMBERTIEN);
++		pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentFrontLambertianIndex(foliarIndice));
++		_fluorescenceService.writeSimulationProperties(topFluorescenceResults, pkmg, outCoeffSpecProperties);
++		if (foliarModel.getEquivalentBackLambertianIndex(foliarIndice) != foliarModel.getEquivalentFrontLambertianIndex(foliarIndice)) {
++			pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentBackLambertianIndex(foliarIndice));
++			_fluorescenceService.writeSimulationProperties(bottomFluorescenceResults, pkmg, outCoeffSpecProperties);
++		}
++	}
++
++	string pathPhaseSpec = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_SpecularFunction";
++	string pathPhaseDiff = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction";
++	string pathPhaseTransm = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
++			+ "_TransmittanceFunction";
++	string pathPhaseHotSpotFactor = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
++			+ "_ThermalHotSpot";
++	string pathPhaseFluorescence = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence";
++
++	PointsListsNCIntegration<DirectionCartesienne> pointsListSpec;
++	PointsListsNCIntegration<DirectionCartesienne> pointsListDiff;
++	foliarComputer.computeFRFoliarSpecularForModelIndex(pointsListSpec, pointsListDiff, listDirections, fTFoliar, foliarIndice, foliarProperty[0]);
++	foliarComputer.computeClumpingIndex(listDirections, genDTO.solarDirection, foliarIndice);
++	foliarComputer.runComputeFoliarPerThread(foliarProperty, foliarIndice, fTFoliar, foliarPropertyParameters, listDirections, *_sphereMap,
++		pointsListSpec, pointsListDiff);
++	foliarComputer.computeFoliarHotSpotDirectionalFactor(foliarIndice, listDirections, fTFoliar.iterationStepPhi, fTFoliar.iterationStepTheta);
++
++	/*
++	 * Nous avons deux cas : soit on ecrase le fichier car on est au premier passage de boucle,
++	 * soit on continue le remplissage du fichier
++	 */
++	std::ostringstream keyRootScatObj;
++	keyRootScatObj << "scene.vegscatter." << "vegetation_" <<  modelIndex << ".";
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation_fluo");
++	} else {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation");
++	}
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opIndex", std::to_string(modelIndex));
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "leafdimension", std::to_string(foliarModel.getFoliarDimension(foliarIndice)));
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "LAD", std::to_string(foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice)));
++	if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice) == globalReferences::ELLIPS)

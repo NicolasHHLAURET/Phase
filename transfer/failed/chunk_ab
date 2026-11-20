@@ -1,100 +1,101 @@
-    static bool readCoeffDiffParametersForPhaseExtern(	const int & index,
-                    string & phaseName,
-                    string & modelName,
-@@ -147,12 +142,6 @@ public:
-    static bool readCoeffDiffParametersOpticalFactorsXML(	const string & key,
-                    const string & subNodeKey,
-                    OpticalFactorParameters & opticalFactorParameters);
--	static bool readCoeffDiffParametersForProspect(		const int & modelIndex,
--					const int & prospectFunction,
--					ProspectParameters & prospectParameters);
--	static bool readCoeffDiffParametersForProspectXML(	const std::string & prefixKey,
--					ProspectParameters & prospectParameters);
+-				PhaseKeyMappingGenerator & pkmg,
+-				std::ofstream & outCoeffSpecProperties,
+-				PhaseGeneralParametersDTO & genDTO,
+-				const std::vector<DirectionCartesienne> & listDirections,
+-				FTFoliar & fTFoliar,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListSpec,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListDiff,
+-				const SphereDiscretizationMap & sphereMap,
+-				FoliarComputation & foliarComputer);
 -
-    static bool readCoeffDiffParametersForFluspect(	const string & key,
-                    FluorescenceParameters & fluorescenceParameters);
+-void computeInverceMatricesForFoliar(	const unsigned int & modelIndex,
+-					    	const unsigned short int & face,
+-						const unsigned int & nbSpectralBands,
+-						const std::ostringstream & valueKr,
+-						const std::ostringstream & valueKt,
+-						const double & averageEta);
++unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
++void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex);
++OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands);
  
-@@ -358,31 +347,6 @@ public:
-                    std::string & databaseModelUp,
-                    std::string & databaseModelDown);
+ void readBioClimaticFile( 	string bcFilePath,
+                    vector<double> & bioClimaticThetaValues,
+@@ -443,10 +428,6 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
+                        const vector<vector<vector<double> > > & bioClimaticProfileEta,
+                        ofstream & ofstreamAverageEta);
  
--	static bool readCoeffDiffParametersForFoliarDatabases(	const unsigned int & modelIndex,
--					std::string & phaseName,
--					std::string & modelName,
--					std::string & databaseName,
--					bool & isSpecular,
--					bool & useProspectGen,
--					bool & hasDifferentBottom,
--					std::string & specularDatabaseName,
--					std::string & specularDatabaseModel,
--					std::string & bottomDatabase,
--					std::string & bottomModel,
--					bool & bottomProspectGen);
--	static bool readCoeffDiffParametersForFoliarDatabasesXML(	const unsigned int & modelIndex,
--					std::string & phaseName,
--					std::string & modelName,
--					std::string & databaseName,
--					bool & isSpecular,
--					bool & useProspectGen,
--					bool & hasDifferentBottom,
--					std::string & specularDatabaseName,
--					std::string & specularDatabaseModel,
--					std::string & bottomDatabase,
--					std::string & bottomModel,
--					bool & bottomProspectGen);
 -
-    static bool readParametersForTemperature(	std::vector<int> &arviIdTemperature,
-                    const int & avinb_leaf);
- 
-diff --git a/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp b/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp
+-void computeFoliarSpecular(	SpecularFoliarData & specularProperty,
+-					const unsigned int & spectralBandIndex,
+-					shared_ptr<SpecularFoliarDatabaseParameters> & foliarSpecularDatabaseParameters);
+-
+ void writeFoliar(	const unsigned int& modelIndex,
+                const unsigned int& spectralBandIndex,
+                const std::string & modelName,
+diff --git a/Phase/include/materials/VegetationMaterialWriter.hpp b/Phase/include/materials/VegetationMaterialWriter.hpp
 new file mode 100644
-index 0000000..42566ab
+index 0000000..310c49d
 --- /dev/null
-+++ b/Phase/include/inputs/storage/opticalMaterials/ProspectExternalModule.hpp
-@@ -0,0 +1,96 @@
++++ b/Phase/include/materials/VegetationMaterialWriter.hpp
+@@ -0,0 +1,71 @@
 +/*
-+ * ProspectExternalModule.hpp
++ * VegetationMaterialWriter.hpp
 + *
-+ *  Shared Prospect/Fluorescence external module storage, used by both
-+ *  surface (e.g. Lambertian) and volume (e.g. UnderstoryMulti) materials.
++ *  Vegetation (foliar) counterpart of the surface MaterialWriters: loops the
++ *  phsdata::UnderstoryMulti models, resolves each model's direction set through
++ *  its DirectionSetLink, and redoes the direction-set-dependent precomputing
++ *  only when the direction set changes.
 + */
 +
-+#ifndef INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
-+#define INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_
++#ifndef INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_
++#define INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_
 +
-+#include <string>
-+#include <boost/optional.hpp>
++#include <memory>
++#include <vector>
 +
-+#include "DartSAParameters.h"
++#include "PhaseDTOs.hpp"
++#include "../../librairieDart/include/mapping/PhaseKeyMappingGenerator.hpp"
++#include "PhaseProperty.hpp"
++#include "PhaseStructure.hpp"
++#include "containers/SphereDiscretizationMap.hpp"
++#include "fluorescence/FluorescenceMatrices.hpp"
++#include "opticalfactors/OpticalFactorsTextureWriter.hpp"
 +
-+namespace phsdata {
-+class FluorescenceExternParameters {
++struct VegetationVolumeMaterials;
++
++namespace phase {
++
++class VegetationMaterialWriter {
 +public:
-+	bool forceYields = true;
-+	bool useCombinedYields = false;
-+	double yieldPSI = 0.02;
-+	double yieldPSII = 0.;
++	VegetationMaterialWriter(	const FluorescenceService & fluorescenceService,
++							const OpticalFactorsTextureWriter & opticalFactorsWriter);
 +
-+	void loadFromParameters(const std::string& prefix) {
-+		forceYields = DartSAParameters::get<bool>(prefix + ".forceYields");
++	// Loops genDTO._volumesMaterials.understoryMultiFunctions grouped by their
++	// DirectionSetLink (original order kept within a group; the output model
++	// index is UnderstoryMulti::indexFunction). Calls
++	// prepareVegetationDirectionSet() only when the direction set changes.
++	void processAll(	PhaseGeneralParametersDTO & genDTO,
++					VegetationVolumeMaterials & vegetation,
++					PhaseKeyMappingGenerator & pkmg,
++					std::ofstream & outCoeffSpecProperties);
 +
-+		if (DartSAParameters::exists(prefix + ".Yields.yieldPSI")) {
-+			useCombinedYields = false;
-+			yieldPSI = DartSAParameters::get<double>(prefix + ".Yields.yieldPSI");
-+			yieldPSII = DartSAParameters::get<double>(prefix + ".Yields.yieldPSII");
-+		}
-+		if (DartSAParameters::exists(prefix + ".Yield.yieldPS")) {
-+			useCombinedYields = true; // => yieldPSII is unused
-+			yieldPSI = DartSAParameters::get<double>(prefix + ".Yield.yieldPS");
-+		}
-+	}
-+};
++private:
++	// Full treatment of one vegetation model (ported from the old treatFoliar).
++	// foliarIndice is the position in understoryMultiFunctions (used by the
++	// FoliarModel/FoliarComputation/LADComputation accessors); the output model
++	// index is understory.indexFunction.
++	bool treat(	const phsdata::UnderstoryMulti & understory,
++			unsigned int foliarIndice,
++			PhaseGeneralParametersDTO & genDTO,
++			VegetationVolumeMaterials & vegetation,
++			const std::vector<DirectionCartesienne> & listDirections,
++			PhaseKeyMappingGenerator & pkmg,
++			std::ofstream & outCoeffSpecProperties);
 +
-+class ProspectExternParameters {
-+public:
-+	double anthocyanin = 0.;
-+	double cBrown = 0.; // Brown Pigments
-+	double cab = 40.; // Chlorophyll
-+	double car = 10.; // Carotenoid
-+	double cbc = 0.009; //
-+	double cm = 0.01; // Leaf Mass per Area
++	// Computes the fluorescence matrices of one face from the phsdata prospect
++	// module of the model node (replaces the old computeFoliarFluorescenceMatrices).
++	void computeFaceFluorescence(	FluorescenceResults & results,
++							std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
++							const phsdata::UnderstoryModel & model,
++							unsigned int modelIndex,
++							const PhaseGeneralParametersDTO & genDTO,

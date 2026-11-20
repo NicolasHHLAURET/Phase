@@ -1,100 +1,100 @@
-+	double cp = 0;
-+	double cw = 0.012; // Water Thickness
-+	std::string inputProspectFile = "Prospect_Fluspect/Optipar2021_ProspectPRO.txt";
-+	bool isV2Z = false;
-+	double v2z = -999;
-+	double n = 1.5; // Structure Coefficient
-+	bool useCm = false;
++							unsigned int face) const;
 +
-+	void loadFromParameters(const std::string& prefix) {
-+		anthocyanin = DartSAParameters::get<double>(prefix + ".anthocyanin");
-+		cBrown = DartSAParameters::get<double>(prefix + ".cBrown");
-+		cab = DartSAParameters::get<double>(prefix + ".cab");
-+		car = DartSAParameters::get<double>(prefix + ".car");
-+		cbc = DartSAParameters::get<double>(prefix + ".cbc");
-+		cm = DartSAParameters::get<double>(prefix + ".cm");
-+		cp = DartSAParameters::get<double>(prefix + ".cp");
-+		cw = DartSAParameters::get<double>(prefix + ".cw");
-+		inputProspectFile = DartSAParameters::get<std::string>(prefix + ".inputProspectFile");
-+		isV2Z = DartSAParameters::get<bool>(prefix + ".isV2Z");
-+		n = DartSAParameters::get<double>(prefix + ".n");
-+		useCm = DartSAParameters::get<bool>(prefix + ".useCm");
-+		if (isV2Z)
-+			v2z = DartSAParameters::get<double>(prefix + ".V2Z.v2z");
-+	}
++	const FluorescenceService & _fluorescenceService;
++	const OpticalFactorsTextureWriter & _opticalFactorsWriter;
++	std::unique_ptr<SphereDiscretizationMap> _sphereMap; // built once from fTFoliar.iterationStepPhi (direction-set independent)
 +};
 +
-+class ProspectExternalModule {
-+public:
-+	bool isFluorescent = false;
-+	bool useProspectExternalModule = false;
-+	boost::optional<ProspectExternParameters> externParameters;  // Optional child
-+	boost::optional<FluorescenceExternParameters> fluorescence;  // Optional child
++} // namespace phase
 +
-+	void loadFromParameters(const std::string& prefix) {
-+		isFluorescent = DartSAParameters::get<bool>(prefix + ".isFluorescent");
-+		useProspectExternalModule = DartSAParameters::get<bool>(prefix + ".useProspectExternalModule");
-+
-+		if (DartSAParameters::exists(prefix + ".ProspectExternParameters")) {
-+			externParameters = ProspectExternParameters();
-+			externParameters->loadFromParameters(prefix + ".ProspectExternParameters");
-+		}
-+		if (DartSAParameters::exists(prefix + ".FluorescenceYields")) {
-+			fluorescence = FluorescenceExternParameters();
-+			fluorescence->loadFromParameters(prefix + ".FluorescenceYields");
-+		}
-+	}
-+};
-+}
-+
-+#endif /* INCLUDE_INPUTS_STORAGE_OPTICALMATERIALS_PROSPECTEXTERNALMODULE_HPP_ */
-diff --git a/Phase/include/inputs/storage/opticalMaterials/lambertian/Lambertian.hpp b/Phase/include/inputs/storage/opticalMaterials/lambertian/Lambertian.hpp
-index 8073458..eedf068 100644
---- a/Phase/include/inputs/storage/opticalMaterials/lambertian/Lambertian.hpp
-+++ b/Phase/include/inputs/storage/opticalMaterials/lambertian/Lambertian.hpp
-@@ -14,87 +14,10 @@
- #include <boost/optional.hpp>
++#endif /* INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_ */
+diff --git a/Phase/src/Phase.cpp b/Phase/src/Phase.cpp
+index c33ce8b..9b1531b 100755
+--- a/Phase/src/Phase.cpp
++++ b/Phase/src/Phase.cpp
+@@ -106,6 +106,7 @@ extern "C" int sqlite3_initialize(void);
+ #include "materials/Hapke1981MaterialWriter.hpp"
+ #include "materials/Hapke2012MaterialWriter.hpp"
+ #include "materials/RPVMaterialWriter.hpp"
++#include "materials/VegetationMaterialWriter.hpp"
  
- #include "inputs/storage/opticalMaterials/SurfaceFunction.hpp"
-+#include "inputs/storage/opticalMaterials/ProspectExternalModule.hpp"
- #include "inputs/storage/opticalMaterials/lambertian/LambertianMultiplicativeFactor.hpp"
+ //----------------------------------------------------------------------------------------
+ //----------------------------------------------------------------------------------------
+@@ -1514,365 +1515,6 @@ FTFoliar foliarPrecomputing(const PhaseGeneralParametersDTO & genDTO,
+    return fTFoliar;
+ }
  
- namespace phsdata {
--class FluorescenceExternParameters {
--public:
--	bool forceYields = true;
--	bool useCombinedYields = false;
--	double yieldPSI = 0.02;
--	double yieldPSII = 0.;
+-static void computeFoliarFluorescenceMatrices(phase::FluorescenceResults & fluorescenceResults,
+-		std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
+-		unsigned int modelIndex,
+-		const FluorescenceParameters & fluorescenceParameters,
+-		const PhaseGeneralParametersDTO & genDTO,
+-		unsigned int face) {
+-	phsdata::ProspectExternParameters prospectParams;
+-	prospectParams.anthocyanin = fluorescenceParameters.anthocyanin;
+-	prospectParams.cBrown = fluorescenceParameters.brownPigment;
+-	prospectParams.cab = fluorescenceParameters.chlorophyll;
+-	prospectParams.car = fluorescenceParameters.carotenoid;
+-	prospectParams.cbc = fluorescenceParameters.Cbc;
+-	prospectParams.cm = fluorescenceParameters.leafMassPerArea;
+-	prospectParams.cp = fluorescenceParameters.Cp;
+-	prospectParams.cw = fluorescenceParameters.waterThickness;
+-	prospectParams.n = fluorescenceParameters.structureCoeff;
+-	prospectParams.useCm = fluorescenceParameters.useNewCm;
+-	prospectParams.v2z = fluorescenceParameters.v2z;
 -
--	void loadFromParameters(const std::string& prefix) {
--		forceYields = DartSAParameters::get<bool>(prefix + ".forceYields");
+-	phsdata::FluorescenceExternParameters fluorescenceExtern;
+-	fluorescenceExtern.forceYields = fluorescenceParameters.forceYield;
+-	fluorescenceExtern.useCombinedYields = fluorescenceParameters.useCombinedYields;
+-	fluorescenceExtern.yieldPSI = fluorescenceParameters.yieldPSI;
+-	fluorescenceExtern.yieldPSII = fluorescenceParameters.yieldPSII;
 -
--		if (DartSAParameters::exists(prefix + ".Yields.yieldPSI")) {
--			useCombinedYields = false;
--			yieldPSI = DartSAParameters::get<double>(prefix + ".Yields.yieldPSI");
--			yieldPSII = DartSAParameters::get<double>(prefix + ".Yields.yieldPSII");
--		}
--		if (DartSAParameters::exists(prefix + ".Yield.yieldPS")) {
--			useCombinedYields = true; // => yieldPSII is unused
--			yieldPSI = DartSAParameters::get<double>(prefix + ".Yield.yieldPS");
+-	phase::InterpolatedMatrices interpolatedMatrices(genDTO.numberOfSpectralBands);
+-	phase::FluorescenceService().computeMatrices(fluorescenceResults, interpolatedMatrices, globalReferences::FOLIAIRE, modelIndex,
+-			prospectParams, fluorescenceExtern, genDTO, face);
+-
+-	for (unsigned int sbi1 = 0; sbi1 < genDTO.numberOfSpectralBands; ++sbi1) {
+-		for (unsigned int sbi2 = 0; sbi2 < genDTO.numberOfSpectralBands; ++sbi2) {
+-			for (unsigned int k = 0; k < 4; ++k) {
+-				fluorescenceMatrix[sbi1][sbi2][k] = interpolatedMatrices.at(sbi1, sbi2, k);
+-			}
 -		}
 -	}
--};
+-}
 -
--class ProspectExternParameters {
--public:
--	double anthocyanin = 0.;
--	double cBrown = 0.; // Brown Pigments
--	double cab = 40.; // Chlorophyll
--	double car = 10.; // Carotenoid
--	double cbc = 0.009; //
--	double cm = 0.01; // Leaf Mass per Area
--	double cp = 0;
--	double cw = 0.012; // Water Thickness
--	std::string inputProspectFile = "Prospect_Fluspect/Optipar2021_ProspectPRO.txt";
--	bool isV2Z = false;
--	double v2z = -999;
--	double n = 1.5; // Structure Coefficient
--	bool useCm = false;
+-void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
+-				const vector<bool> & useSpectralIrradianceForReflectance,
+-				PhaseKeyMappingGenerator & pkmg,
+-				ofstream & outCoeffSpecProperties,
+-				PhaseGeneralParametersDTO & genDTO,
+-				const vector<DirectionCartesienne> & listDirections,
+-				const DirectionCartesienne & sunDirection,
+-				FTFoliar & fTFoliar,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListSpec,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListDiff,
+-				const SphereDiscretizationMap & sphereMap,
+-				FoliarComputation & foliarComputer,
+-				LADComputation & ladComputation,
+-				FoliarModel & foliarModel) {
 -
+-	foliarComputer.reInitFoliarComputation();
+-
+-	vector<FoliarProperty> foliarProperty;
+-	foliarProperty.resize(genDTO.numberOfSpectralBands);
+-
+-	shared_ptr<SpecularFoliarDatabaseParameters> foliarSpecularDatabaseParameters = ::static_pointer_cast<SpecularFoliarDatabaseParameters>(
+-		foliarPropertyParameters.getDatabaseParameters(SPECULAR_FOLIAR_DATABASE));
+-	if (foliarSpecularDatabaseParameters.get() != NULL) {
+-		for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
+-			foliarProperty[numBand].specularFoliarData._isSpecular = true;
+-			computeFoliarSpecular(foliarProperty[numBand].specularFoliarData, numBand, foliarSpecularDatabaseParameters);
+-		}
+-	} else {
+-		for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
+-			foliarProperty[numBand].specularFoliarData._isSpecular = false;
+-		}
+-	}
+-
+-	unsigned int modelIndex = foliarPropertyParameters.getModelIndex();
+-	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-		foliarProperty[spectralBandIndex].typeOfLeafAngleDistribution = foliarModel.getFoliarTypeOfLeafAngleDistribution(modelIndex);

@@ -1,0 +1,100 @@
++								std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
++								const phsdata::UnderstoryModel & model,
++								unsigned int modelIndex,
++								const PhaseGeneralParametersDTO & genDTO,
++								unsigned int face) const {
++	phase::InterpolatedMatrices interpolatedMatrices(genDTO.numberOfSpectralBands);
++	_fluorescenceService.computeMatrices(results, interpolatedMatrices, globalReferences::FOLIAIRE, modelIndex,
++		*model.prospectExternalModule.externParameters, *model.prospectExternalModule.fluorescence, genDTO, face);
++
++	for (unsigned int sbi1 = 0; sbi1 < genDTO.numberOfSpectralBands; ++sbi1) {
++		for (unsigned int sbi2 = 0; sbi2 < genDTO.numberOfSpectralBands; ++sbi2) {
++			for (unsigned int k = 0; k < 4; ++k) {
++				fluorescenceMatrix[sbi1][sbi2][k] = interpolatedMatrices.at(sbi1, sbi2, k);
++			}
++		}
++	}
++}
++
++bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understory,
++						unsigned int foliarIndice,
++						PhaseGeneralParametersDTO & genDTO,
++						VegetationVolumeMaterials & vegetation,
++						const std::vector<DirectionCartesienne> & listDirections,
++						PhaseKeyMappingGenerator & pkmg,
++						std::ofstream & outCoeffSpecProperties) {
++	FoliarComputation & foliarComputer = *vegetation.foliarComputation;
++	LADComputation & ladComputation = *vegetation.ladComputation;
++	FoliarModel & foliarModel = *vegetation.foliarModel;
++	FTFoliar & fTFoliar = vegetation.fTFoliar;
++
++	const unsigned int modelIndex = understory.indexFunction;
++	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
++	const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
++	if (topModel == nullptr)
++		return false;
++
++	foliarComputer.reInitFoliarComputation();
++
++	vector<FoliarProperty> foliarProperty;
++	foliarProperty.resize(genDTO.numberOfSpectralBands);
++
++	// Specular foliar database dropped (old XML handled by the external upgrader)
++	for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
++		foliarProperty[numBand].specularFoliarData._isSpecular = false;
++	}
++
++	OpticalPropertyParameters foliarPropertyParameters = buildFoliarOpticalPropertyParameters(understory, genDTO.numberOfSpectralBands);
++	for (unsigned int numPropertyDatabase = 0; numPropertyDatabase < foliarPropertyParameters.getNbDatabaseForProperty(); ++numPropertyDatabase) {
++		if (foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_FILE
++				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_UP
++				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_DOWN) {
++			shared_ptr<PhaseDatabaseParameters> currentDatabase = foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase);
++			PhaseProperty::readReflectanceParameters(vegetation.useSpectralIrradianceForReflectance, currentDatabase);
++		}
++	}
++
++	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++		foliarProperty[spectralBandIndex].typeOfLeafAngleDistribution = foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice);
++		foliarProperty[spectralBandIndex].foliarDimension = foliarModel.getFoliarDimension(foliarIndice);
++	}
++	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions(foliarIndice);
++	ostringstream val;
++	val << modelIndex; //on ajoute le numero de la fx de phase dans le nom du fichier : sprintf (val, "%u.",j)
++	string name = val.str() + "." + foliarPropertyParameters.getModelName();
++
++	createDirectory(DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder());
++
++	pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++	pkmg.setNumeroFonctionDePhase(modelIndex);
++	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(foliarIndice) << endl;
++	phase::FluorescenceResults topFluorescenceResults;
++	topFluorescenceResults.useBioCLimaticProfileEta = false;
++	topFluorescenceResults.isFluorescent = false;
++	phase::FluorescenceResults bottomFluorescenceResults;
++	bottomFluorescenceResults.useBioClimaticProfileEta = false;
++	bottomFluorescenceResults.isFluorescent = false;
++	foliarComputer.setTopFluorescenceComputation(false);
++	foliarComputer.setBottomFluorescenceComputation(false);
++	const bool hasDifferentBottom = understory.hasDifferentModelForBottom && bottomModel != nullptr;
++	if (PhaseProperty::getFluorescence()) {
++		foliarComputer.resetFrontFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
++		if (topModel != nullptr && topModel->prospectExternalModule.isFluorescent
++				&& topModel->prospectExternalModule.externParameters.is_initialized()
++				&& topModel->prospectExternalModule.fluorescence.is_initialized()) {
++			computeFaceFluorescence(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), *topModel, modelIndex,
++					genDTO, 0);
++			foliarComputer.setTopFluorescenceComputation(true);
++			outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << (topFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++		}
++		foliarComputer.resetBackFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
++		if (hasDifferentBottom) {
++			if (bottomModel->prospectExternalModule.isFluorescent
++					&& bottomModel->prospectExternalModule.externParameters.is_initialized()
++					&& bottomModel->prospectExternalModule.fluorescence.is_initialized()) {
++				computeFaceFluorescence(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), *bottomModel, modelIndex,
++						genDTO, 1);
++				foliarComputer.setBottomFluorescenceComputation(true);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << (bottomFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++			}
++		} else {

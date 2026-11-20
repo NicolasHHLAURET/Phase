@@ -1,100 +1,100 @@
+-		modelName = topModel->modelName;
+-		if (useProspectGen) {
+-			databasePath = DartEnv::getOutputTempDatabasePath(true);
+-			// Maybe change the model name in the future, but this modelName are not findable by the user.
+-			// Spaces and special caracters are not allowed in modelName so ...
+-			modelName = "Model";
+-		} else {
+-			databasePath = DartEnv::getDatabasePath(databaseName);
 -		}
--	} catch (DartException &E) {
--		cerr << E.getOriginMessage() << endl;
--		return false;
--	}
--	return true;
--}
 -
- bool PhaseDAO::readCoeffDiffParametersForLambertian(const int & index,
-                    string & phaseName,
-                    string & modelName,
-@@ -799,85 +773,6 @@ bool PhaseDAO::readCoeffDiffParametersForFoliarFluspect(const int & index,
-    return readCoeffDiffParametersForFluspect(temp + "]." + modelKey + ".ProspectExternalModule.", fluorescenceParameters);
+-		// Bottom foliar model
+-		string bottomDatabaseName;
+-		string bottomDatabasePath;
+-		string bottomModelName;
+-		bool bottomProspectGen = false;
+-		if (bottomModel != nullptr) {
+-			bottomProspectGen = (bottomModel->prospectExternalModule.useProspectExternalModule
+-					|| bottomModel->prospectExternalModule.isFluorescent)
+-					&& bottomModel->prospectExternalModule.externParameters.is_initialized();
+-			bottomDatabaseName = bottomModel->databaseName;
+-			bottomModelName = bottomModel->modelName;
+-			if (bottomProspectGen) {
+-				bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
+-				// Maybe change the model name in the future, but this modelName are not findable by the user.
+-				// Spaces and special caracters are not allowed in modelName so ...
+-				bottomModelName = "Model";
+-			} else {
+-				bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
+-			}
+-		}
+-
+-		OpticalPropertyParameters opticalProperty(FOLIAR_PROPERTY, modelIndex, phaseName, indexOrder);
+-		shared_ptr<FoliarDatabaseParameters> foliarDatabaseParameters(
+-			new FoliarDatabaseParameters(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands, understory.hasDifferentModelForBottom,
+-					bottomDatabaseName, bottomDatabasePath, bottomModelName));
+-		if (useProspectGen) {
+-			foliarDatabaseParameters.get()->setSelfDestructDatabase(true);
+-		}
+-		if (bottomProspectGen) {
+-			foliarDatabaseParameters.get()->setSelfDestructBottomDatabase(true);
+-		}
+-		opticalProperty.addDatabaseToProperty(foliarDatabaseParameters);
+-
+-		phaseOpticalProperties.push_back(opticalProperty);
++		EXIT_IF(understory.getTopModel() == nullptr, "");
++		phaseOpticalProperties.push_back(buildFoliarOpticalPropertyParameters(understory, genDTO.numberOfSpectralBands));
+    }
+    return phaseOpticalProperties;
+ }
+diff --git a/Phase/src/PhaseVegetation.cpp b/Phase/src/PhaseVegetation.cpp
+index 24a1279..fecacec 100644
+--- a/Phase/src/PhaseVegetation.cpp
++++ b/Phase/src/PhaseVegetation.cpp
+@@ -22,17 +22,13 @@ static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
  }
  
--bool PhaseDAO::readCoeffDiffParametersForProspect(		const int & modelIndex,
--					const int & prospectFunction,
--					ProspectParameters & prospectParameters) {
--	string temp;
--	ostringstream oss;
--	oss << modelIndex;
--	switch(prospectFunction) {
--		case globalReferences::PROSPECT_LAMBERTIEN:
--			temp = "Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti[" + oss.str();
--			temp += "].Lambertian.ProspectExternalModule.";
--			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
--		case globalReferences::PROSPECT_FOLIAIRE:
--			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
--			temp += "].UnderstoryMultiModel.ProspectExternalModule.";
--			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
--		case globalReferences::PROSPECT_FOLIAIRE_TOP:
--			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
--			temp += "].UnderstoryMultiTopModel.ProspectExternalModule.";
--			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
--		case globalReferences::PROSPECT_FOLIAIRE_BOTTOM:
--			temp = "Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str();
--			temp += "].UnderstoryMultiBottomModel.ProspectExternalModule.";
--			return readCoeffDiffParametersForProspectXML(temp, prospectParameters);
--		default:
--			break;
--	}
--	return false;
--}
--
--
--bool PhaseDAO::readCoeffDiffParametersForProspectXML(	const std::string & prefixKey,
--					ProspectParameters & prospectParameters) {
--	try {
--		bool useProspectGen = false;
--		DartSAParameters::get(prefixKey + "useProspectExternalModule", useProspectGen);
--		if (useProspectGen) {
--			prospectParameters.pythonScript = "Fluspect_B_CX_PRO.py";
--
--			string prospectKey = prefixKey + "ProspectExternParameters.";
--			DartSAParameters::get(prospectKey + "inputProspectFile", prospectParameters.inputProspectFile);
--			DartSAParameters::get(prospectKey + "N", prospectParameters.structureCoeff);
--			DartSAParameters::get(prospectKey + "Cab", prospectParameters.chlorophyll);
--			DartSAParameters::get(prospectKey + "Car", prospectParameters.carotenoid);
--			DartSAParameters::get(prospectKey + "CBrown", prospectParameters.brownPigment);
--			DartSAParameters::get(prospectKey + "Cw", prospectParameters.waterThickness);
--
--			DartSAParameters::get(prospectKey + "useCm", prospectParameters.useNewCm);
--
--			bool isv2z = false;
--			DartSAParameters::get(prospectKey + "isV2Z", isv2z);
--			if (isv2z) {
--				DartSAParameters::get(prospectKey + "V2Z.v2z", prospectParameters.v2z);
--			} else {
--				prospectParameters.v2z = -999;
--			}
--
--			if (prospectParameters.useNewCm) {
--				DartSAParameters::get(prospectKey + "Cbc", prospectParameters.Cbc);
--				DartSAParameters::get(prospectKey + "Cp", prospectParameters.Cp);
--				// Retrocompatibility if need to use the old script
--				prospectParameters.leafMassPerArea = prospectParameters.Cbc+prospectParameters.Cp;
--			} else {
--				DartSAParameters::get(prospectKey + "Cm", prospectParameters.leafMassPerArea);
--				prospectParameters.Cbc = 0;
--				prospectParameters.Cp = 0;
--			}
--
--			DartSAParameters::get(prospectKey + "Cm", prospectParameters.leafMassPerArea);
--			if (DartSAParameters::exists(prospectKey + "anthocyanin")) {
--				DartSAParameters::get(prospectKey + "anthocyanin", prospectParameters.anthocyanin);
--			}
+ /**
+- * Index of the direction set used by the vegetation models. Every
+- * UnderstoryMulti references a direction set through its DirectionSetLink;
+- * until the computation engine supports one direction set per model, the
+- * first vegetation model's link drives the shared precomputing.
++ * Direction set used by one vegetation model: its own DirectionSetLink when
++ * valid, else the first direction set.
+  */
+-static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO) {
+-	for (unsigned int modelIndex = 0; modelIndex < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelIndex) {
+-		const unsigned int indexDirectionSetLink = genDTO._volumesMaterials.understoryMultiFunctions[modelIndex]->directionSetLink.indexDirectionSetLink;
+-		if (indexDirectionSetLink < genDTO._directionSet.size()) {
+-			return indexDirectionSetLink;
 -		}
--	} catch (DartException &E) {
--		cerr << E.getOriginMessage() << endl;
--		return false;
--	}
--	return true;
--}
--
- bool PhaseDAO::readCoeffDiffParametersForFluspect(	const std::string & key,
-                    FluorescenceParameters & fluorescenceParameters) {
-    try {
-@@ -1369,64 +1264,6 @@ bool PhaseDAO::readCoeffDiffParametersForRPVXML(const int & indice,
-    return true;
++unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition) {
++	const unsigned int indexDirectionSetLink = genDTO._volumesMaterials.understoryMultiFunctions[modelPosition]->directionSetLink.indexDirectionSetLink;
++	if (indexDirectionSetLink < genDTO._directionSet.size()) {
++		return indexDirectionSetLink;
+    }
+    return 0;
  }
+@@ -40,21 +36,34 @@ static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersD
+ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO) {
+    VegetationVolumeMaterials vegetation;
+ 
++	vegetation.foliarModel.reset(new FoliarModel());
++	vegetation.foliarComputation.reset(new FoliarComputation(*vegetation.foliarModel));
++	vegetation.ladComputation.reset(new LADComputation(*vegetation.foliarModel));
++
++	testIfUseSun(genDTO, vegetation.useSpectralIrradianceForReflectance);
++
++	return vegetation;
++}
++
++/**
++ * (Re)initialises the shared foliar objects for one direction set and runs the
++ * direction-set-dependent precomputing. Called by VegetationMaterialWriter
++ * whenever the direction set changes between models (the per-model data filled
++ * by computeLadData/readMultiplicativeFactor is reset by initFoliarModel, so it
++ * is redone here as well).
++ */
++void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
+    const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
+-	const unsigned int directionSetIndex = getVegetationDirectionSetIndex(genDTO);
