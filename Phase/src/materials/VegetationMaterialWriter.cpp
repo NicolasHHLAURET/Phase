@@ -130,10 +130,10 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 	pkmg.setNumeroFonctionDePhase(modelIndex);
 	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(foliarIndice) << endl;
 	phase::FluorescenceResults topFluorescenceResults;
-	topFluorescenceResults.useBioCLimaticProfileEta = false;
+	topFluorescenceResults.useBioClimaticProfileEta = false;
 	topFluorescenceResults.isFluorescent = false;
 	phase::FluorescenceResults bottomFluorescenceResults;
-	bottomFluorescenceResults.useBioCLimaticProfileEta = false;
+	bottomFluorescenceResults.useBioClimaticProfileEta = false;
 	bottomFluorescenceResults.isFluorescent = false;
 	foliarComputer.setTopFluorescenceComputation(false);
 	foliarComputer.setBottomFluorescenceComputation(false);
@@ -272,17 +272,17 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
 		if (topFluorescenceResults.useBioClimaticProfileEta) {
 			const string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "1");
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioClimaticProfileEta", "1");
 			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName);
 		} else {
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "0");
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioClimaticProfileEta", "0");
 		}
 		if (bottomFluorescenceResults.useBioClimaticProfileEta) {
 			const string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "1");
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioClimaticProfileEta", "1");
 			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName);
 		} else {
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "0");
+			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioClimaticProfileEta", "0");
 		}
 	}
 

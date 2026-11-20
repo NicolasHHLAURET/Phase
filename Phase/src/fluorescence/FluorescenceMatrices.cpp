@@ -107,7 +107,7 @@ void FluorescenceService::computeMatrices(	FluorescenceResults & fluorescenceRes
 	fluorescenceResults.fileName = fileName;
 	fluorescenceResults.isFluorescent = true;
 	fluorescenceResults.useCombinedYields = fluorescence.useCombinedYields;
-	fluorescenceResults.useBioCLimaticProfileEta = false;
+	fluorescenceResults.useBioClimaticProfileEta = false;
 }
 
 void FluorescenceService::interpolateAndWrite(	std::ostream & ofstreamFluorescenceMatrices,
@@ -253,8 +253,8 @@ void FluorescenceService::writeSimulationProperties(	const FluorescenceResults &
 			outCoeffSpecProperties << pkmg.cleFluorescenceYieldPSII(i) << fluorescenceResults.yieldPSII[i] << endl;
 		}
 
-		outCoeffSpecProperties << pkmg.cleFluorescenceBioClimaticUsage() << fluorescenceResults.useBioCLimaticProfileEta << endl;
-		if (fluorescenceResults.useBioCLimaticProfileEta) {
+		outCoeffSpecProperties << pkmg.cleFluorescenceBioClimaticUsage() << fluorescenceResults.useBioClimaticProfileEta << endl;
+		if (fluorescenceResults.useBioClimaticProfileEta) {
 			outCoeffSpecProperties << pkmg.cleFluorescenceBioClimaticFile() << fluorescenceResults.bioClimaticFileRelativePath << endl;
 			outCoeffSpecProperties << pkmg.cleFluorescenceBioClimaticLinkedPropertyType() << fluorescenceResults.linkedOpticalPropertyType << endl;
 			outCoeffSpecProperties << pkmg.cleFluorescenceBioClimaticLinkedPropertyIndex() << fluorescenceResults.linkedOpticalPropertyIndex << endl;

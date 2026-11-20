@@ -241,8 +241,8 @@ void LambertianMaterialWriter::writeLuxCoreMaterial(	PhaseGeneralParametersDTO &
 
 	if (fluorescentMaterial) {
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "fluorescencefiles", fluorescenceResults.fileName);
-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "useBioCLimaticProfileEta", fluorescenceResults.useBioCLimaticProfileEta ? "1" : "0");
-		if (fluorescenceResults.useBioCLimaticProfileEta)
+		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "useBioClimaticProfileEta", fluorescenceResults.useBioClimaticProfileEta ? "1" : "0");
+		if (fluorescenceResults.useBioClimaticProfileEta)
 			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "bioClimaticFilePath", fluorescenceResults.bioClimaticFileRelativePath);
 	}
 

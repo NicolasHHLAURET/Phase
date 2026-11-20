@@ -168,6 +168,13 @@ Sandbox notes for rebuilding the prefix (no root available):
     The corrected repair script was then sent base64-encoded with the
     decoded-script sha256 as the gate, and the patch applied with
     `git am --ignore-whitespace`.
+15. BioClimatic typo fix (owner decision, after the vegetation-writer
+    patch): the identifier useBioCLimaticProfileEta (capital L) renamed to
+    useBioClimaticProfileEta in all 6 code files -- 16 occurrences including
+    the generated scene-property key strings ("useBioCLimaticProfileEta" and
+    the "topUse..."/"bottomUse..." variants in the material writers); no XML
+    input references these keys. Note: pitfall (f) and item 14 above still
+    quote the pre-rename spelling (historical incident description).
 
 ## Known TODOs / open points (next sessions)
 
@@ -197,8 +204,7 @@ Sandbox notes for rebuilding the prefix (no root available):
   readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
   readCoeffDiffParametersForFoliarOpticalFactors.
 - Rename the identifier useBioCLimaticProfileEta -> useBioClimaticProfileEta
-  (lowercase l -- the capital L is a typo, 9 occurrences at 015c6e8). Owner
-  decision, to be done after the vegetation-writer patch.
+  (lowercase l): DONE (history item 15).
 - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
   prefix and flip DART_WITH_NETCDF to finish gating work.
 - CRLF normalization (7 files).

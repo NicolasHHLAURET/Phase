@@ -840,8 +840,8 @@ bool PhaseDAO::readCoeffDiffParametersForFluspect(	const std::string & key,
 				}
 
 				if (DartSAParameters::exists(key + "WindProfileEta.useBioClimaticWeighting")) {
-					DartSAParameters::get(key + "WindProfileEta.useBioClimaticWeighting", fluorescenceParameters.useBioCLimaticProfileEta);
-					if (fluorescenceParameters.useBioCLimaticProfileEta) {
+					DartSAParameters::get(key + "WindProfileEta.useBioClimaticWeighting", fluorescenceParameters.useBioClimaticProfileEta);
+					if (fluorescenceParameters.useBioClimaticProfileEta) {
 						DartSAParameters::get(key + "WindProfileEta.BioClimaticWeighting.profileFilePath",
 							fluorescenceParameters.bioClimaticFileRelativePath);
 						bool hasLinkedProperty = false;
@@ -857,7 +857,7 @@ bool PhaseDAO::readCoeffDiffParametersForFluspect(	const std::string & key,
 						}
 					}
 				} else {
-					fluorescenceParameters.useBioCLimaticProfileEta = false;
+					fluorescenceParameters.useBioClimaticProfileEta = false;
 				}
 			}
 		}
