@@ -134,6 +134,26 @@ Sandbox notes for rebuilding the prefix (no root available):
     (0a98de5222a12372f4f27e22b73f753bdc5f9a9b on top of ce3c619; receiver
     evidence in transfer/failed/, applied in commit 965fa10). See new
     pitfall (d) and protocol point 5.
+13. Per-model direction sets + treatFoliar rewrite (this session): new
+    phase::VegetationMaterialWriter (Phase/materials/) ports the old treatFoliar
+    body to the phsdata structs; models are iterated grouped by DirectionSetLink
+    (stable order within a group, output model index = UnderstoryMulti::
+    indexFunction) and prepareVegetationDirectionSet() (PhaseVegetation.cpp)
+    redoes the direction-set-dependent precomputing (init + computeLadData +
+    readMultiplicativeFactor + computeFoliarCosinePsi + foliarPrecomputing)
+    only when the direction set changes. processVegetationVolumeMaterials() now
+    only allocates the shared FoliarModel/FoliarComputation/LADComputation and
+    computes useSpectralIrradianceForReflectance. The sphereMap line lost during
+    the earlier extraction is restored as a writer member, built once from
+    fTFoliar.iterationStepPhi (SphereDiscretizationMap(1.0, deltaPhi) does not
+    depend on the direction set). buildFoliarOpticalPropertyParameters()
+    (PhaseVegetation.cpp) is shared by createDatabasesReadingProperties() and
+    the writer. Old treatFoliar, computeFoliarFluorescenceMatrices,
+    computeFoliarSpecular and the commented treat* loop in Phase.cpp removed.
+    Foliar specular database dropped (external XML upgrader handles old inputs).
+    Bug fix: LambertianMaterialWriter::prepareDatabase() now uses
+    DartEnv::getOutputTempDatabasePath(true) + selfDestruct for prospect-
+    generated databases (it wrongly used getDatabasePath -> wrong folder).
 
 ## Known TODOs / open points (next sessions)
 
@@ -154,7 +174,14 @@ Sandbox notes for rebuilding the prefix (no root available):
 - FOLIAR PROSPECT GENERATION: DONE (see history item 11). prepareProspect()
   covers surface lambertians AND vegetation (top/bottom faces) from the
   phsdata structs; no more PhaseDAO reads or static maps on this path.
-- Per-model direction sets (see item 9).
+- PER-MODEL DIRECTION SETS: DONE (see history item 13). VegetationMaterialWriter
+  loops the UnderstoryMulti models grouped by DirectionSetLink and redoes the
+  direction-set-dependent precomputing only on change; output model index is
+  UnderstoryMulti::indexFunction.
+- Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti
+  (later round): readCoeffDiffParametersForFoliar (LAD params),
+  readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
+  readCoeffDiffParametersForFoliarOpticalFactors.
 - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
   prefix and flip DART_WITH_NETCDF to finish gating work.
 - CRLF normalization (7 files).

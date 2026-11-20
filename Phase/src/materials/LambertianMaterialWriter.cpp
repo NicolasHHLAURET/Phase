@@ -48,12 +48,19 @@ bool LambertianMaterialWriter::treat(	const phsdata::SurfaceFunction & sf,
 bool LambertianMaterialWriter::prepareDatabase(	const phsdata::LambertianMulti & lm,
 												const PhaseGeneralParametersDTO & genDTO,
 												OpticalPropertyParameters & opticalProperty) const {
-    std::string databaseName, modelName;
+    std::string databaseName, databasePath, modelName;
     bool selfDestruct = false;
 
     if (lm.lambertian.is_initialized()) {
         databaseName = lm.lambertian->databaseName;
         modelName = lm.lambertian->modelName;
+        databasePath = DartEnv::getDatabasePath(databaseName);
+        const phsdata::ProspectExternalModule & pem = lm.lambertian->prospectExternalModule;
+        if ((pem.useProspectExternalModule || pem.isFluorescent) && pem.externParameters.is_initialized()) {
+            // prepareProspect() generated this database in the temp output folder (and overwrote databaseName)
+            databasePath = DartEnv::getOutputTempDatabasePath(true);
+            selfDestruct = true;
+        }
     } else if (lm.marmit.is_initialized()) {
         // Generate a unique database name (unique for multithreading / will be deleted after)
         databaseName = boost::lexical_cast<std::string>(boost::uuids::random_generator()()) + ".db";
@@ -67,13 +74,14 @@ bool LambertianMaterialWriter::prepareDatabase(	const phsdata::LambertianMulti &
             marmit.runMarmitOutputFileGeneration();
         // Model name is not visible to the user; spaces and special characters are not allowed.
         modelName = "Model";
+        databasePath = DartEnv::getDatabasePath(databaseName); // Marmit writes to the local temp database dir, found via the database search order
         selfDestruct = true;
     } else {
         // Neither a Lambertian database nor a Marmit configuration: nothing to process.
         return false;
     }
 
-    auto lambertianDatabaseParameters = std::make_shared<LambertianDatabaseParameters>(databaseName, DartEnv::getDatabasePath(databaseName), modelName, genDTO.numberOfSpectralBands);
+    auto lambertianDatabaseParameters = std::make_shared<LambertianDatabaseParameters>(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands);
     lambertianDatabaseParameters->setSelfDestructDatabase(selfDestruct);
     opticalProperty.addDatabaseToProperty(lambertianDatabaseParameters);
     return true;

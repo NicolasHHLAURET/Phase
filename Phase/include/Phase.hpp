@@ -408,24 +408,9 @@ void computeLadData(const PhaseGeneralParametersDTO & genDTO,
 					LADComputation & foliarComputer,
 					FoliarModel & foliarModel);
 
-void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
-					std::vector<int> & useSpectralIrradianceForReflectance,
-					PhaseKeyMappingGenerator & pkmg,
-					std::ofstream & outCoeffSpecProperties,
-					PhaseGeneralParametersDTO & genDTO,
-					const std::vector<DirectionCartesienne> & listDirections,
-					FTFoliar & fTFoliar,
-					PointsListsNCIntegration<DirectionCartesienne> & pointsListSpec,
-					PointsListsNCIntegration<DirectionCartesienne> & pointsListDiff,
-					const SphereDiscretizationMap & sphereMap,
-					FoliarComputation & foliarComputer);
-
-void computeInverceMatricesForFoliar(	const unsigned int & modelIndex,
-								     	const unsigned short int & face,
-										const unsigned int & nbSpectralBands,
-										const std::ostringstream & valueKr,
-										const std::ostringstream & valueKt,
-										const double & averageEta);
+unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
+void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex);
+OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands);
 
 void readBioClimaticFile( 	string bcFilePath,
 							vector<double> & bioClimaticThetaValues,
@@ -442,10 +427,6 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
 												const vector<vector<vector<double> > > & bioClimaticProfileEta,
 												ofstream & ofstreamAverageEta);
 
-
-void computeFoliarSpecular(	SpecularFoliarData & specularProperty,
-							const unsigned int & spectralBandIndex,
-							shared_ptr<SpecularFoliarDatabaseParameters> & foliarSpecularDatabaseParameters);
 
 void writeFoliar(	const unsigned int& modelIndex,
 					const unsigned int& spectralBandIndex,

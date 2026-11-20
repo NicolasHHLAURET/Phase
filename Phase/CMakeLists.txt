@@ -24,6 +24,7 @@ add_executable(phase
 	src/materials/LambertianMaterialWriter.cpp
 	src/materials/RPVMaterialWriter.cpp
 	src/materials/SurfaceMaterialProcessor.cpp
+	src/materials/VegetationMaterialWriter.cpp
 	src/opticalfactors/OpticalFactorsTextureWriter.cpp
 )
 
