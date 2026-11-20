@@ -1,0 +1,1334 @@
+From b35bea3d555c8e75c4a3f0c3ea39662e1547064c Mon Sep 17 00:00:00 2001
+From: Vibe <vibe@localhost>
+Date: Fri, 20 Nov 2026 12:43:54 +0000
+Subject: [PATCH] Per-model direction sets: rewrite treatFoliar as
+ phase::VegetationMaterialWriter
+
+- New VegetationMaterialWriter (Phase/materials/) ports the old treatFoliar body
+  to the phsdata structs; models iterated grouped by DirectionSetLink (stable
+  order, output index = indexFunction) and prepareVegetationDirectionSet()
+  redoes the direction-set-dependent precomputing only on change
+- processVegetationVolumeMaterials() now only allocates the shared foliar
+  objects; buildFoliarOpticalPropertyParameters() shared by
+  createDatabasesReadingProperties() and the writer
+- sphereMap restored as a writer member (built once from fTFoliar.iterationStepPhi)
+- Old treatFoliar/computeFoliarFluorescenceMatrices/computeFoliarSpecular and the
+  commented treat* loop removed; foliar specular database dropped
+- Bug fix: LambertianMaterialWriter::prepareDatabase() uses
+  getOutputTempDatabasePath(true)+selfDestruct for prospect-generated DBs
+---
+ CONTEXT.md                                    |  29 +-
+ Phase/CMakeLists.txt                          |   1 +
+ Phase/include/Phase.hpp                       |  25 +-
+ .../materials/VegetationMaterialWriter.hpp    |  71 +++
+ Phase/src/Phase.cpp                           | 492 +-----------------
+ Phase/src/PhaseVegetation.cpp                 | 101 +++-
+ .../materials/LambertianMaterialWriter.cpp    |  12 +-
+ .../materials/VegetationMaterialWriter.cpp    | 392 ++++++++++++++
+ 8 files changed, 596 insertions(+), 527 deletions(-)
+ create mode 100644 Phase/include/materials/VegetationMaterialWriter.hpp
+ create mode 100644 Phase/src/materials/VegetationMaterialWriter.cpp
+
+diff --git a/CONTEXT.md b/CONTEXT.md
+index 1598791..0363223 100644
+--- a/CONTEXT.md
++++ b/CONTEXT.md
+@@ -134,6 +134,26 @@ Sandbox notes for rebuilding the prefix (no root available):
+     (0a98de5222a12372f4f27e22b73f753bdc5f9a9b on top of ce3c619; receiver
+     evidence in transfer/failed/, applied in commit 965fa10). See new
+     pitfall (d) and protocol point 5.
++13. Per-model direction sets + treatFoliar rewrite (this session): new
++    phase::VegetationMaterialWriter (Phase/materials/) ports the old treatFoliar
++    body to the phsdata structs; models are iterated grouped by DirectionSetLink
++    (stable order within a group, output model index = UnderstoryMulti::
++    indexFunction) and prepareVegetationDirectionSet() (PhaseVegetation.cpp)
++    redoes the direction-set-dependent precomputing (init + computeLadData +
++    readMultiplicativeFactor + computeFoliarCosinePsi + foliarPrecomputing)
++    only when the direction set changes. processVegetationVolumeMaterials() now
++    only allocates the shared FoliarModel/FoliarComputation/LADComputation and
++    computes useSpectralIrradianceForReflectance. The sphereMap line lost during
++    the earlier extraction is restored as a writer member, built once from
++    fTFoliar.iterationStepPhi (SphereDiscretizationMap(1.0, deltaPhi) does not
++    depend on the direction set). buildFoliarOpticalPropertyParameters()
++    (PhaseVegetation.cpp) is shared by createDatabasesReadingProperties() and
++    the writer. Old treatFoliar, computeFoliarFluorescenceMatrices,
++    computeFoliarSpecular and the commented treat* loop in Phase.cpp removed.
++    Foliar specular database dropped (external XML upgrader handles old inputs).
++    Bug fix: LambertianMaterialWriter::prepareDatabase() now uses
++    DartEnv::getOutputTempDatabasePath(true) + selfDestruct for prospect-
++    generated databases (it wrongly used getDatabasePath -> wrong folder).
+ 
+ ## Known TODOs / open points (next sessions)
+ 
+@@ -154,7 +174,14 @@ Sandbox notes for rebuilding the prefix (no root available):
+ - FOLIAR PROSPECT GENERATION: DONE (see history item 11). prepareProspect()
+   covers surface lambertians AND vegetation (top/bottom faces) from the
+   phsdata structs; no more PhaseDAO reads or static maps on this path.
+-- Per-model direction sets (see item 9).
++- PER-MODEL DIRECTION SETS: DONE (see history item 13). VegetationMaterialWriter
++  loops the UnderstoryMulti models grouped by DirectionSetLink and redoes the
++  direction-set-dependent precomputing only on change; output model index is
++  UnderstoryMulti::indexFunction.
++- Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti
++  (later round): readCoeffDiffParametersForFoliar (LAD params),
++  readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
++  readCoeffDiffParametersForFoliarOpticalFactors.
+ - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the
+   prefix and flip DART_WITH_NETCDF to finish gating work.
+ - CRLF normalization (7 files).
+diff --git a/Phase/CMakeLists.txt b/Phase/CMakeLists.txt
+index 14676f3..bd263e9 100644
+--- a/Phase/CMakeLists.txt
++++ b/Phase/CMakeLists.txt
+@@ -24,6 +24,7 @@ add_executable(phase
+    src/materials/LambertianMaterialWriter.cpp
+    src/materials/RPVMaterialWriter.cpp
+    src/materials/SurfaceMaterialProcessor.cpp
++	src/materials/VegetationMaterialWriter.cpp
+    src/opticalfactors/OpticalFactorsTextureWriter.cpp
+ )
+ 
+diff --git a/Phase/include/Phase.hpp b/Phase/include/Phase.hpp
+index f504447..11a7f27 100644
+--- a/Phase/include/Phase.hpp
++++ b/Phase/include/Phase.hpp
+@@ -408,24 +408,9 @@ void computeLadData(const PhaseGeneralParametersDTO & genDTO,
+                LADComputation & foliarComputer,
+                FoliarModel & foliarModel);
+ 
+-void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
+-				std::vector<int> & useSpectralIrradianceForReflectance,
+-				PhaseKeyMappingGenerator & pkmg,
+-				std::ofstream & outCoeffSpecProperties,
+-				PhaseGeneralParametersDTO & genDTO,
+-				const std::vector<DirectionCartesienne> & listDirections,
+-				FTFoliar & fTFoliar,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListSpec,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListDiff,
+-				const SphereDiscretizationMap & sphereMap,
+-				FoliarComputation & foliarComputer);
+-
+-void computeInverceMatricesForFoliar(	const unsigned int & modelIndex,
+-					    	const unsigned short int & face,
+-						const unsigned int & nbSpectralBands,
+-						const std::ostringstream & valueKr,
+-						const std::ostringstream & valueKt,
+-						const double & averageEta);
++unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
++void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex);
++OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands);
+ 
+ void readBioClimaticFile( 	string bcFilePath,
+                    vector<double> & bioClimaticThetaValues,
+@@ -443,10 +428,6 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
+ 												ofstream & ofstreamAverageEta);
+ 
+ 
+-void computeFoliarSpecular(	SpecularFoliarData & specularProperty,
+-					const unsigned int & spectralBandIndex,
+-					shared_ptr<SpecularFoliarDatabaseParameters> & foliarSpecularDatabaseParameters);
+-
+ void writeFoliar(	const unsigned int& modelIndex,
+                const unsigned int& spectralBandIndex,
+                const std::string & modelName,
+diff --git a/Phase/include/materials/VegetationMaterialWriter.hpp b/Phase/include/materials/VegetationMaterialWriter.hpp
+new file mode 100644
+index 0000000..310c49d
+--- /dev/null
++++ b/Phase/include/materials/VegetationMaterialWriter.hpp
+@@ -0,0 +1,71 @@
++/*
++ * VegetationMaterialWriter.hpp
++ *
++ *  Vegetation (foliar) counterpart of the surface MaterialWriters: loops the
++ *  phsdata::UnderstoryMulti models, resolves each model's direction set through
++ *  its DirectionSetLink, and redoes the direction-set-dependent precomputing
++ *  only when the direction set changes.
++ */
++
++#ifndef INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_
++#define INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_
++
++#include <memory>
++#include <vector>
++
++#include "PhaseDTOs.hpp"
++#include "../../librairieDart/include/mapping/PhaseKeyMappingGenerator.hpp"
++#include "PhaseProperty.hpp"
++#include "PhaseStructure.hpp"
++#include "containers/SphereDiscretizationMap.hpp"
++#include "fluorescence/FluorescenceMatrices.hpp"
++#include "opticalfactors/OpticalFactorsTextureWriter.hpp"
++
++struct VegetationVolumeMaterials;
++
++namespace phase {
++
++class VegetationMaterialWriter {
++public:
++	VegetationMaterialWriter(	const FluorescenceService & fluorescenceService,
++							const OpticalFactorsTextureWriter & opticalFactorsWriter);
++
++	// Loops genDTO._volumesMaterials.understoryMultiFunctions grouped by their
++	// DirectionSetLink (original order kept within a group; the output model
++	// index is UnderstoryMulti::indexFunction). Calls
++	// prepareVegetationDirectionSet() only when the direction set changes.
++	void processAll(	PhaseGeneralParametersDTO & genDTO,
++					VegetationVolumeMaterials & vegetation,
++					PhaseKeyMappingGenerator & pkmg,
++					std::ofstream & outCoeffSpecProperties);
++
++private:
++	// Full treatment of one vegetation model (ported from the old treatFoliar).
++	// foliarIndice is the position in understoryMultiFunctions (used by the
++	// FoliarModel/FoliarComputation/LADComputation accessors); the output model
++	// index is understory.indexFunction.
++	bool treat(	const phsdata::UnderstoryMulti & understory,
++			unsigned int foliarIndice,
++			PhaseGeneralParametersDTO & genDTO,
++			VegetationVolumeMaterials & vegetation,
++			const std::vector<DirectionCartesienne> & listDirections,
++			PhaseKeyMappingGenerator & pkmg,
++			std::ofstream & outCoeffSpecProperties);
++
++	// Computes the fluorescence matrices of one face from the phsdata prospect
++	// module of the model node (replaces the old computeFoliarFluorescenceMatrices).
++	void computeFaceFluorescence(	FluorescenceResults & results,
++							std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
++							const phsdata::UnderstoryModel & model,
++							unsigned int modelIndex,
++							const PhaseGeneralParametersDTO & genDTO,
++							unsigned int face) const;
++
++	const FluorescenceService & _fluorescenceService;
++	const OpticalFactorsTextureWriter & _opticalFactorsWriter;
++	std::unique_ptr<SphereDiscretizationMap> _sphereMap; // built once from fTFoliar.iterationStepPhi (direction-set independent)
++};
++
++} // namespace phase
++
++#endif /* INCLUDE_MATERIALS_VEGETATIONMATERIALWRITER_HPP_ */
+diff --git a/Phase/src/Phase.cpp b/Phase/src/Phase.cpp
+index c33ce8b..9b1531b 100755
+--- a/Phase/src/Phase.cpp
++++ b/Phase/src/Phase.cpp
+@@ -106,6 +106,7 @@ extern "C" int sqlite3_initialize(void);
+ #include "materials/Hapke1981MaterialWriter.hpp"
+ #include "materials/Hapke2012MaterialWriter.hpp"
+ #include "materials/RPVMaterialWriter.hpp"
++#include "materials/VegetationMaterialWriter.hpp"
+ 
+ //----------------------------------------------------------------------------------------
+ //----------------------------------------------------------------------------------------
+@@ -1514,365 +1515,6 @@ FTFoliar foliarPrecomputing(const PhaseGeneralParametersDTO & genDTO,
+    return fTFoliar;
+ }
+ 
+-static void computeFoliarFluorescenceMatrices(phase::FluorescenceResults & fluorescenceResults,
+-		std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
+-		unsigned int modelIndex,
+-		const FluorescenceParameters & fluorescenceParameters,
+-		const PhaseGeneralParametersDTO & genDTO,
+-		unsigned int face) {
+-	phsdata::ProspectExternParameters prospectParams;
+-	prospectParams.anthocyanin = fluorescenceParameters.anthocyanin;
+-	prospectParams.cBrown = fluorescenceParameters.brownPigment;
+-	prospectParams.cab = fluorescenceParameters.chlorophyll;
+-	prospectParams.car = fluorescenceParameters.carotenoid;
+-	prospectParams.cbc = fluorescenceParameters.Cbc;
+-	prospectParams.cm = fluorescenceParameters.leafMassPerArea;
+-	prospectParams.cp = fluorescenceParameters.Cp;
+-	prospectParams.cw = fluorescenceParameters.waterThickness;
+-	prospectParams.n = fluorescenceParameters.structureCoeff;
+-	prospectParams.useCm = fluorescenceParameters.useNewCm;
+-	prospectParams.v2z = fluorescenceParameters.v2z;
+-
+-	phsdata::FluorescenceExternParameters fluorescenceExtern;
+-	fluorescenceExtern.forceYields = fluorescenceParameters.forceYield;
+-	fluorescenceExtern.useCombinedYields = fluorescenceParameters.useCombinedYields;
+-	fluorescenceExtern.yieldPSI = fluorescenceParameters.yieldPSI;
+-	fluorescenceExtern.yieldPSII = fluorescenceParameters.yieldPSII;
+-
+-	phase::InterpolatedMatrices interpolatedMatrices(genDTO.numberOfSpectralBands);
+-	phase::FluorescenceService().computeMatrices(fluorescenceResults, interpolatedMatrices, globalReferences::FOLIAIRE, modelIndex,
+-			prospectParams, fluorescenceExtern, genDTO, face);
+-
+-	for (unsigned int sbi1 = 0; sbi1 < genDTO.numberOfSpectralBands; ++sbi1) {
+-		for (unsigned int sbi2 = 0; sbi2 < genDTO.numberOfSpectralBands; ++sbi2) {
+-			for (unsigned int k = 0; k < 4; ++k) {
+-				fluorescenceMatrix[sbi1][sbi2][k] = interpolatedMatrices.at(sbi1, sbi2, k);
+-			}
+-		}
+-	}
+-}
+-
+-void treatFoliar(	OpticalPropertyParameters & foliarPropertyParameters,
+-				const vector<bool> & useSpectralIrradianceForReflectance,
+-				PhaseKeyMappingGenerator & pkmg,
+-				ofstream & outCoeffSpecProperties,
+-				PhaseGeneralParametersDTO & genDTO,
+-				const vector<DirectionCartesienne> & listDirections,
+-				const DirectionCartesienne & sunDirection,
+-				FTFoliar & fTFoliar,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListSpec,
+-				PointsListsNCIntegration<DirectionCartesienne> & pointsListDiff,
+-				const SphereDiscretizationMap & sphereMap,
+-				FoliarComputation & foliarComputer,
+-				LADComputation & ladComputation,
+-				FoliarModel & foliarModel) {
+-
+-	foliarComputer.reInitFoliarComputation();
+-
+-	vector<FoliarProperty> foliarProperty;
+-	foliarProperty.resize(genDTO.numberOfSpectralBands);
+-
+-	shared_ptr<SpecularFoliarDatabaseParameters> foliarSpecularDatabaseParameters = ::static_pointer_cast<SpecularFoliarDatabaseParameters>(
+-		foliarPropertyParameters.getDatabaseParameters(SPECULAR_FOLIAR_DATABASE));
+-	if (foliarSpecularDatabaseParameters.get() != NULL) {
+-		for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
+-			foliarProperty[numBand].specularFoliarData._isSpecular = true;
+-			computeFoliarSpecular(foliarProperty[numBand].specularFoliarData, numBand, foliarSpecularDatabaseParameters);
+-		}
+-	} else {
+-		for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
+-			foliarProperty[numBand].specularFoliarData._isSpecular = false;
+-		}
+-	}
+-
+-	unsigned int modelIndex = foliarPropertyParameters.getModelIndex();
+-	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-		foliarProperty[spectralBandIndex].typeOfLeafAngleDistribution = foliarModel.getFoliarTypeOfLeafAngleDistribution(modelIndex);
+-		foliarProperty[spectralBandIndex].foliarDimension = foliarModel.getFoliarDimension(modelIndex);
+-	}
+-	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions(modelIndex);
+-	ostringstream val;
+-	val << modelIndex; //on ajoute le numero de la fx de phase dans le nom du fichier : sprintf (val, "%u.",j)
+-	string name = val.str() + "." + foliarPropertyParameters.getModelName();
+-
+-//	PhaseUtils::setOutputFolder("lib_phase"); // Je suis un porc.
+-	createDirectory(DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder());
+-
+-	pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
+-	pkmg.setNumeroFonctionDePhase(modelIndex);
+-	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(modelIndex) << endl;
+-	phase::FluorescenceResults topFluorescenceResults;
+-	topFluorescenceResults.useBioCLimaticProfileEta = false;
+-	topFluorescenceResults.isFluorescent = false;
+-	phase::FluorescenceResults bottomFluorescenceResults;
+-	bottomFluorescenceResults.useBioCLimaticProfileEta = false;
+-	bottomFluorescenceResults.isFluorescent = false;
+-	foliarComputer.setTopFluorescenceComputation(false);
+-	foliarComputer.setBottomFluorescenceComputation(false);
+-	FluorescenceParameters fluorescenceParameters;
+-	bool hasDifferentBottom = false;
+-	PhaseDAO::readCoeffDiffParametersForFoliarFluspect(modelIndex, fluorescenceParameters, hasDifferentBottom, false);
+-	if (PhaseProperty::getFluorescence()) {
+-		foliarComputer.resetFrontFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
+-		if (fluorescenceParameters.isFluorescent) {
+-			computeFoliarFluorescenceMatrices(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), modelIndex,
+-				fluorescenceParameters, genDTO, 0);
+-			foliarComputer.setTopFluorescenceComputation(true);
+-			if (topFluorescenceResults.useBioClimaticProfileEta) {
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << "1" << endl;
+-			} else {
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << "0" << endl;
+-			}
+-		}
+-		foliarComputer.resetBackFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
+-		if (hasDifferentBottom) {
+-			PhaseDAO::readCoeffDiffParametersForFoliarFluspect(modelIndex, fluorescenceParameters, hasDifferentBottom, true);
+-			if (fluorescenceParameters.isFluorescent) {
+-				computeFoliarFluorescenceMatrices(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), modelIndex,
+-					fluorescenceParameters, genDTO, 1);
+-				foliarComputer.setBottomFluorescenceComputation(true);
+-				if (bottomFluorescenceResults.useBioClimaticProfileEta) {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "1" << endl;
+-				} else {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "0" << endl;
+-				}
+-			}
+-		} else {
+-			if (foliarComputer.isTopFluorescenceComputation()) {
+-				bottomFluorescenceResults = topFluorescenceResults;
+-				foliarComputer.getBackFaceFluorescenceMatrix() = foliarComputer.getFrontFaceFluorescenceMatrix();
+-				foliarComputer.setBottomFluorescenceComputation(true);
+-				if (topFluorescenceResults.useBioClimaticProfileEta) {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "1" << endl;
+-				} else {
+-					outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << "0" << endl;
+-				}
+-			}
+-		}
+-		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
+-		pkmg.setNumeroFonctionDePhase(modelIndex);
+-		if (foliarComputer.isTopFluorescenceComputation() || foliarComputer.isBottomFluorescenceComputation()) {
+-			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "1" << endl;
+-		} else {
+-			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "0" << endl;
+-		}
+-		if (foliarComputer.isTopFluorescenceComputation())
+-		{
+-			if (topFluorescenceResults.useBioClimaticProfileEta) {
+-				string topBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
+-				vector<double> topBioClimaticThetaValues, topBioClimaticPhiValues;
+-				vector<vector<vector<double> > > topBioClimaticProfileEta;
+-				readBioClimaticFile(topBCFilePath, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta);
+-				string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
+-				string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
+-				ofstream ofstreamTopAverageEta;
+-				ofstreamTopAverageEta.open(topAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
+-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
+-				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticFile() << topAverageBioClimaticProfileFileName << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyType() << topFluorescenceResults.linkedOpticalPropertyType << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyIndex() << topFluorescenceResults.linkedOpticalPropertyIndex << endl;
+-			}
+-			if (bottomFluorescenceResults.useBioClimaticProfileEta) {
+-				string bottomBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
+-				vector<double> bottomBioClimaticThetaValues, bottomBioClimaticPhiValues;
+-				vector<vector<vector<double> > > bottomBioClimaticProfileEta;
+-				readBioClimaticFile(bottomBCFilePath, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta);
+-				string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
+-				string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
+-				ofstream ofstreamBottomAverageEta;
+-				ofstreamBottomAverageEta.open(bottomAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
+-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
+-				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticFile() << bottomAverageBioClimaticProfileFileName << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyType() << bottomFluorescenceResults.linkedOpticalPropertyType << endl;
+-				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyIndex() << bottomFluorescenceResults.linkedOpticalPropertyIndex << endl;
+-			}
+-		}
+-	}
+-
+-	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
+-		foliarModel.setEquivalentFrontLambertianIndex(modelIndex, PhaseProperty::getNewEquivalentLambertianModelIndex());
+-		if (!hasDifferentBottom) {
+-			foliarModel.setEquivalentBackLambertianIndex(modelIndex, foliarModel.getEquivalentFrontLambertianIndex(modelIndex));
+-		} else {
+-			foliarModel.setEquivalentBackLambertianIndex(modelIndex, PhaseProperty::getNewEquivalentLambertianModelIndex());
+-		}
+-
+-		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
+-		pkmg.setNumeroFonctionDePhase(modelIndex);
+-		outCoeffSpecProperties << pkmg.cleEquivalentFrontLambertianIndex() << (foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) << endl;
+-		outCoeffSpecProperties << pkmg.cleEquivalentBackLambertianIndex() << (foliarModel.getEquivalentBackLambertianIndex(modelIndex)) << endl;
+-		pkmg.setTypeFonctionDePhase(globalReferences::LAMBERTIEN);
+-		pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentFrontLambertianIndex(modelIndex));
+-		phase::FluorescenceService().writeSimulationProperties(topFluorescenceResults, pkmg, outCoeffSpecProperties);
+-		if (foliarModel.getEquivalentBackLambertianIndex(modelIndex) != foliarModel.getEquivalentFrontLambertianIndex(modelIndex)) {
+-			pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentBackLambertianIndex(modelIndex));
+-			phase::FluorescenceService().writeSimulationProperties(bottomFluorescenceResults, pkmg, outCoeffSpecProperties);
+-		}
+-	}
+-
+-	string pathPhaseSpec = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_SpecularFunction";
+-	string pathPhaseDiff = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction";
+-	string pathPhaseTransm = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
+-			+ "_TransmittanceFunction";
+-	string pathPhaseHotSpotFactor = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
+-			+ "_ThermalHotSpot";
+-	string pathPhaseFluorescence = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence";
+-
+-	foliarComputer.computeFRFoliarSpecularForModelIndex(pointsListSpec, pointsListDiff, listDirections, fTFoliar, modelIndex, foliarProperty[0]);
+-	foliarComputer.computeClumpingIndex(listDirections, genDTO.solarDirection, modelIndex);
+-	foliarComputer.runComputeFoliarPerThread(foliarProperty, modelIndex, fTFoliar, foliarPropertyParameters, listDirections, sphereMap,
+-		pointsListSpec, pointsListDiff);
+-	foliarComputer.computeFoliarHotSpotDirectionalFactor(modelIndex, listDirections, fTFoliar.iterationStepPhi, fTFoliar.iterationStepTheta);
+-
+-	/*
+-	 * Nous avons deux cas : soit on ecrase le fichier car on est au premier passage de boucle,
+-	 * soit on continue le remplissage du fichier
+-	 */
+-	std::ostringstream keyRootScatObj;
+-	keyRootScatObj << "scene.vegscatter." << "vegetation_" <<  modelIndex << ".";
+-	if (PhaseProperty::getFluorescence() && fluorescenceParameters.isFluorescent) {
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation_fluo");
+-	} else {
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation");
+-	}
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opIndex", std::to_string(modelIndex));
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "leafdimension", std::to_string(foliarModel.getFoliarDimension(modelIndex)));
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "LAD", std::to_string(foliarModel.getFoliarTypeOfLeafAngleDistribution(modelIndex)));
+-	if (foliarModel.getFoliarTypeOfLeafAngleDistribution(modelIndex) == globalReferences::ELLIPS)
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "ala", std::to_string(foliarModel.getFoliarAverageLeafAngle(modelIndex)));
+-
+-	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
+-		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction" + "_mc");
+-	if (PhaseProperty::getFluorescence() && fluorescenceParameters.isFluorescent) {
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "fluorescenceTransferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence" + "_mc");
+-	}
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transmFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_TransmittanceFunction");
+-//			string simulationPropertiesPath = DartEnv::getCurrentSimulationOutputPath() + "simulation.properties.txt";
+-	genDTO.luxCoreRenderSceneProperties.ajouterCle("scene.simPropertiesPath", "simulation.properties.txt");
+-	if (PhaseProperty::getFluorescence() && fluorescenceParameters.isFluorescent) {
+-		if (topFluorescenceResults.useBioClimaticProfileEta) {
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "1");
+-			const string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
+-//					const string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName);
+-		} else {
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "0");
+-		}
+-		if (bottomFluorescenceResults.useBioClimaticProfileEta) {
+-			const string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
+-//					const string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "1");
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName);
+-		} else {
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "0");
+-		}
+-	}
+-
+-	OpticalFactorParameters opticalFactorParameters;
+-	if (PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
+-		std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opticalFactors", textureName);
+-
+-		std::string textureKeyRoot = "scene.textures." + textureName;
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".type", "opticalFactors");
+-		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".file", textureName + ".bin");
+-
+-		if (opticalFactorParameters.sameOpticalFactorForAllBands) {
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", opticalFactorParameters.fileNames[0]);
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", opticalFactorParameters.duplicateFirstLayer[0] ? "1" : "0");
+-		} else {
+-			std::ostringstream inputsOSS, duplicationOSS;
+-			inputsOSS << opticalFactorParameters.fileNames[0];
+-			duplicationOSS << opticalFactorParameters.duplicateFirstLayer[0];
+-			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-				inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
+-				duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
+-			}
+-
+-			if (PhaseProperty::getPolarization()) {
+-				// 3 * numberOfSpectralBands are added to simulate Q, U, V
+-				// The optical properties are repeated in these bands
+-				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
+-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
+-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
+-					}
+-				}
+-			}
+-
+-			if (PhaseProperty::getFluorescence()) {
+-				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
+-				// The optical properties are repeated in these bands
+-				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
+-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
+-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
+-					}
+-				}
+-			}
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", inputsOSS.str());
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", duplicationOSS.str());
+-		}
+-	}
+-	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
+-		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
+-
+-	std::vector<PropertyLambertian> frontEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
+-	std::vector<PropertyLambertian> backEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
+-	unsigned int numberOfFresnelCoefficient = 20;
+-	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
+-		foliarComputer.testAlbedo(spectralBandIndex, modelIndex);
+-		foliarComputer.writeFoliar(modelIndex, spectralBandIndex, foliarPropertyParameters.getModelName(), pkmg, outCoeffSpecProperties,
+-			foliarProperty);
+-		if (PhaseProperty::getPolarization()) {
+-			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, sunDirection,
+-				numberOfFresnelCoefficient, foliarModel, ladComputation);
+-		}
+-		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
+-			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
+-			frontEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+-			frontEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
+-			backEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
+-			backEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
+-			backEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
+-		}
+-	}
+-
+-	/* Equivalent lambertian phase functions generated from the foliar model: the LuxCore
+-	 * material keys are written by the same writer as for real lambertians (the emissivity
+-	 * is padded with zeros on the extra simulated Q,U,V / PSI,PSII bands). Thermal keys
+-	 * are handled separately by the EmissionMaterial. */
+-	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
+-		const phase::FluorescenceService fluorescenceService;
+-		const phase::OpticalFactorsTextureWriter opticalFactorsTextureWriter;
+-		const phase::LambertianMaterialWriter lambertianMaterialWriter(fluorescenceService, opticalFactorsTextureWriter);
+-
+-		const unsigned int frontEquivalentLambertianIndex = foliarModel.getEquivalentFrontLambertianIndex(modelIndex);
+-		const unsigned int backEquivalentLambertianIndex = foliarModel.getEquivalentBackLambertianIndex(modelIndex);
+-
+-		lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, frontEquivalentLambertianIndex, frontEquivalentLambertianIndex,
+-				frontEquivalentLambertianProperties, topFluorescenceResults);
+-
+-		if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+-			lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, backEquivalentLambertianIndex, backEquivalentLambertianIndex,
+-					backEquivalentLambertianProperties, bottomFluorescenceResults);
+-		}
+-
+-		/* Optical factors of the equivalent lambertians come from the foliar model */
+-		OpticalFactorParameters opticalFactorParameters;
+-		if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarPropertyParameters.getModelIndex(), opticalFactorParameters)) {
+-			const std::string textureName = "v" + boost::lexical_cast<std::string>(foliarPropertyParameters.getModelIndex()) + "OF";
+-			genDTO.luxCoreRenderSceneProperties.ajouterCle(
+-					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", textureName);
+-			if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
+-				genDTO.luxCoreRenderSceneProperties.ajouterCle(
+-						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", textureName);
+-			}
+-		}
+-	}
+-}
+-
+ void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaValues,
+                    vector<double> & bioClimaticPhiValues,
+                    vector<vector<vector<double> > > & bioClimaticProfileEta) {
+@@ -1999,20 +1641,6 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
+ 
+ }
+ 
+-void computeFoliarSpecular(	SpecularFoliarData & specularProperty,
+-					const unsigned int & spectralBandIndex,
+-					shared_ptr<SpecularFoliarDatabaseParameters> & foliarSpecularDatabaseParameters) {
+-
+-	if (specularProperty._isSpecular) {
+-		specularProperty.refractionIndexBottom = foliarSpecularDatabaseParameters->getBottomRefractionIndexForBand(spectralBandIndex);
+-		specularProperty.refractionIndexTop = foliarSpecularDatabaseParameters->getTopRefractionIndexForBand(spectralBandIndex);
+-		specularProperty.roughnessBottom = foliarSpecularDatabaseParameters->getBottomForBand(spectralBandIndex);
+-		specularProperty.roughnessTop = foliarSpecularDatabaseParameters->getTopForBand(spectralBandIndex);
+-		specularProperty.roughnessCoefficientBottom = foliarSpecularDatabaseParameters->getBottomIndexForBand(spectralBandIndex);
+-		specularProperty.roughnessCoefficientTop = foliarSpecularDatabaseParameters->getTopIndexForBand(spectralBandIndex);
+-	}
+-}
+-
+ /* At the moment, concerning the polarization, the fluids are treated like Rayleigh molecules */
+ /* TODO Treat fluids "like fluids" by finding their scattering Mueller matrices (An idea: Light scattering reviews 10) */
+ void treatFluid(PhaseKeyMappingGenerator & pkmg,
+@@ -2581,7 +2209,11 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
+ 
+    prepareProspect(genDTO);
+    processSurfaceMaterials(genDTO, pkmg, outCoeffSpecProperties);
++	phase::FluorescenceService vegetationFluorescenceService;
++	phase::OpticalFactorsTextureWriter vegetationOpticalFactorsWriter;
++	phase::VegetationMaterialWriter vegetationWriter(vegetationFluorescenceService, vegetationOpticalFactorsWriter);
+    VegetationVolumeMaterials vegetationMaterials = processVegetationVolumeMaterials(genDTO);
++	vegetationWriter.processAll(genDTO, vegetationMaterials, pkmg, outCoeffSpecProperties);
+    writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
+ 
+ //	// Lecture des bases de données
+@@ -2598,64 +2230,6 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
+ //
+ //			shared_ptr<PhaseDatabaseParameters> currentDatabase = iterator->getDatabaseForProperty(numPropertyDatabase);
+ //			PhaseProperty::readReflectanceParameters(useSpectralIrradianceForReflectance, currentDatabase);
+-//			}
+-//		}
+-//		PhaseExternComputation pec;
+-//		switch (iterator->getOpticalPropertyType()) {
+-//			case LAMBERTIAN_PROPERTY:
+-//				treatLambertian(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				break;
+-//			case SPECULAR_PROPERTY:
+-//				treatSpecular(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				break;
+-//			case HAPKE_PROPERTY:
+-//				treatHapke(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				break;
+-//			case HAPKE2_PROPERTY:
+-//				treatHapke2(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				break;
+-//			case RPV_PROPERTY:
+-//				treatRPV(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				break;
+-//			case WATER_PROPERTY:
+-//				treatWater(*iterator, currentOPIndex, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO);
+-//				break;
+-//			case FOLIAR_PROPERTY:
+-//				treatFoliar(*iterator, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties, genDTO, listDirections, fTFoliar,
+-//					pointsListSpec, pointsListDiff, sphereMap, foliarComputer, ladComputation, foliarModel);
+-//				break;
+-//			case PHASE_EXTERN_PROPERTY:
+-//				cout<<"phase extern property:" <<flush;
+-//				pec.computePhaseExtern_MultiDirection(*iterator, pkmg, outCoeffSpecProperties, genDTO, listDirections);
+-//				treatPhaseExtern(*iterator, useSpectralIrradianceForReflectance, pkmg, outCoeffSpecProperties,genDTO, listDirections);
+-//				cout<<"...done"<<endl;
+-//				break;
+-//			default:
+-//				break;
+-//		}
+-//		++currentOPIndex;
+-//	}
+-
+-//	/* Mixed Material (LuxCore Only) */
+-//	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfMixedMaterialModels(); modelIndex++) {
+-//		treatMixedMaterial(genDTO, currentOPIndex, modelIndex);
+-//		++currentOPIndex;
+-//	}
+-
+-	/* FLUID */
+-	treatFluid(pkmg, outCoeffSpecProperties, airPhaseFunctions, genDTO);
+-
+-	cout << " -> Writing LuxCoreRender configuration files" << endl;
+-
+-	genDTO.luxCoreRenderSceneProperties.writeFile(DartEnv::getCurrentSimulationOutputPath() + "phase.scn");
+-	genDTO.luxCoreRenderConfigProperties.writeFile(DartEnv::getCurrentSimulationOutputPath() + "scene.cfg");
+-	genDTO.luxCoreLightProperties.writeFile(DartEnv::getCurrentSimulationOutputPath() + "lights.properties");
+-
+-	writePhasePropertiesNumberOfModels(outCoeffSpecProperties, pkmg, genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation);
+-
+-	/* Fermeture du fichier phase.properties.txt */
+-	outCoeffSpecProperties.close();
+-
+    // Databases self destruct procedure
+    vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
+    vector<OpticalPropertyParameters>::iterator selfDestructEndIterator = opticalPropertiesDatabases.end();
+@@ -3439,60 +3013,8 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGe
+    /* Foliar*/
+    for (unsigned int modelIndex = 0; modelIndex < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelIndex) {
+        const phsdata::UnderstoryMulti & understory = *genDTO._volumesMaterials.understoryMultiFunctions[modelIndex];
+-		const phsdata::UnderstoryModel * topModel = understory.getTopModel();
+-		const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
+-		EXIT_IF(topModel == nullptr, "");
+-
+-		phaseName = understory.functionName;
+-
+-		bool useProspectGen = (topModel->prospectExternalModule.useProspectExternalModule
+-				|| topModel->prospectExternalModule.isFluorescent)
+-				&& topModel->prospectExternalModule.externParameters.is_initialized();
+-		databaseName = topModel->databaseName;
+-		modelName = topModel->modelName;
+-		if (useProspectGen) {
+-			databasePath = DartEnv::getOutputTempDatabasePath(true);
+-			// Maybe change the model name in the future, but this modelName are not findable by the user.
+-			// Spaces and special caracters are not allowed in modelName so ...
+-			modelName = "Model";
+-		} else {
+-			databasePath = DartEnv::getDatabasePath(databaseName);
+-		}
+-
+-		// Bottom foliar model
+-		string bottomDatabaseName;
+-		string bottomDatabasePath;
+-		string bottomModelName;
+-		bool bottomProspectGen = false;
+-		if (bottomModel != nullptr) {
+-			bottomProspectGen = (bottomModel->prospectExternalModule.useProspectExternalModule
+-					|| bottomModel->prospectExternalModule.isFluorescent)
+-					&& bottomModel->prospectExternalModule.externParameters.is_initialized();
+-			bottomDatabaseName = bottomModel->databaseName;
+-			bottomModelName = bottomModel->modelName;
+-			if (bottomProspectGen) {
+-				bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
+-				// Maybe change the model name in the future, but this modelName are not findable by the user.
+-				// Spaces and special caracters are not allowed in modelName so ...
+-				bottomModelName = "Model";
+-			} else {
+-				bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
+-			}
+-		}
+-
+-		OpticalPropertyParameters opticalProperty(FOLIAR_PROPERTY, modelIndex, phaseName, indexOrder);
+-		shared_ptr<FoliarDatabaseParameters> foliarDatabaseParameters(
+-			new FoliarDatabaseParameters(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands, understory.hasDifferentModelForBottom,
+-					bottomDatabaseName, bottomDatabasePath, bottomModelName));
+-		if (useProspectGen) {
+-			foliarDatabaseParameters.get()->setSelfDestructDatabase(true);
+-		}
+-		if (bottomProspectGen) {
+-			foliarDatabaseParameters.get()->setSelfDestructBottomDatabase(true);
+-		}
+-		opticalProperty.addDatabaseToProperty(foliarDatabaseParameters);
+-
+-		phaseOpticalProperties.push_back(opticalProperty);
++		EXIT_IF(understory.getTopModel() == nullptr, "");
++		phaseOpticalProperties.push_back(buildFoliarOpticalPropertyParameters(understory, genDTO.numberOfSpectralBands));
+    }
+    return phaseOpticalProperties;
+ }
+diff --git a/Phase/src/PhaseVegetation.cpp b/Phase/src/PhaseVegetation.cpp
+index 24a1279..fecacec 100644
+--- a/Phase/src/PhaseVegetation.cpp
++++ b/Phase/src/PhaseVegetation.cpp
+@@ -22,17 +22,13 @@ static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
+ }
+ 
+ /**
+- * Index of the direction set used by the vegetation models. Every
+- * UnderstoryMulti references a direction set through its DirectionSetLink;
+- * until the computation engine supports one direction set per model, the
+- * first vegetation model's link drives the shared precomputing.
++ * Direction set used by one vegetation model: its own DirectionSetLink when
++ * valid, else the first direction set.
+  */
+-static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO) {
+-	for (unsigned int modelIndex = 0; modelIndex < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelIndex) {
+-		const unsigned int indexDirectionSetLink = genDTO._volumesMaterials.understoryMultiFunctions[modelIndex]->directionSetLink.indexDirectionSetLink;
+-		if (indexDirectionSetLink < genDTO._directionSet.size()) {
+-			return indexDirectionSetLink;
+-		}
++unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition) {
++	const unsigned int indexDirectionSetLink = genDTO._volumesMaterials.understoryMultiFunctions[modelPosition]->directionSetLink.indexDirectionSetLink;
++	if (indexDirectionSetLink < genDTO._directionSet.size()) {
++		return indexDirectionSetLink;
+    }
+    return 0;
+ }
+@@ -40,21 +36,34 @@ static unsigned int getVegetationDirectionSetIndex(const PhaseGeneralParametersD
+ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO) {
+    VegetationVolumeMaterials vegetation;
+ 
++	vegetation.foliarModel.reset(new FoliarModel());
++	vegetation.foliarComputation.reset(new FoliarComputation(*vegetation.foliarModel));
++	vegetation.ladComputation.reset(new LADComputation(*vegetation.foliarModel));
++
++	testIfUseSun(genDTO, vegetation.useSpectralIrradianceForReflectance);
++
++	return vegetation;
++}
++
++/**
++ * (Re)initialises the shared foliar objects for one direction set and runs the
++ * direction-set-dependent precomputing. Called by VegetationMaterialWriter
++ * whenever the direction set changes between models (the per-model data filled
++ * by computeLadData/readMultiplicativeFactor is reset by initFoliarModel, so it
++ * is redone here as well).
++ */
++void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
+    const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
+-	const unsigned int directionSetIndex = getVegetationDirectionSetIndex(genDTO);
+    const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
+    const unsigned int numberOfDirections = listDirections.size();
+ 
+-	vegetation.foliarModel.reset(new FoliarModel());
+    vegetation.foliarModel->initFoliarModel(numberOfFoliarModels, PhaseProperty::_numberOfSpectralBands,
+            numberOfDirections);
+ 
+-	vegetation.foliarComputation.reset(new FoliarComputation(*vegetation.foliarModel));
+    vegetation.foliarComputation->initFoliarComputation(numberOfDirections,
+            PhaseProperty::_numberOfSpectralBands, numberOfFoliarModels, PhaseProperty::_numberOfThreads,
+            PhaseProperty::_threadEnd, *vegetation.foliarModel);
+ 
+-	vegetation.ladComputation.reset(new LADComputation(*vegetation.foliarModel));
+    vegetation.ladComputation->initLADComputation(numberOfFoliarModels, PhaseProperty::_numberOfSpectralBands);
+ 
+    computeLadData(genDTO, *vegetation.ladComputation, *vegetation.foliarModel);
+@@ -68,7 +77,6 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
+     printNumberOfFoliarModels();
+ 
+    vegetation.foliarComputation->computeFoliarCosinePsi(listDirections, iterationStepPhi, iterationStepTheta);
+-	testIfUseSun(genDTO, vegetation.useSpectralIrradianceForReflectance);
+ 
+     /* FOLIAR precomputing */
+     if (PhaseProperty::getNumberOfFoliarModels() > 0) {
+@@ -84,6 +92,65 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
+            vegetation.foliarComputation->initFluorescenceMatrix();
+         }
+     }
++}
+ 
+-	return vegetation;
+- }
++/**
++ * Builds the OpticalPropertyParameters (FOLIAR_PROPERTY) of one vegetation
++ * model from its phsdata storage: the top/bottom database+model names (the
++ * database name is the prospect-generated uuid when prepareProspect() ran),
++ * with the temp output folder and self-destruct flag in that case. Shared by
++ * createDatabasesReadingProperties() and VegetationMaterialWriter.
++ */
++OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands) {
++	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
++	const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
++
++	OpticalPropertyParameters opticalProperty(FOLIAR_PROPERTY, understory.indexFunction, understory.functionName, -1);
++
++	bool useProspectGen = (topModel->prospectExternalModule.useProspectExternalModule
++			|| topModel->prospectExternalModule.isFluorescent)
++			&& topModel->prospectExternalModule.externParameters.is_initialized();
++	std::string databaseName = topModel->databaseName;
++	std::string modelName = topModel->modelName;
++	std::string databasePath;
++	if (useProspectGen) {
++		databasePath = DartEnv::getOutputTempDatabasePath(true);
++		// Maybe change the model name in the future, but this modelName are not findable by the user.
++		// Spaces and special caracters are not allowed in modelName so ...
++		modelName = "Model";
++	} else {
++		databasePath = DartEnv::getDatabasePath(databaseName);
++	}
++
++	// Bottom foliar model
++	std::string bottomDatabaseName;
++	std::string bottomDatabasePath;
++	std::string bottomModelName;
++	bool bottomProspectGen = false;
++	if (bottomModel != nullptr) {
++		bottomProspectGen = (bottomModel->prospectExternalModule.useProspectExternalModule
++				|| bottomModel->prospectExternalModule.isFluorescent)
++				&& bottomModel->prospectExternalModule.externParameters.is_initialized();
++		bottomDatabaseName = bottomModel->databaseName;
++		bottomModelName = bottomModel->modelName;
++		if (bottomProspectGen) {
++			bottomDatabasePath = DartEnv::getOutputTempDatabasePath(true);
++			bottomModelName = "Model";
++		} else {
++			bottomDatabasePath = DartEnv::getDatabasePath(bottomDatabaseName);
++		}
++	}
++
++	shared_ptr<FoliarDatabaseParameters> foliarDatabaseParameters(
++		new FoliarDatabaseParameters(databaseName, databasePath, modelName, numberOfBands, understory.hasDifferentModelForBottom,
++				bottomDatabaseName, bottomDatabasePath, bottomModelName));
++	if (useProspectGen) {
++		foliarDatabaseParameters.get()->setSelfDestructDatabase(true);
++	}
++	if (bottomProspectGen) {
++		foliarDatabaseParameters.get()->setSelfDestructBottomDatabase(true);
++	}
++	opticalProperty.addDatabaseToProperty(foliarDatabaseParameters);
++
++	return opticalProperty;
++}
+diff --git a/Phase/src/materials/LambertianMaterialWriter.cpp b/Phase/src/materials/LambertianMaterialWriter.cpp
+index bf4d5ac..9894a52 100644
+--- a/Phase/src/materials/LambertianMaterialWriter.cpp
++++ b/Phase/src/materials/LambertianMaterialWriter.cpp
+@@ -48,12 +48,19 @@ bool LambertianMaterialWriter::treat(	const phsdata::SurfaceFunction & sf,
+ bool LambertianMaterialWriter::prepareDatabase(	const phsdata::LambertianMulti & lm,
+                    const PhaseGeneralParametersDTO & genDTO,
+                    OpticalPropertyParameters & opticalProperty) const {
+-    std::string databaseName, modelName;
++    std::string databaseName, databasePath, modelName;
+     bool selfDestruct = false;
+ 
+     if (lm.lambertian.is_initialized()) {
+         databaseName = lm.lambertian->databaseName;
+         modelName = lm.lambertian->modelName;
++        databasePath = DartEnv::getDatabasePath(databaseName);
++        const phsdata::ProspectExternalModule & pem = lm.lambertian->prospectExternalModule;
++        if ((pem.useProspectExternalModule || pem.isFluorescent) && pem.externParameters.is_initialized()) {
++            // prepareProspect() generated this database in the temp output folder (and overwrote databaseName)
++            databasePath = DartEnv::getOutputTempDatabasePath(true);
++            selfDestruct = true;
++        }
+     } else if (lm.marmit.is_initialized()) {
+         // Generate a unique database name (unique for multithreading / will be deleted after)
+         databaseName = boost::lexical_cast<std::string>(boost::uuids::random_generator()()) + ".db";
+@@ -67,13 +74,14 @@ bool LambertianMaterialWriter::prepareDatabase(	const phsdata::LambertianMulti &
+             marmit.runMarmitOutputFileGeneration();
+         // Model name is not visible to the user; spaces and special characters are not allowed.
+         modelName = "Model";
++        databasePath = DartEnv::getDatabasePath(databaseName); // Marmit writes to the local temp database dir, found via the database search order
+         selfDestruct = true;
+     } else {
+         // Neither a Lambertian database nor a Marmit configuration: nothing to process.
+         return false;
+     }
+ 
+-    auto lambertianDatabaseParameters = std::make_shared<LambertianDatabaseParameters>(databaseName, DartEnv::getDatabasePath(databaseName), modelName, genDTO.numberOfSpectralBands);
++    auto lambertianDatabaseParameters = std::make_shared<LambertianDatabaseParameters>(databaseName, databasePath, modelName, genDTO.numberOfSpectralBands);
+     lambertianDatabaseParameters->setSelfDestructDatabase(selfDestruct);
+     opticalProperty.addDatabaseToProperty(lambertianDatabaseParameters);
+     return true;
+diff --git a/Phase/src/materials/VegetationMaterialWriter.cpp b/Phase/src/materials/VegetationMaterialWriter.cpp
+new file mode 100644
+index 0000000..23a8338
+--- /dev/null
++++ b/Phase/src/materials/VegetationMaterialWriter.cpp
+@@ -0,0 +1,392 @@
++/*
++ * VegetationMaterialWriter.cpp
++ *
++ *  Ported from the old treatFoliar() (Phase.cpp), with per-model direction
++ *  sets (DirectionSetLink) and the phsdata storage instead of PhaseDAO reads
++ *  for the database/prospect/fluorescence data.
++ */
++
++#include "materials/VegetationMaterialWriter.hpp"
++
++#include <algorithm>
++#include <limits>
++#include <numeric>
++
++#include <boost/lexical_cast.hpp>
++
++#include "Phase.hpp"
++#include "PhaseDAO.hpp"
++#include "PhasePolarization.hpp"
++#include "PhaseUtils.hpp"
++#include "materials/LambertianMaterialWriter.hpp"
++#include "database/model/FoliarDatabaseParameters.hpp"
++
++namespace phase {
++
++VegetationMaterialWriter::VegetationMaterialWriter(	const FluorescenceService & fluorescenceService,
++							const OpticalFactorsTextureWriter & opticalFactorsWriter) :
++		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
++
++void VegetationMaterialWriter::processAll(	PhaseGeneralParametersDTO & genDTO,
++						VegetationVolumeMaterials & vegetation,
++						PhaseKeyMappingGenerator & pkmg,
++						std::ofstream & outCoeffSpecProperties) {
++	const std::vector<std::shared_ptr<phsdata::UnderstoryMulti> > & models = genDTO._volumesMaterials.understoryMultiFunctions;
++	if (models.empty())
++		return;
++
++	// Iterate grouped by direction set (stable within a group) so that the
++	// direction-set-dependent precomputing is redone only when the direction
++	// set changes. Output model indices come from UnderstoryMulti::indexFunction,
++	// so the grouping does not change the emitted keys.
++	std::vector<unsigned int> order(models.size());
++	std::iota(order.begin(), order.end(), 0);
++	std::stable_sort(order.begin(), order.end(), [&](unsigned int a, unsigned int b) {
++		return getUnderstoryDirectionSetIndex(genDTO, a) < getUnderstoryDirectionSetIndex(genDTO, b);
++	});
++
++	unsigned int lastDirectionSetIndex = std::numeric_limits<unsigned int>::max();
++	for (unsigned int position : order) {
++		const unsigned int directionSetIndex = getUnderstoryDirectionSetIndex(genDTO, position);
++		if (directionSetIndex != lastDirectionSetIndex) {
++			prepareVegetationDirectionSet(genDTO, vegetation, directionSetIndex);
++			lastDirectionSetIndex = directionSetIndex;
++			if (!_sphereMap)
++				_sphereMap.reset(new SphereDiscretizationMap(1.0, vegetation.fTFoliar.iterationStepPhi));
++		}
++		treat(*models[position], position, genDTO, vegetation, genDTO._directionSet[directionSetIndex]._directions, pkmg, outCoeffSpecProperties);
++	}
++}
++
++void VegetationMaterialWriter::computeFaceFluorescence(	FluorescenceResults & results,
++								std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
++								const phsdata::UnderstoryModel & model,
++								unsigned int modelIndex,
++								const PhaseGeneralParametersDTO & genDTO,
++								unsigned int face) const {
++	phase::InterpolatedMatrices interpolatedMatrices(genDTO.numberOfSpectralBands);
++	_fluorescenceService.computeMatrices(results, interpolatedMatrices, globalReferences::FOLIAIRE, modelIndex,
++		*model.prospectExternalModule.externParameters, *model.prospectExternalModule.fluorescence, genDTO, face);
++
++	for (unsigned int sbi1 = 0; sbi1 < genDTO.numberOfSpectralBands; ++sbi1) {
++		for (unsigned int sbi2 = 0; sbi2 < genDTO.numberOfSpectralBands; ++sbi2) {
++			for (unsigned int k = 0; k < 4; ++k) {
++				fluorescenceMatrix[sbi1][sbi2][k] = interpolatedMatrices.at(sbi1, sbi2, k);
++			}
++		}
++	}
++}
++
++bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understory,
++						unsigned int foliarIndice,
++						PhaseGeneralParametersDTO & genDTO,
++						VegetationVolumeMaterials & vegetation,
++						const std::vector<DirectionCartesienne> & listDirections,
++						PhaseKeyMappingGenerator & pkmg,
++						std::ofstream & outCoeffSpecProperties) {
++	FoliarComputation & foliarComputer = *vegetation.foliarComputation;
++	LADComputation & ladComputation = *vegetation.ladComputation;
++	FoliarModel & foliarModel = *vegetation.foliarModel;
++	FTFoliar & fTFoliar = vegetation.fTFoliar;
++
++	const unsigned int modelIndex = understory.indexFunction;
++	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
++	const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
++	if (topModel == nullptr)
++		return false;
++
++	foliarComputer.reInitFoliarComputation();
++
++	vector<FoliarProperty> foliarProperty;
++	foliarProperty.resize(genDTO.numberOfSpectralBands);
++
++	// Specular foliar database dropped (old XML handled by the external upgrader)
++	for (unsigned int numBand = 0; numBand < genDTO.numberOfSpectralBands; ++numBand) {
++		foliarProperty[numBand].specularFoliarData._isSpecular = false;
++	}
++
++	OpticalPropertyParameters foliarPropertyParameters = buildFoliarOpticalPropertyParameters(understory, genDTO.numberOfSpectralBands);
++	for (unsigned int numPropertyDatabase = 0; numPropertyDatabase < foliarPropertyParameters.getNbDatabaseForProperty(); ++numPropertyDatabase) {
++		if (foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_FILE
++				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_UP
++				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_DOWN) {
++			shared_ptr<PhaseDatabaseParameters> currentDatabase = foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase);
++			PhaseProperty::readReflectanceParameters(vegetation.useSpectralIrradianceForReflectance, currentDatabase);
++		}
++	}
++
++	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++		foliarProperty[spectralBandIndex].typeOfLeafAngleDistribution = foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice);
++		foliarProperty[spectralBandIndex].foliarDimension = foliarModel.getFoliarDimension(foliarIndice);
++	}
++	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions(foliarIndice);
++	ostringstream val;
++	val << modelIndex; //on ajoute le numero de la fx de phase dans le nom du fichier : sprintf (val, "%u.",j)
++	string name = val.str() + "." + foliarPropertyParameters.getModelName();
++
++	createDirectory(DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder());
++
++	pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++	pkmg.setNumeroFonctionDePhase(modelIndex);
++	outCoeffSpecProperties << pkmg.cleThermalHotSpotFactor() << foliarModel.getHotSpotFactor(foliarIndice) << endl;
++	phase::FluorescenceResults topFluorescenceResults;
++	topFluorescenceResults.useBioCLimaticProfileEta = false;
++	topFluorescenceResults.isFluorescent = false;
++	phase::FluorescenceResults bottomFluorescenceResults;
++	bottomFluorescenceResults.useBioClimaticProfileEta = false;
++	bottomFluorescenceResults.isFluorescent = false;
++	foliarComputer.setTopFluorescenceComputation(false);
++	foliarComputer.setBottomFluorescenceComputation(false);
++	const bool hasDifferentBottom = understory.hasDifferentModelForBottom && bottomModel != nullptr;
++	if (PhaseProperty::getFluorescence()) {
++		foliarComputer.resetFrontFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
++		if (topModel != nullptr && topModel->prospectExternalModule.isFluorescent
++				&& topModel->prospectExternalModule.externParameters.is_initialized()
++				&& topModel->prospectExternalModule.fluorescence.is_initialized()) {
++			computeFaceFluorescence(topFluorescenceResults, foliarComputer.getFrontFaceFluorescenceMatrix(), *topModel, modelIndex,
++					genDTO, 0);
++			foliarComputer.setTopFluorescenceComputation(true);
++			outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticUsage() << (topFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++		}
++		foliarComputer.resetBackFaceFluorescenceMatrix(genDTO.numberOfSpectralBands);
++		if (hasDifferentBottom) {
++			if (bottomModel->prospectExternalModule.isFluorescent
++					&& bottomModel->prospectExternalModule.externParameters.is_initialized()
++					&& bottomModel->prospectExternalModule.fluorescence.is_initialized()) {
++				computeFaceFluorescence(bottomFluorescenceResults, foliarComputer.getBackFaceFluorescenceMatrix(), *bottomModel, modelIndex,
++						genDTO, 1);
++				foliarComputer.setBottomFluorescenceComputation(true);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << (bottomFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++			}
++		} else {
++			if (foliarComputer.isTopFluorescenceComputation()) {
++				bottomFluorescenceResults = topFluorescenceResults;
++				foliarComputer.getBackFaceFluorescenceMatrix() = foliarComputer.getFrontFaceFluorescenceMatrix();
++				foliarComputer.setBottomFluorescenceComputation(true);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticUsage() << (topFluorescenceResults.useBioClimaticProfileEta ? "1" : "0") << endl;
++			}
++		}
++		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++		pkmg.setNumeroFonctionDePhase(modelIndex);
++		if (foliarComputer.isTopFluorescenceComputation() || foliarComputer.isBottomFluorescenceComputation()) {
++			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "1" << endl;
++		} else {
++			outCoeffSpecProperties << pkmg.cleUseFluorescence() << "0" << endl;
++		}
++		if (foliarComputer.isTopFluorescenceComputation()) {
++			if (topFluorescenceResults.useBioClimaticProfileEta) {
++				string topBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, topFluorescenceResults.bioClimaticFileRelativePath);
++				vector<double> topBioClimaticThetaValues, topBioClimaticPhiValues;
++				vector<vector<vector<double> > > topBioClimaticProfileEta;
++				readBioClimaticFile(topBCFilePath, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta);
++				string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
++				string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
++				ofstream ofstreamTopAverageEta;
++				ofstreamTopAverageEta.open(topAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
++				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
++				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticFile() << topAverageBioClimaticProfileFileName << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyType() << topFluorescenceResults.linkedOpticalPropertyType << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyIndex() << topFluorescenceResults.linkedOpticalPropertyIndex << endl;
++			}
++		}
++		if (foliarComputer.isBottomFluorescenceComputation()) {
++			if (bottomFluorescenceResults.useBioClimaticProfileEta) {
++				string bottomBCFilePath = DartEnv::getFilePathForRead(INPUT_DIR, bottomFluorescenceResults.bioClimaticFileRelativePath);
++				vector<double> bottomBioClimaticThetaValues, bottomBioClimaticPhiValues;
++				vector<vector<vector<double> > > bottomBioClimaticProfileEta;
++				readBioClimaticFile(bottomBCFilePath, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta);
++				string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
++				string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
++				ofstream ofstreamBottomAverageEta;
++				ofstreamBottomAverageEta.open(bottomAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
++				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
++				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticFile() << bottomAverageBioClimaticProfileFileName << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyType() << bottomFluorescenceResults.linkedOpticalPropertyType << endl;
++				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyIndex() << bottomFluorescenceResults.linkedOpticalPropertyIndex << endl;
++			}
++		}
++	}
++
++	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
++		foliarModel.setEquivalentFrontLambertianIndex(foliarIndice, PhaseProperty::getNewEquivalentLambertianModelIndex());
++		if (!hasDifferentBottom) {
++			foliarModel.setEquivalentBackLambertianIndex(foliarIndice, foliarModel.getEquivalentFrontLambertianIndex(foliarIndice));
++		} else {
++			foliarModel.setEquivalentBackLambertianIndex(foliarIndice, PhaseProperty::getNewEquivalentLambertianModelIndex());
++		}
++
++		pkmg.setTypeFonctionDePhase(globalReferences::FOLIAIRE);
++		pkmg.setNumeroFonctionDePhase(modelIndex);
++		outCoeffSpecProperties << pkmg.cleEquivalentFrontLambertianIndex() << (foliarModel.getEquivalentFrontLambertianIndex(foliarIndice)) << endl;
++		outCoeffSpecProperties << pkmg.cleEquivalentBackLambertianIndex() << (foliarModel.getEquivalentBackLambertianIndex(foliarIndice)) << endl;
++		pkmg.setTypeFonctionDePhase(globalReferences::LAMBERTIEN);
++		pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentFrontLambertianIndex(foliarIndice));
++		_fluorescenceService.writeSimulationProperties(topFluorescenceResults, pkmg, outCoeffSpecProperties);
++		if (foliarModel.getEquivalentBackLambertianIndex(foliarIndice) != foliarModel.getEquivalentFrontLambertianIndex(foliarIndice)) {
++			pkmg.setNumeroFonctionDePhase(foliarModel.getEquivalentBackLambertianIndex(foliarIndice));
++			_fluorescenceService.writeSimulationProperties(bottomFluorescenceResults, pkmg, outCoeffSpecProperties);
++		}
++	}
++
++	string pathPhaseSpec = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_SpecularFunction";
++	string pathPhaseDiff = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction";
++	string pathPhaseTransm = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
++			+ "_TransmittanceFunction";
++	string pathPhaseHotSpotFactor = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
++			+ "_ThermalHotSpot";
++	string pathPhaseFluorescence = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence";
++
++	PointsListsNCIntegration<DirectionCartesienne> pointsListSpec;
++	PointsListsNCIntegration<DirectionCartesienne> pointsListDiff;
++	foliarComputer.computeFRFoliarSpecularForModelIndex(pointsListSpec, pointsListDiff, listDirections, fTFoliar, foliarIndice, foliarProperty[0]);
++	foliarComputer.computeClumpingIndex(listDirections, genDTO.solarDirection, foliarIndice);
++	foliarComputer.runComputeFoliarPerThread(foliarProperty, foliarIndice, fTFoliar, foliarPropertyParameters, listDirections, *_sphereMap,
++		pointsListSpec, pointsListDiff);
++	foliarComputer.computeFoliarHotSpotDirectionalFactor(foliarIndice, listDirections, fTFoliar.iterationStepPhi, fTFoliar.iterationStepTheta);
++
++	/*
++	 * Nous avons deux cas : soit on ecrase le fichier car on est au premier passage de boucle,
++	 * soit on continue le remplissage du fichier
++	 */
++	std::ostringstream keyRootScatObj;
++	keyRootScatObj << "scene.vegscatter." << "vegetation_" <<  modelIndex << ".";
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation_fluo");
++	} else {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "type", "homogeneous_vegetation");
++	}
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opIndex", std::to_string(modelIndex));
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "leafdimension", std::to_string(foliarModel.getFoliarDimension(foliarIndice)));
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "LAD", std::to_string(foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice)));
++	if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice) == globalReferences::ELLIPS)
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "ala", std::to_string(foliarModel.getFoliarAverageLeafAngle(foliarIndice)));
++
++	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
++		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_ScatteringFunction" + "_mc");
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "fluorescenceTransferFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_fluorescence" + "_mc");
++	}
++	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "transmFunctionPath", PhaseUtils::getOutputFolder() + pathSeparator + name + "_TransmittanceFunction");
++	genDTO.luxCoreRenderSceneProperties.ajouterCle("scene.simPropertiesPath", "simulation.properties.txt");
++	if (PhaseProperty::getFluorescence() && topModel != nullptr && topModel->prospectExternalModule.isFluorescent) {
++		if (topFluorescenceResults.useBioClimaticProfileEta) {
++			const string topAverageBioClimaticProfileFileName = "top_average_eta_" + std::to_string(modelIndex) + ".txt";
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "1");
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName);
++		} else {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "topUseBioCLimaticProfileEta", "0");
++		}
++		if (bottomFluorescenceResults.useBioClimaticProfileEta) {
++			const string bottomAverageBioClimaticProfileFileName = "bottom_average_eta_" + std::to_string(modelIndex) + ".txt";
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "1");
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomBioClimaticFilePath", PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName);
++		} else {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "bottomUseBioCLimaticProfileEta", "0");
++		}
++	}
++
++	OpticalFactorParameters opticalFactorParameters;
++	if (PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors(foliarIndice, opticalFactorParameters)) {
++		std::string textureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opticalFactors", textureName);
++
++		std::string textureKeyRoot = "scene.textures." + textureName;
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".type", "opticalFactors");
++		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".file", textureName + ".bin");
++
++		if (opticalFactorParameters.sameOpticalFactorForAllBands) {
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", opticalFactorParameters.fileNames[0]);
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", opticalFactorParameters.duplicateFirstLayer[0] ? "1" : "0");
++		} else {
++			std::ostringstream inputsOSS, duplicationOSS;
++			inputsOSS << opticalFactorParameters.fileNames[0];
++			duplicationOSS << opticalFactorParameters.duplicateFirstLayer[0];
++			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++				inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++				duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++			}
++
++			if (PhaseProperty::getPolarization()) {
++				// 3 * numberOfSpectralBands are added to simulate Q, U, V
++				// The optical properties are repeated in these bands
++				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
++					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++					}
++				}
++			}
++
++			if (PhaseProperty::getFluorescence()) {
++				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
++				// The optical properties are repeated in these bands
++				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
++					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
++						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
++					}
++				}
++			}
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", inputsOSS.str());
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", duplicationOSS.str());
++		}
++	}
++	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
++		pathPhaseTransm, pathPhaseDiff, pathPhaseSpec, pathPhaseHotSpotFactor, pathPhaseFluorescence);
++
++	std::vector<PropertyLambertian> frontEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
++	std::vector<PropertyLambertian> backEquivalentLambertianProperties(genDTO.numberOfSpectralBands);
++	unsigned int numberOfFresnelCoefficient = 20;
++	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
++		foliarComputer.testAlbedo(spectralBandIndex, foliarIndice);
++		foliarComputer.writeFoliar(foliarIndice, spectralBandIndex, foliarPropertyParameters.getModelName(), pkmg, outCoeffSpecProperties,
++			foliarProperty);
++		if (PhaseProperty::getPolarization()) {
++			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, genDTO.solarDirection,
++				numberOfFresnelCoefficient, foliarModel, ladComputation);
++		}
++		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
++			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
++			frontEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
++			frontEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].transmittance;
++			backEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceBottom;
++			backEquivalentLambertianProperties[spectralBandIndex].directTransmittance = 0.;
++			backEquivalentLambertianProperties[spectralBandIndex].diffuseTransmittance = foliarProperty[spectralBandIndex].bottomTransmittance;
++		}
++	}
++
++	/* Equivalent lambertian phase functions generated from the foliar model: the LuxCore
++	 * material keys are written by the same writer as for real lambertians (the emissivity
++	 * is padded with zeros on the extra simulated Q,U,V / PSI,PSII bands). Thermal keys
++	 * are handled separately by the EmissionMaterial. */
++	if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
++		const phase::LambertianMaterialWriter lambertianMaterialWriter(_fluorescenceService, _opticalFactorsWriter);
++
++		const unsigned int frontEquivalentLambertianIndex = foliarModel.getEquivalentFrontLambertianIndex(foliarIndice);
++		const unsigned int backEquivalentLambertianIndex = foliarModel.getEquivalentBackLambertianIndex(foliarIndice);
++
++		lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, frontEquivalentLambertianIndex, frontEquivalentLambertianIndex,
++				frontEquivalentLambertianProperties, topFluorescenceResults);
++
++		if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
++			lambertianMaterialWriter.writeLuxCoreMaterial(genDTO, backEquivalentLambertianIndex, backEquivalentLambertianIndex,
++					backEquivalentLambertianProperties, bottomFluorescenceResults);
++		}
++
++		/* Optical factors of the equivalent lambertians come from the foliar model */
++		OpticalFactorParameters opticalFactorParameters;
++		if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarIndice, opticalFactorParameters)) {
++			const std::string textureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
++			genDTO.luxCoreRenderSceneProperties.ajouterCle(
++					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", textureName);
++			if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
++				genDTO.luxCoreRenderSceneProperties.ajouterCle(
++						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", textureName);
++			}
++		}
++	}
++	return true;
++}
++
++} // namespace phase
+-- 
+2.47.3
+
