@@ -15,7 +15,7 @@
  *
  * V 4.5.0 27/06/2008  MAG-EMN : Surfaces translucides (livraison)
  * V 4.5.0 21/04/2008  MAG-EMN : Surfaces translucides (enrichissement des fonctions de lecture)
- * V 4.4.0 22/04/2008  Thomas Gallineri : Redéfinition de la macro M_PI
+ * V 4.4.0 22/04/2008  Thomas Gallineri : Redefinition de la macro M_PI
  * V 4.3.0 12/03/2007  MAG-EMN : Livraison
  * V 4.2.2 28/07/2006  CLF : Livraison
  * V 4.2.0 05/04/2006  CLF : Livraison

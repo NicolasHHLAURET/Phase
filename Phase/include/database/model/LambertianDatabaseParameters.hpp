@@ -12,7 +12,7 @@ using namespace std;
 
 class LambertianDatabaseParameters: public PhaseDatabaseParameters {
 private:
-	double _deviation; // Et ouais j'ai enfin réussi à te caser ! :p
+	double _deviation; // Et ouais j'ai enfin reussi à te caser ! :p
 
 public:
 	LambertianDatabaseParameters(	const string & databaseName,

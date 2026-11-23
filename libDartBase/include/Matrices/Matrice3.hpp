@@ -13,7 +13,7 @@
 using namespace std;
 
 /**
- * Cette classe décrit une matrice à 3 dimensions de taille variable
+ * Cette classe decrit une matrice a 3 dimensions de taille variable
  */
 template<typename T>
 class Matrice3 {

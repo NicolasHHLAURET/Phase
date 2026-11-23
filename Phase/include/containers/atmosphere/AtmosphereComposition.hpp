@@ -13,7 +13,7 @@
 using namespace std;
 
 class AtmosphereComposition {
-//Contenu du vecteur des composants de l'atmosphère
+//Contenu du vecteur des composants de l'atmosphere
 //[0]  =	double gasTransmittanceForScattering;
 //[1]  =	double aerosolOpticalDepth;
 //[2]  =	double gasTransmittanceAbsUpDown;
@@ -28,7 +28,7 @@ class AtmosphereComposition {
 //[11] =	double otherGasTransmittanceAbs;
 //[12] =	double h2oTransmittanceAbs;
 
-//Ceci à été supprimé du vecteur, car c'est pas des trucs interpolés normalement, ils sont différents ceux la.
+//Ceci a ete supprime du vecteur, car c'est pas des trucs interpoles normalement, ils sont differents ceux la.
 //[13] =	double gasTransmittanceForAbsoption; // ??
 //[14] =	double gasFactorForAnalyticalTransmittance; // ??
 //[15] =	double gasOpticalDepthForScattering; // ??
@@ -36,7 +36,7 @@ class AtmosphereComposition {
 //[17] =	double aerosolTransmittanceForAbsoption; // ??
 
 private:
-	// Composition de l'atmosphère
+	// Composition de l'atmosphere
 	vector<double> _atmosphereMoleculeComponents;
 	vector<double> _aerosol_tau; // per aerosol
 	vector<double> _aerosol_beta;// per aerosol

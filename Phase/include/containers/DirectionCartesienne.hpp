@@ -1,7 +1,7 @@
 /*
  * DirectionCartesienne.hpp
  *
- *  Created on: 6 févr. 2012
+ *  Created on: 6 fevr. 2012
  *      Author: lauretn
  */
 

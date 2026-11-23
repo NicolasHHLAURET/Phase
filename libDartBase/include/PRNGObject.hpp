@@ -30,10 +30,10 @@
 #define EPSILON_ERROR 1e-5
 
 /**
- * A graine initiale indentique, ce container genèrera la même suite de nombres.
- * C'est une simple encapsulation des générateurs pseudo aléatoire présents dans "lib_math.h".
- * Les statics sont remplacés par des variables de classe afin d'avoir plusieurs prng
- * en parrallèle pour le multithreading.
+ * A graine initiale indentique, ce container generera la meme suite de nombres.
+ * C'est une simple encapsulation des generateurs pseudo aleatoire presents dans "lib_math.h".
+ * Les statics sont remplaces par des variables de classe afin d'avoir plusieurs prng
+ * en parrallele pour le multithreading.
  */
 class PRNGObject {
 private:

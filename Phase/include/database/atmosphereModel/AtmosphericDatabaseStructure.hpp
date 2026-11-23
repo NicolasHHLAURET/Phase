@@ -15,7 +15,7 @@
 
 using namespace std;
 
-// Classe spécialement réservée pour décrire la structure foireuse de dart_atmosphere.db C:
+// Classe specialement reservee pour decrire la structure foireuse de dart_atmosphere.db C:
 class AtmosphericDatabaseStructure {
 
 public:

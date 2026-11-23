@@ -125,7 +125,7 @@ void read_n_char(	FILE *,
 /**
  * Vincent Sac : 18/02/2010
  * Cette fonction lit n chaine de caracteres
- * (description) d'une valeur d'un fichier de base de données et renvoie la valeur
+ * (description) d'une valeur d'un fichier de base de donnees et renvoie la valeur
  * correspondante
  */
 float lireDansLigneFlux(std::ifstream & inData,

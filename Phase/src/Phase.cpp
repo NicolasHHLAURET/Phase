@@ -596,7 +596,7 @@ int main(	int argc,
 	return returnCode;
 }
 /**
- * Swig ne peut pas créer un wrapper du main donc une méthode run est définie.
+ * Swig ne peut pas creer un wrapper du main donc une methode run est definie.
  * @see http://www.swig.org/Doc2.0/SWIG.html#SWIG_nn50
  */
 int run(int argc,
@@ -1825,7 +1825,7 @@ void treatWater(OpticalPropertyParameters & waterPropertyParameters,
 	pkmg.setNumeroFonctionDePhase(waterPropertyParameters.getModelIndex());
 	outCoeffSpecProperties << pkmg.clePhaseUtilisee() << "1" << endl; // Oui
 
-	// On check le type de la première DB pour en déduire la définition des WC
+	// On check le type de la première DB pour en deduire la definition des WC
 	switch (waterPropertyParameters.getDatabaseForProperty(0)->getDatabaseType()) {
 		case WATER_DATABASE_UP:
 		case WATER_DATABASE_DOWN: {
@@ -2215,7 +2215,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 	vegetationWriter.processAll(genDTO, vegetationMaterials, pkmg, outCoeffSpecProperties);
 	writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
 
-//	// Lecture des bases de données
+//	// Lecture des bases de donnees
 //	vector<OpticalPropertyParameters> opticalPropertiesDatabases = createDatabasesReadingProperties(genDTO);
 //	vector<OpticalPropertyParameters>::iterator endIterator = opticalPropertiesDatabases.end();
 //

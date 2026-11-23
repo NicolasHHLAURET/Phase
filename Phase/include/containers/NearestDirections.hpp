@@ -4,7 +4,7 @@
  *  Created on: 13 avr. 2015
  *      Author: lauretn
  *
- * Copié/collé de la même classe dans DART
+ * Copie/colle de la meme classe dans DART
  */
 
 #ifndef NEARESTDIRECTIONS_HPP_

@@ -69,7 +69,7 @@ private:
 											PhaseGeneralParametersDTO & genDTO,
 											const std::vector<DirectionCartesienne> & listDirections) {
 
-		// Le vector PhaseExternProperty contient, pour la bande courante toute les directions computées et interpolées par bandes.
+		// Le vector PhaseExternProperty contient, pour la bande courante toute les directions computees et interpolees par bandes.
 //		vector<PhaseExternProperty> temp;
 //		temp.resize(peProperties.size());
 //		temp = peProperties;
@@ -103,11 +103,11 @@ private:
 												NearestDirections & nearDirVisee,
 												PhaseExternProperty & interpolatedPhaseExtern)
 	{
-		// Conteneur temporaire pour ne pas modifier les donnees de la base externe -> détruit pour chaque dir Inc differente
+		// Conteneur temporaire pour ne pas modifier les donnees de la base externe -> detruit pour chaque dir Inc differente
 //		vector<PhaseExternProperty> temp,
 //		temp = peProperties;
 
-		// Pour chaque direction voisine de le direction de visée
+		// Pour chaque direction voisine de le direction de visee
 		for (unsigned int nDirIndex = 0; nDirIndex < nearDirVisee.getNearestCorners().size(); ++nDirIndex) {
 
 			int nearestDirIndex = nearDirVisee.getNearestCorners()[nDirIndex].first;
@@ -117,7 +117,7 @@ private:
 			PhaseExternProperty cornerProperty = peProperties[nearestDirIndex];
 			getVectorOfAllIncidentDirectionForView(cornerProperty, peProperties, incidentProperties);
 
-			// Pour chaque direction de visée récupère la direction incident la plus proche ....
+			// Pour chaque direction de visee recupere la direction incident la plus proche ....
 			NearestDirections nearDirIncident;
 			for (unsigned int numPropIncident = 0; numPropIncident < incidentProperties.size(); ++numPropIncident) {
 				checkIfIsNearDirectionIncident(listDirections[numDirIncident], numPropIncident, nearDirIncident, incidentProperties[numPropIncident]);
@@ -215,7 +215,7 @@ private:
 
 
 	/**
-	 * Récupère toutes les directions incidentes correspondant à une direction de visee
+	 * Recupere toutes les directions incidentes correspondant a une direction de visee
 	 */
 	void getVectorOfAllIncidentDirectionForView(const PhaseExternProperty & dirView,
 												const vector<PhaseExternProperty> & peProperties,
@@ -229,7 +229,7 @@ private:
 	}
 
 	/**
-		 * Récupère toutes les directions visée correspondant à une direction incidente
+		 * Recupere toutes les directions visee correspondant a une direction incidente
 		 */
 	void getVectorOfAllViewDirectionForIncident(const PhaseExternProperty & dirIncident,
 												const vector<PhaseExternProperty> & peProperties,

@@ -858,7 +858,7 @@ public:
 		if (databaseManager.connectDatabase()) {
 			numberOfSpectralValues = 0;
 			for (unsigned int spectralBandIndex = 0; spectralBandIndex < _numberOfSpectralBands; spectralBandIndex++) {
-				// Id réinit
+				// Id reinit
 				min = 0;
 				max = 0;
 
@@ -1374,8 +1374,8 @@ public:
 	}
 
 	/**
-	 * ""Fix"" Je suis obligé (pour éviter de tout recoder) de dupliquer la fonction de lecture pour phase extern,
-	 * Dans la solution précédente, en utilisant la fonction générique il connecte/déconnecte la base pour chaque
+	 * ""Fix"" Je suis oblige (pour eviter de tout recoder) de dupliquer la fonction de lecture pour phase extern,
+	 * Dans la solution precedente, en utilisant la fonction generique il connecte/deconnecte la base pour chaque
 	 * couple d'angles lu. Ce qui n'est pas efficace du tout (Et JeanPhilippe n'est pas content !)
 	 */
 	static void readReflectanceParametersPerThreadForPhaseExtern(
@@ -1462,7 +1462,7 @@ public:
 		} else if (_userSpectralBands[spectralBandIndex].lowerLambdaValue > results.at(0).at(0) && results.at(0).size() > 1) {
 			if (_userSpectralBands[spectralBandIndex].lowerLambdaValue == results.at(0).at(1)) {
 				// Cas particulier : On supprime le premier element
-				// car le second élément est égal à la borne min de la bande spectrale utilisatueur
+				// car le second element est egal à la borne min de la bande spectrale utilisatueur
 				for (unsigned int i = 0; i < results.size(); ++i) {
 					results.at(i).erase(results.at(i).begin());
 				}
@@ -1480,7 +1480,7 @@ public:
 		} else if (_userSpectralBands[spectralBandIndex].upperLambdaValue < results.at(0).at(results.at(0).size() - 1) && results.at(0).size() > 1) {
 			if (_userSpectralBands[spectralBandIndex].upperLambdaValue == results.at(0).at(results.at(0).size() - 2)) {
 				// Cas particulier : On supprime le dernier element
-				// car l'avant dernier élément est égal à la borne max de la bande spectrale utilisatueur
+				// car l'avant dernier element est egal à la borne max de la bande spectrale utilisatueur
 				for (unsigned int i = 0; i < results.size(); ++i) {
 					results.at(i).pop_back();
 				}
@@ -1702,7 +1702,7 @@ public:
 			databaseManager.deconnectDatabase();
 
 			atmosphereParameters.userDefinedWaterIsLowerThanFirstDBValue = true;
-			// Iterator = 2; on ignore les 2 premières colonnes (id et wavelength) de la DB pour calculer le coef. multiplicatif
+			// Iterator = 2; on ignore les 2 premieres colonnes (id et wavelength) de la DB pour calculer le coef. multiplicatif
 			for (iterator = 2; iterator < tableColumnsName.size(); ++iterator) {
 				currentColumnName = tableColumnsName.at(iterator);
 				currentColumnValue = getValueColun(currentColumnName);
@@ -2121,7 +2121,7 @@ public:
 			for (int i = 0; i < atmosphereParameters.numberOfAbsorbingGas; i++) {
 				resamplingDatabadeAtmophericValues(spectralBandIndex, crossSectionResult[i]);
 			}
-			// Verification si l'échantillonage des bandes spectrales est correct.
+			// Verification si l'echantillonage des bandes spectrales est correct.
 			if (!checkSpectralBandSamplingInAtmosphericDatabase(aerosolsParametersResult[0], gasModelResult)
 					or !checkSpectralBandSamplingInAtmosphericDatabase(crossSectionResult[0], gasModelResult)) {
 				cerr
@@ -2137,7 +2137,7 @@ public:
 			}
 		}
 
-		// Lecture & resempling de la table h2o dans la DB atmosphere (_gh2o) pour un modèle de gas donné
+		// Lecture & resempling de la table h2o dans la DB atmosphere (_gh2o) pour un modele de gas donne
 		if (atmosphereParameters.h2oAmountCkeckbox) {
 			PhaseDatabaseDAO::readAtmosphericParametersPerBand(databaseManager, atmosphereParameters.gasModelName,
 				AtmosphericDatabaseStructure::getAtmosphericTableType(AtmosphericDatabaseStructure::WATER), _userSpectralBands[spectralBandIndex],

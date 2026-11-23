@@ -456,8 +456,8 @@ struct AtmosphereParameters {
 	std::string userDefinedWaterTableFollowing;
 	double userDefinedWaterFactor;
 	double userDefinedWaterFactorFollowing;
-	/* Marqueur booléen pour indiquer que le facteur multiplicatif est < à la 1ere valeur de la DB,
-	 donc appliquer une interpolation différente (entre 1 et la 1ere valeur de la DB) */
+	/* Marqueur booleen pour indiquer que le facteur multiplicatif est < a la 1ere valeur de la DB,
+	 donc appliquer une interpolation differente (entre 1 et la 1ere valeur de la DB) */
 	bool userDefinedWaterIsLowerThanFirstDBValue;
 
 	std::vector<double> aerosolOpticalDepthFactor;

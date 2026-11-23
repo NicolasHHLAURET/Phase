@@ -14,8 +14,8 @@ using namespace std;
 
 /**
  * OK
- * C'est un subterfuge, cette classe étend PhaseDatabaseParameters, MAIS NE DOIT PAS ETRE LUE TEL QUEL !!!!
- * Les resultats retournés seront faux (ça prendra une direction au pif pour la bande)
+ * C'est un subterfuge, cette classe etend PhaseDatabaseParameters, MAIS NE DOIT PAS ETRE LUE TEL QUEL !!!!
+ * Les resultats retournes seront faux (ça prendra une direction au pif pour la bande)
  * Au pif = la première saisie par l'utilisateur
  */
 class PhaseExternDatabaseParameters: public PhaseDatabaseParameters {
@@ -40,7 +40,7 @@ public:
 	}
 
 	/**
-	 * Ajoute une direction à la fonction de phase
+	 * Ajoute une direction a la fonction de phase
 	 * L'appellant s'assure qu'il n'y a pas de doublons, qu'il a mis un DISTINCT dans son SELECT
 	 */
 	void addDirectionnalPhaseExternDatabaseParameters(	const int & idAngle,
@@ -59,8 +59,8 @@ public:
 	}
 
 	/**
-	 * Ces méthodes fonctionneront si la base à été lue non directinonement, mais les resultats seront faux !
-	 * Il n'y a pas de @Deprecated en cpp mais voila l'idée !
+	 * Ces methodes fonctionneront si la base a ete lue non directinonement, mais les resultats seront faux !
+	 * Il n'y a pas de @Deprecated en cpp mais voila l'idee !
 	 */
 	const double & getIdAngleForBand(const unsigned int & bandNumber) {
 		return _parametersValues[bandNumber][0];

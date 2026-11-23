@@ -45,13 +45,13 @@ protected:
 	std::string _bottomDatabasePath;
 	std::string _bottomModel;
 
-	// Resize à postériori lorsque la classe concrète à été définie et qu'on connait le nombre de colonnes.
+	// Resize a posteriori lorsque la classe concrete a ete definie et qu'on connait le nombre de colonnes.
 	// Meilleure solution existante ?
 	std::vector<std::string> _databaseColumChoices;
 
 	std::vector<std::string> _bottomDatabaseColumnChoices;
-	// Position des résultats réécrit lorsque le modèle à une face inférieure.
-	// Même taille que le _bottomDatabaseColumnChoices.
+	// Position des resultats reecrit lorsque le modele a une face inferieure.
+	// Meme taille que le _bottomDatabaseColumnChoices.
 	std::vector<int> _bottomOverrideResultPosition;
 
 	// True if the database need to be deleted at the end of the phase computation
@@ -59,8 +59,8 @@ protected:
 	bool _selfDestructBottomDatabase;
 
 //	/**
-//	 * Vecteur contenant les positions des résultats à ne pas interpolés par rapport aux bandes spectrales
-//	 * ex: PhaseExtern où on ne doit pas interpoler les valeurs des angles de visée/incident par rapport aux bandes
+//	 * Vecteur contenant les positions des resultats a ne pas interpoles par rapport aux bandes spectrales
+//	 * ex: PhaseExtern ou on ne doit pas interpoler les valeurs des angles de visee/incident par rapport aux bandes
 //	 */
 //	std::vector<int> _doNotInterpolateResult;
 
@@ -179,7 +179,7 @@ public:
 	}
 
 //	/**
-//	 * true si la valeur doit être interpolée selon les bandes, false sinon.
+//	 * true si la valeur doit etre interpolee selon les bandes, false sinon.
 //	 */
 //	bool isInterpolateValueIndex(const int index) const {
 //		for (unsigned int i = 0; i < _doNotInterpolateResult.size(); ++i) {

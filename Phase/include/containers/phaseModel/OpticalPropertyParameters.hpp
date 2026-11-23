@@ -51,7 +51,7 @@ public:
 
 	{
 		_opticalPropertyParameters.clear();
-		_opticalPropertyParameters.reserve(4); // Au pire, on en crèveras pas si il y pas de spéculaire ~~
+		_opticalPropertyParameters.reserve(4); // Au pire, on en creveras pas si il y pas de speculaire ~~
 	}
 
 	void addDatabaseToProperty(const shared_ptr<PhaseDatabaseParameters>& databaseModelProperty) {

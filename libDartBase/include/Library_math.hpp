@@ -1,7 +1,7 @@
 /*
  * Lib_math.hpp
  *
- *  Created on: 28 déc. 2009
+ *  Created on: 28 dec. 2009
  *      Author: dounaevae
  */
 

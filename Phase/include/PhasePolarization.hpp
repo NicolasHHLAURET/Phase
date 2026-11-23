@@ -27,7 +27,7 @@ using namespace boost;
 #endif
 
 /**
- * Fonctions de polarization & speculaire associées à phase.
+ * Fonctions de polarization & speculaire associees à phase.
  */
 class PhasePolarization {
 public:
