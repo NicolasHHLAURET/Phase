@@ -194,6 +194,14 @@ Sandbox notes for rebuilding the prefix (no root available):
     38 tabs dropped), `git diff -w` vs the sender's commit empty. New
     pitfall variant noted in (a); failed transfer files now live in the
     dedicated AICommunications repo (protocol 3/5, checklist 4).
+18. PhasePolarization LAD recompute removed (this session): both
+    computeAndWriteFoliarPolarizationMatrix{,NotBinary} no longer re-read the
+    LAD parameters nor recompute the LAD per spectral band -- the LAD of the
+    model being treated is computed once by computeLadDataForModel() in
+    VegetationMaterialWriter::treat(). The foliarIndice and ladComputation
+    parameters (and the LADComputation include) were dropped from both
+    functions; behavior unchanged (same model, same parameters, single-slot
+    LAD vectors).
 
 ## Known TODOs / open points (next sessions)
 
@@ -223,12 +231,8 @@ Sandbox notes for rebuilding the prefix (no root available):
   readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
   readCoeffDiffParametersForFoliarOpticalFactors.
 - Remove the redundant per-band LAD recompute inside
-  PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}: the
-  LAD of the current model is already computed once in
-  VegetationMaterialWriter::treat() via computeLadDataForModel(); the
-  polarization functions still recompute it on every call (harmless now that
-  the LAD vectors are single-slot and the data index is the model position,
-  but wasteful).
+  PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}:
+  DONE (history item 18).
 - Rename the identifier useBioCLimaticProfileEta -> useBioClimaticProfileEta
   (lowercase l): DONE (history item 15).
 - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the

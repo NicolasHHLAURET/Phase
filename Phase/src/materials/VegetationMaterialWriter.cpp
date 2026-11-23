@@ -349,8 +349,10 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 		foliarComputer.writeFoliar(foliarIndice, spectralBandIndex, foliarPropertyParameters.getModelName(), pkmg, outCoeffSpecProperties,
 			foliarProperty);
 		if (PhaseProperty::getPolarization()) {
+			// The LAD of the current model was already computed once by
+			// computeLadDataForModel() above; no recompute here.
 			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, genDTO.solarDirection,
-				numberOfFresnelCoefficient, foliarIndice, foliarModel, ladComputation);
+				numberOfFresnelCoefficient, foliarModel);
 		}
 		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
 			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;
