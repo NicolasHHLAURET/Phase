@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?> 
+<!--	
+	Class Catalog associé au Document COEFF_DIFF
+-->
+<DartClassCatalog>
+	<Document>
+		<Nodes>
+			<Node name="AirMulti"        		className="cesbio.dart.documents.coeff_diff.nodes.DartNodeAirMulti"/>
+			<Node name="PhaseMulti"      		className="cesbio.dart.documents.coeff_diff.nodes.DartNodePhaseMulti"/>
+			<Node name="ThermalFunction" 		className="cesbio.dart.documents.coeff_diff.nodes.DartNodeThermalFunction"/>
+			<Node name="UnderstoryMulti" 		className="cesbio.dart.documents.coeff_diff.nodes.DartNodeUnderstory"/>
+			<Node name="WaterInterfaceMulti" 	className="cesbio.dart.documents.coeff_diff.nodes.WaterInterfaceMulti"/>
+		</Nodes>
+		<Properties>
+			<Property name="reflectanceFactor" 		                                                                                                                                                type="double"/>
+			<Property name="build"              		                                                                                                                                            type="string"/>
+			<Property name="downwardRefractionIndex"                                                                                                                                                type="double"/>
+			<Property name="upwardRefractionIndex"     	                                                                                                                                            type="double"/>
+			<Property name="ala"                                                                                                                                                                    type="double"       unity="°"     arg="0;90"/>
+			<Property name="albedo"                                                                                                                                                                 type="double"       unity=""/>
+			<Property name="albedoFactor"                                                                                                                                                           type="double"/>
+			<Property name="alpha"                                                                                                                                                                  type="double"       unity="rad"/>
+			<Property name="anthocyanin"     	    	                                                                                                                                            type="double"       unity="µg.cm-2"/>			
+			<Property name="b1"                                                                                                                                                                     type="double"/>
+			<Property name="b2"                                                                                                                                                                     type="double"/>
+			<Property name="bo"                                                                                                                                                                     type="double"/>
+			<Property name="c1"                                                                                                                                                                     type="double"/>
+			<Property name="c2"                                                                                                                                                                     type="double"/>
+			<Property name="Cab"                                                                                                                                                                    type="double"       unity="µg.cm-2"/>
+			<Property name="Car"                                                                                                                                                                    type="double"       unity="µg.cm-2"/>
+			<Property name="CBrown"                                                                                                                                                                 type="double"	    arg="0;nan"/>
+			<Property name="clumpinga"                                                                                                                                                              type="double"/>
+			<Property name="clumpingb"                                                                                                                                                              type="double"/>
+			<Property name="Cm"                                                                                                                                                                     type="double"       unity="g.cm-2"/>
+			<Property name="crossSectionFactor"                                                                                                                                                     type="double"/>
+			<Property name="Cw"                                                                                                                                                                     type="double"       unity="cm"/>
+			<Property name="Cp" 						                                                                                                                                            type="double" 		arg="0;nan"/>
+			<Property name="Cbc" 						                                                                                                                                            type="double"	    arg="0;nan"/>
+			<Property name="databaseName"                                                                                                                                                           type="inputfile"    arg="database"/>
+			<Property name="specularDatabaseName"                                                                                                                                                   type="inputfile"    arg="database"/>
+			<Property name="transmittanceDatabaseName"                                                                                                                                              type="inputfile"    arg="database"/>
+			<Property name="deltaT"                                                                                                                                                                 type="double"       unity="K"     arg="0;nan"/>
+			<Property name="diffuseTransmittanceAcceleration"	                                                                                                                                    type="double"/>
+			<Property name="diffuseTransmittanceFactor"                                                                                                                                             type="double"/>
+			<Property name="dimFoliar"                                                                                                                                                              type="double"/>
+			<Property name="directionalClumpingIndex"                                                                                                                                               type="boolean"/>
+			<Property name="directTransmittanceFactor"                                                                                                                                              type="double"/>
+			<Property name="duplicateFirstMatrixLayer"                                                                                                                                              type="boolean"/>
+			<Property name="epsilon"                                                                                                                                                                type="double"       unity="0-1 "  arg="0;1"/>
+			<Property name="fileName"                                                                                                                                                               type="inputfile"    arg="database"/>
+			<Property name="fileName2"                                                                                                                                                              type="inputfile"    arg="database"/>
+			<Property name="fileName3"                                                                                                                                                              type="inputfile"    arg="database"/>
+			<Property name="fluorescenceProducts"                                                                                                                                                   type="boolean"/>
+			<Property name="fluorescenceFile"                                                                                                                                                       type="boolean"/>
+			<Property name="fluorescenceFileName"                                                                                                                                                   type="inputfile"    arg="input"/>
+			<Property name="forceYields"                                                                                                                                                            type="boolean"/>
+			<Property name="h"                                                                                                                                                                      type="double"/>
+			<Property name="hapkeFunctionParametersFile"                                                                                                                                            type="inputfile"    arg="input"/>
+			<Property name="hapkeInputFile"                                                                                                                                                         type="inputfile"    arg="input"/>
+			<Property name="ident"                                                                                                                                                                  type="string"/>
+			<Property name="idTemperature"                                                                                                                                                          type="string"/>
+			<Property name="indexRefraction"                                                                                                                                                        type="double"       arg="1;nan"/>
+			<Property name="isFluorescent"				                                                                                                                                            type="boolean"/>
+			<Property name="isV2Z"				                                                                                                                                           			type="boolean"/>
+			<Property name="kappa_rpv"                                                                                                                                                              type="double"       arg="0;2"/>
+			<Property name="k_RPVMultiplicativeFactor"                                                                                                                                              type="double"/>
+			<Property name="lad"                                                                                                                                                                    type="enumerate"    arg="0:Uniform;1:Spherical;2:Erectophile;3:Planophile;4:Extremophile;5:Plagiophile;6:Horizontal;7:Vertical;8:Ellipsoidal;9:Elliptical;10:User defined;11:DeWit function;12:Bounded Uniform"/>
+			<Property name="choiceOfHapkeModel"                                                                                                                                                     type="string"/>
+			<Property name="LAD_b0"                                                                                                                                                                 type="double"       unity="°"/>
+			<Property name="LAD_b1"                                                                                                                                                                 type="double"       unity="°"/>
+			<Property name="LAD_b2"                                                                                                                                                                 type="double"       unity="°"/>
+			<Property name="LAD_m"                                                                                                                                                                  type="double"/>
+			<Property name="LeafTransmittanceFactor"                                                                                                                                                type="double"/>
+			<Property name="LUTsoilparam_a"                                                                                                                                                         type="double"/>
+			<Property name="LUTsoilparam_b"                                                                                                                                                         type="double"/>
+			<Property name="LUTsoilparam_c"                                                                                                                                                         type="double"/>
+			<Property name="meanT"                                                                                                                                                                  type="double"       unity="K"     arg="0;nan"/>
+			<Property name="sunlitTemperature"                                                                                                                                                      type="double"       unity="K"     arg="0;nan"/>
+			<Property name="shadedTemperature"                                                                                                                                                      type="double"       unity="K"     arg="0;nan"/>
+			<Property name="ModelName"                                                                                                                                                              type="database"/>
+			<Property name="HapkeName"    																																							type="string"/>
+			<Property name="specularModelName"                                                                                                                                                      type="database"/>
+			<Property name="transmittanceModelName"                                                                                                                                                 type="database"/>
+			<Property name="N"                                                                                                                                                                      type="double"       unity=""/>
+			<Property name="nbAla"                                                                                                                                                                  type="int"/>
+			<Property name="nthAla"                                                                                                                                                                 type="int"/>
+			<Property name="nameFile"                                                                                                                                                               type="inputfile"/>
+			<Property name="numberOfParameters"                                                                                                                                                     type="enumerate"    arg="4:Lambertian+specular;10:Hapke+specular;12:Hapke2+specular"/> 
+			<Property name="omegaMax"                                                                                                                                                               type="double"/>
+			<Property name="omegaMin"                                                                                                                                                               type="double"/>
+			<Property name="outputLADFile"                                                                                                                                                          type="boolean"/>
+			<Property name="override3DMatrix"                                                                                                                                                       type="boolean"/>
+			<Property name="opticalFactorMatrixFile"                                                                                                                                                type="inputfile"    arg="input"/>
+			<Property name="sunlitFile"                                                                                                                                               				type="inputfile"   	arg="input"/>
+			<Property name="shadedFile"                                                                                                                                                				type="inputfile"    arg="input"/>
+			<Property name="ProspectWavelengthMax"                                                                                                                                                  type="double"       unity="µm"/>
+			<Property name="ProspectWavelengthMin"                                                                                                                                                  type="double"       unity="µm"/>
+			<Property name="RecomputeAllFcts"                                                                                                                                                       type="boolean"/>
+			<Property name="reflectanceFactor"                                                                                                                                                      type="double"/>
+			<Property name="rho_0_rpv"                                                                                                                                                              type="double"       arg="0;2"/>
+			<Property name="rho_c_rpv"                                                                                                                                                              type="double"       arg="0;2"/>
+			<Property name="theta_max"                                                                                                                                                              type="double"		unity="0°-90°" arg="0;90"/>			
+			<Property name="h_RPVMultiplicativeFactor"                                                                                                                                              type="double"/>
+			<Property name="rhoMoy"                                                                                                                                                                 type="double"/>
+			<Property name="rhoMoySpec"                                                                                                                                                             type="double"/>
+			<Property name="rhoZero_RPVMultiplicativeFactor"                                                                                                                                        type="double"/>
+			<Property name="ro"                                                                                                                                                                     type="double"       arg="0;1"/>
+			<Property name="roStDev"                                                                                                                                                                type="double"       arg="0;nan"/>
+			<Property name="specularRoStDev"                                                                                                                                                        type="double"       arg="0;nan"/>
+			<Property name="soilSpecFlag"                                                                                                                                                           type="boolean"/>
+			<Property name="specularIntensityFactor"                                                                                                                                                type="double"/>
+			<Property name="stDev"                                                                                                                                                                  type="double"       arg="0;nan"/>
+			<Property name="temperature"                                                                                                                                                            type="double"       unity="K"      arg="0;nan"/>
+			<Property name="THETA_rpv"                                                                                                                                                              type="double"       arg="-1;1"/>
+			<Property name="g_RPVMultiplicativeFactor"                                                                                                                                              type="double"/>
+			<Property name="hapkeParameterW"                                                                                                                                                        type="double"/>
+			<Property name="hapkeParameterC1"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterC2"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterC3"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterC4"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterH1"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterH2"                                                                                                                                                       type="double"/>			
+			<Property name="thermalHotSpotFactor"                                                                                                                                                   type="double"/>			
+			<Property name="thetam"                                                                                                                                                                 type="double"		unity="0°-90°"  arg="0;90"/>
+			<Property name="useBunnick"                                                                                                                                                             type="boolean"/>
+			<Property name="useCm" 			                                                                                                                                                        type="enumerate"    arg="0:Dry matter content;1:Carbon and nitrogen dry matter content" />		
+			<Property name="useCombinedYield"                                                                                                                                                       type="boolean"/>	
+			<Property name="useSameFactorForAllBands"                                                                                                                                               type="boolean"/>
+			<Property name="useSameOpticalFactorMatrixForAllBands"                                                                                                                                  type="boolean"/>
+			<Property name="useExternalModule"                                                                                                                                                      type="boolean"/>
+			<Property name="Coeff_diff.Temperatures.ThermalFunction.useOpticalFactorMatrix"                                                                                                                                                 type="enumerate"    arg="0:None;1:3D temperature file;2:T of sunlit and shaded facet/volume (Bi-dir. mode);3:1D SCOPE Temperature files (Bi-dir. mode)" />
+			<Property name="useOpticalFactorMatrix"                                                                                                                                                 type="boolean"/>
+			<Property name="useMultiplicativeFactorForLUT"                                                                                                                                          type="boolean"/>
+			<Property name="useSpecular" 			                                                                                                                                                type="boolean"/>
+			<Property name="useRefraction" 			                                                                                                                                                type="boolean"/>
+			<Property name="useProspectExternalModule"                                                                                                                                              type="boolean"/>
+			<Property name="value"                                                                                                                                                                  type="double"/>
+			<Property name="version"                                                                                                                                                                type="string"/>
+			<Property name="V2Z"                                                                                                                                                                    type="double" 		arg="0;1"/>
+			<Property name="w"                                                                                                                                                                      type="double"/>
+			<Property name="yieldPS"          		                                                                                                                                                type="double"/>
+			<Property name="yieldPSI"                                                                                                                                                               type="double"/>
+			<Property name="yieldPSII"                                                                                                                                                              type="double"/>
+			<Property name="integrationStepOnTheta"                                                                                                                                                 type="int"/>
+			<Property name="integrationStepOnPhi"                                                                                                                                                   type="int"/>
+			<Property name="givenPhaseFunction"                                                                                                                                                     type="enumerate"    arg="0:User defined;1:Given optical property;2:Database" />
+			<Property name="singleTemperatureSurface"                                                                                                                                               type="boolean"/>
+			<Property name="specularRadianceDistribution"                                                                                                                                           type="enumerate"    arg="0:Like gaussian;1:Parabolic;2:Constant" />
+			<Property name="waterGivenPhaseFunction"                                                                                                                                                type="inputfile"    arg="database"/>
+			<Property name="sameRefractionIndexForAllBands"                                                                                                                                         type="boolean"/>
+			<Property name="multiplicativeFactor1"			                                                                                                                                        type="double"/>
+			<Property name="multiplicativeFactor2"			                                                                                                                                        type="double"/>
+			<Property name="multiplicativeFactor3"			                                                                                                                                        type="double"/>
+			<Property name="sigma" 							                                                                                                                                        type="double"/>
+			<Property name="albedo" 						                                                                                                                                        type="double"/>
+			<Property name="inputProspectFile"				                                                                                                                                        type="inputfile"    arg="database"/>
+			<Property name="hasDifferentModelForBottom"		                                                                                                                                        type="boolean"/>
+							
+			<Property name="addPhaseExternToDatabase"     	                                                                                                                                        type="booleanButton"/>				
+			<Property name="inputPhaseExternName"	     	                                                                                                                                        type="string"/>		
+			<Property name="inputPhaseExternFile"   	  	                                                                                                                                        type="inputfile"    arg="database" />
+										
+			<Property name="useBioClimaticWeighting" 		                                                                                                                                        type="boolean"/>
+			<Property name="linkedOpticalProperty" 			                                                                                                                                        type="boolean"/>
+			<Property name="profileFilePath"				                                                                                                                                        type="inputfile"    arg="input"/>
+			
+			<Property name="Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.type"                     	type="enumerate"    arg="0:Lambertian;2:Hapke;23:Hapke2;4:RPV model;11:Phase Extern;13:Specular;22:Mixed"/>
+			<Property name="Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.indexFctPhase"				type="integer"/>
+			<Property name="Coeff_diff.Surfaces.LambertianMultiFunctions.LambertianMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.ident"						type="identPF"/>
+			<Property name="Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.type"                     	type="enumerate"    arg="0:Lambertian;2:Hapke;23:Hapke2;4:RPV model;11:Phase Extern;13:Specular;22:Mixed"/>
+			<Property name="Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.indexFctPhase"				type="integer"/>
+			<Property name="Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti.ProspectExternalModule.WindProfileEta.BioClimaticWeighting.OpticalPropertyLink.ident"						type="identPF"/>
+		
+			<Property name="usePrecomputedIPARs" 	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   		   	   	                                                            type="boolean"/>
+			<Property name="minIPAR"				   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   		   	   	   	   	                                                            type="double"		arg="0;nan"/>
+			<Property name="maxIPAR" 				   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   		   	   	                                                            type="double"		arg="0;nan"/>
+		
+			<Property name="marmitDatabase"			   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   		   	   	   	   	                                                            type="inputfile"    arg="database"/>
+			<Property name="marmitModel"              	   	   	   	   	   	     	   	   	   	 	   	   	   	       	   	   	   	   	                                                            type="database"/>
+			<Property name="smc" 					   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   		   	   	   	                                                            type="double"		arg="0.0001;nan"/>
+			<Property name="d" 						   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	      	   	   	   	                                                            type="double"/>
+			<Property name="keepOutputFile"			    	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                                type="boolean"/>
+			<Property name="lambertianDefinition" 	      	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                                type="enumerate"    arg="0:Database;1:Marmit"/>
+
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.FirstProperty.percentFirst"                                                                                          type="double"       arg="0;100"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.FirstProperty.OpticalPropertyLink.indexFctPhase"                                                                     type="integer"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.SecondProperty.OpticalPropertyLink.indexFctPhase"                                                                    type="integer"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.FirstProperty.OpticalPropertyLink.ident"                                                                             type="identPF"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.SecondProperty.OpticalPropertyLink.ident"                                                                            type="identPF"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.FirstProperty.OpticalPropertyLink.type"                                                                              type="enumerate"    arg="0:Lambertian;2:Hapke;23:Hapke2;4:RPV model;11:Phase Extern;13:Specular;22:Mixed"/>
+			<Property name="Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti.SecondProperty.OpticalPropertyLink.type"                                                                             type="enumerate"    arg="0:Lambertian;2:Hapke;23:Hapke2;4:RPV model;11:Phase Extern;13:Specular;22:Mixed"/>
+
+			<Property name="ni"                                                                                                                                                                     type="database"/>
+			<Property name="nt"              		                                                                                                                                                type="database"/>
+			<Property name="roughnessFactor"          	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                                type="double"		arg="0;1"/>
+			<Property name="opticalDepth"           	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                                type="double"		arg="0;nan"/>
+			<Property name="materialCharacter"  	      	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                             	type="enumerate"    arg="0:Interface;1:Thin layer;2:Glossy surface and diffuse base"/>
+			<Property name="Coeff_diff.Surfaces.SpecularMultiFunctions.SpecularMulti.OpticalPropertyLink.indexFctPhase"                                                                             type="integer"/>
+			<Property name="Coeff_diff.Surfaces.SpecularMultiFunctions.SpecularMulti.OpticalPropertyLink.ident"     	   	   	   	                                                                type="identPF"/>
+			<Property name="Coeff_diff.Surfaces.SpecularMultiFunctions.SpecularMulti.OpticalPropertyLink.type"       	   	   	   	                                                                type="enumerate"    arg="0:Lambertian;2:Hapke;23:Hapke2;4:RPV model;22:Mixed"/>
+
+			<Property name="niFactor"                                                                                                                                                               type="double"		arg="0;nan"/>
+			<Property name="ntFactor"                                                                                                                                                               type="double"		arg="0;nan"/>
+			<Property name="reflectionIntensityFactor"          	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                    type="double"		arg="0;nan"/>
+			<Property name="transmissionIntensityFactor"           	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                    type="double"		arg="0;nan"/>
+			<Property name="opticalDepthFactor"           	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                                            type="double"		arg="0;nan"/>
+			
+			<Property name="hapkeParameterC"                                                                                                                                                       	type="double"/>
+			<Property name="hapkeParameterB"                                                                                                                                                       	type="double"/>
+			<Property name="hapkeParameterH"                                                                                                                                                       	type="double"/>
+			<Property name="hapkeParameterB0"                                                                                                                                                       type="double"/>
+			<Property name="hapkeParameterTh"                                                                                                                                                       type="double"/>
+
+			<Property name="useDirectionalDirectTransmittance"			    	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	                                            type="boolean"/>
+			<Property name="ddtFile"				                                                                                                                                        		type="inputfile"    arg="database"/>
+			<Property name="angularStep"	unit="0°-90°"	type="double"		arg="0;nan"/>
+
+			<!-- online link documentation -->
+			<Property name="linkOpticalTemperatures"                                                                                                           type="docLink"                                arg="https://dart.omp.eu/Public/documentation/online/DART_functionalities_and_products/4-Radiative_modes_sub_modes/4.9/optical_and_temperature_properties.html"/>
+	
+		</Properties>
+	</Document>
+</DartClassCatalog>

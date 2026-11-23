@@ -1,0 +1,215 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<DartClassCatalog>
+	<Document>
+		<Nodes>
+			<Node name="Materials" isExposed="true" />
+			<Node name="Surfaces" isExposed="true" />
+			<Node name="Volumes" isExposed="true" />
+			
+			<Node name="LambertianMultiFunctions" isExposed="true" />
+			<Node name="LambertianMulti" isExposed="true" />
+			<Node name="LambertianNodeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="LambertianMultiplicativeFactorForLUT" isExposed="true" />
+
+			<Node name="HapkeSpecularMultiFunctions" isExposed="true" />
+			<Node name="HapkeSpecularMulti" isExposed="true" />
+			<Node name="HapkeSpecularMulti2" isExposed="true" />
+			<Node name="HapkeNodeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="HapkeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="Hapke2NodeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="Hapke2MultiplicativeFactorForLUT" isExposed="true" />
+
+			<Node name="RPVMultiFunctions" isExposed="true" />
+			<Node name="RPVMulti" isExposed="true" />
+			<Node name="RPVNodeMultiplicativeFactorForLUT" isExposed="true" />	
+			<Node name="RPVMultiplicativeFactorForLUT" isExposed="true" />
+
+			<Node name="PhaseExternMultiFunctions" isExposed="true" />
+			<Node name="PhaseExtern" isExposed="true" />
+
+			<Node name="SpecularMultiFunctions" isExposed="true" />
+			<Node name="SpecularMulti" isExposed="true" />
+			<Node name="SpecularNodeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="SpecularMultiplicativeFactorForLUT" isExposed="true" />
+	
+			<Node name="MixedMultiFunctions" isExposed="true" />
+			<Node name="MixedMulti" isExposed="true" />
+			
+			<Node name="UnderstoryMultiFunctions" isExposed="true" />
+			<Node name="UnderstoryMulti" isExposed="true" />
+			<Node name="UnderstoryNodeMultiplicativeFactorForLUT" isExposed="true" />
+			<Node name="UnderstoryMultiplicativeFactorForLUT" isExposed="true" />
+			
+			<Node name="AirMultiFunctions" isExposed="true" />
+			<Node name="AirFunction" isExposed="true" />
+			<Node name="AirFunctionNodeMultiplicativeFactorForLut" isExposed="true" />	
+			<Node name="AirFunctionMultiplicativeFactorForLut" isExposed="true" />
+
+			<Node name="EmissionFunction" isExposed="true" />
+			<Node name="DirectEmission" isExposed="true" />
+			<Node name="IlluminationRatio" isExposed="true" />
+			<Node name="EmissionMatrix" isExposed="true" />
+			<Node name="EmissionPerTriangle" isExposed="true" />
+			
+			<Node name="ProspectExternalModule" isExposed="false" />
+			
+			<Node name="Types" isExposed="true" />
+			<Node name="Type" isExposed="true" ihmClass="cesbio.dart.dartSimulationEditor.model.DartSimulationEditor.nodes.DartIhmNodeMaterialType" />
+		</Nodes>
+		<Properties>
+			<Property name="addPhaseExternToDatabase" type="booleanButton" />				
+			<Property name="ala" type="double" unity="°" arg="0;90" />
+			<Property name="albedo" type="double" unity="" />
+			<Property name="albedo" type="double" />
+			<Property name="altitude" unit="m" type="double" />
+			<Property name="anthocyanin" type="double" unity="µg.cm-2" />			
+			<Property name="borderX" type="enumerate" arg="0:Set to Zero;1:Repeat border's last value;2:Repeat matrix (modulo)" />
+			<Property name="borderY" type="enumerate" arg="0:Set to Zero;1:Repeat border's last value;2:Repeat matrix (modulo)" />
+			<Property name="borderZ" type="enumerate" arg="0:Set to Zero;1:Repeat border's last value;2:Repeat matrix (modulo)" />
+			<Property name="build" type="string" />
+			<Property name="cab" type="double" unity="µg.cm-2" />
+			<Property name="car" type="double" unity="µg.cm-2" />
+			<Property name="cbc" type="double" arg="0;nan" />
+			<Property name="cBrown" type="double" arg="0;nan" />
+			<Property name="cellX" type="double" unity="m" arg="0.000001;nan" />
+			<Property name="cellZ" type="double" unity="m" arg="0.000001;nan" />
+			<Property name="choiceOfHapkeModel" type="string" />
+			<Property name="clumpinga" type="double" />
+			<Property name="clumpingb" type="double" />
+			<Property name="cm" type="double" unity="g.cm-2" />
+			<Property name="cornerX" unit="m" type="double" />
+			<Property name="cornerY" unit="m" type="double" />
+			<Property name="cornerZ" unit="m" type="double" />
+			<Property name="cp" type="double" arg="0;nan" />
+			<Property name="cw" type="double" unity="cm" />
+			<Property name="d" type="double" />
+			<Property name="databaseName" type="inputfile" arg="database" />
+			<Property name="diffuseTransmittanceFactor" type="double" />
+			<Property name="dimFoliar" type="double" />
+			<Property name="directTransmittanceFactor" type="double" />
+			<Property name="duplicateFirstMatrixLayer" type="boolean" />
+			<Property name="emissionName" type="string" unique="true" nodeDisplay="true" />
+			<Property name="emissionUnit" type="enumerate" arg="0:Temperature;1:Radiance" />
+			<Property name="emissionValue" unit="K" type="double" arg="0;nan" />
+			<Property name="epsilon" type="double" unity="0-1 " arg="0;1" />
+			<Property name="file" type="inputfile" arg="input" />
+			<Property name="fileName" type="inputfile" arg="database" />
+			<Property name="forceYields" type="boolean" />
+			<Property name="frontIlluminationOnly" type="boolean" />
+			<Property name="functionName" type="string" unique="true" nodeDisplay="true" />
+			<Property name="g_RPVMultiplicativeFactor" type="double" />
+			<Property name="h_RPVMultiplicativeFactor" type="double" />
+			<Property name="hapkeInputFile" type="inputfile" arg="input" />
+			<Property name="hapkeParameterB" type="double" />
+			<Property name="hapkeParameterB0" type="double" />
+			<Property name="hapkeParameterC" type="double" />
+			<Property name="hapkeParameterC1" type="double" />
+			<Property name="hapkeParameterC2" type="double" />
+			<Property name="hapkeParameterC3" type="double" />
+			<Property name="hapkeParameterC4" type="double" />
+			<Property name="hapkeParameterH" type="double" />
+			<Property name="hapkeParameterH1" type="double" />
+			<Property name="hapkeParameterH2" type="double" />			
+			<Property name="hapkeParameterTh" type="double" />
+			<Property name="hapkeParameterW" type="double" />
+			<Property name="hasDifferentModelForBottom" type="boolean" />
+			<Property name="indexDirectionSetLink" type="directionSetLink" />
+			<Property name="indexEmission" type="index" />
+			<Property name="indexFunction" type="index" />
+			<Property name="indexOpticalLink" type="opticalLink" />	
+			<Property name="indexType" type="index" />
+			<Property name="inputPhaseExternFile" type="inputfile" arg="database" />		
+			<Property name="inputPhaseExternName" type="string" />		
+			<Property name="inputProspectFile" type="inputfile" arg="database" />
+			<Property name="integrationStepOnPhi" type="int" />
+			<Property name="integrationStepOnTheta" type="int" />
+			<Property name="intrinsicZ" unit="°" type="double" />
+			<Property name="isFluorescent" type="boolean" />
+			<Property name="isV2Z" type="boolean" />
+			<Property name="k_RPVMultiplicativeFactor" type="double" />
+			<Property name="keepOutputFile" type="boolean" />
+			<Property name="lad" type="enumerate" arg="0:Uniform;1:Spherical;2:Erectophile;3:Planophile;4:Extremophile;5:Plagiophile;6:Horizontal;7:Vertical;8:Ellipsoidal;9:Elliptical;10:User defined;11:DeWit function;12:Bounded Uniform" />
+			<Property name="lad_b0" type="double" unity="°" />
+			<Property name="lad_b1" type="double" unity="°" />
+			<Property name="lad_b2" type="double" unity="°" />
+			<Property name="lad_m" type="double" />
+			<Property name="lambertianDefinition" type="enumerate" arg="0:Database;1:Marmit" />
+			<Property name="layerNumber" type="integer" arg="1;nan" />
+			<Property name="layerNumber" type="integer" arg="1;nan" />
+			<Property name="layerSize" unit="m" type="double" arg="0;nan" />
+			<Property name="layerSize" unit="m" type="double" arg="0;nan" />
+			<Property name="leafTransmittanceFactor" type="double" />
+			<Property name="marmitDatabase" type="inputfile" arg="database" />
+			<Property name="marmitModel" type="database" />
+			<Property name="materialCharacter" type="enumerate" arg="0:Interface;1:Thin layer;2:Glossy surface and diffuse base" />
+			<Property name="maxFile" type="inputfile" arg="input" />
+			<Property name="maxK" unit="K" type="double" arg="0;nan" />
+			<Property name="maxR" unit="W/m2/µm" type="double" arg="0;nan" />
+			<Property name="minFile" type="inputfile" arg="input" />
+			<Property name="minK" unit="K" type="double" arg="0;nan" />
+			<Property name="minR" unit="W/m2/µm" type="double" arg="0;nan" />
+			<Property name="modelName" type="database" />
+			<Property name="multiplicativeFactor1" type="double" />
+			<Property name="multiplicativeFactor2" type="double" />
+			<Property name="multiplicativeFactor3" type="double" />
+			<Property name="n" type="double" unity="" />
+			<Property name="nbAla" type="int" />
+			<Property name="ni" type="database" />
+			<Property name="niFactor" type="double" arg="0;nan" />
+			<Property name="nt" type="database" />
+			<Property name="ntFactor" type="double" arg="0;nan" />
+			<Property name="nthAla" type="int" />
+			<Property name="numberX" type="integer" arg="1;nan" />
+			<Property name="numberY" type="integer" arg="1;nan" />
+			<Property name="numberZ" type="integer" arg="1;nan" />
+			<Property name="nutationY" unit="°" type="double" />
+			<Property name="omegaMax" type="double" />
+			<Property name="omegaMin" type="double" />
+			<Property name="opticalDepth" type="double" arg="0;nan" />
+			<Property name="opticalDepthFactor" type="double" arg="0;nan" />
+			<Property name="opticalFactorMatrixFile" type="inputfile" arg="input" />
+			<Property name="outputLADFile" type="boolean" />
+			<Property name="percentFirst" type="double" arg="0;100" />
+			<Property name="precessionZ" unit="°" type="double" />
+			<Property name="precomputed" type="boolean" />
+			<Property name="profile" type="boolean" />
+			<Property name="reflectanceFactor" type="double" />
+			<Property name="reflectanceFactor" type="double" />
+			<Property name="reflectionIntensityFactor" type="double" arg="0;nan" />
+			<Property name="rhoZero_RPVMultiplicativeFactor" type="double" />
+			<Property name="roughnessFactor" type="double" arg="0;1" />
+			<Property name="roundToExact" type="boolean" />
+			<Property name="sigma" type="double" />
+			<Property name="sizeX" unit="m" type="double" arg="0;nan" />
+			<Property name="sizeY" unit="m" type="double" arg="0;nan" />
+			<Property name="sizeZ" unit="m" type="double" arg="0;nan" />
+			<Property name="skylForIlluminatioRatio" type="double" arg="0;1" />
+			<Property name="smc" type="double" arg="0.0001;nan" />
+			<Property name="soilSpecFlag" type="boolean" />
+			<Property name="thermalHotSpotFactor" type="double" />			
+			<Property name="theta_max" type="double" unity="0°-90°" arg="0;90" />			
+			<Property name="thetam" type="double" unity="0°-90°" arg="0;90" />
+			<Property name="transmissionIntensityFactor" type="double" arg="0;nan" />
+			<Property name="transmittanceDatabaseName" type="inputfile" arg="database" />
+			<Property name="transmittanceModelName" type="database" />
+			<Property name="type" type="enumerate" arg="0:Lambertian;2:Hapke;4:RPV model;11:Phase Extern;13:Specular;22:Mixed" />
+			<Property name="typeColor" type="color" />
+			<Property name="typeName" type="string" unique="true" nodeDisplay="true" />
+			<Property name="typeOpticalLink" type="enumerate" arg="0:Lambertian;2:Hapke;4:RPV model;11:Phase Extern;13:Specular;22:Mixed" />
+			<Property name="useCm" type="enumerate" arg="0:Dry matter content;1:Carbon and nitrogen dry matter content" />		
+			<Property name="useCombinedYield" type="boolean" />	
+			<Property name="useDifferentCellDimensions" type="boolean" />
+			<Property name="useExternalModule" type="boolean" />
+			<Property name="useMultiplicativeFactorForLUT" type="boolean" />
+			<Property name="useOpticalFactorMatrix" type="boolean" />
+			<Property name="useProspectExternalModule" type="boolean" />
+			<Property name="useSameFactorForAllBands" type="boolean" />
+			<Property name="useSameOpticalFactorMatrixForAllBands" type="boolean" />
+			<Property name="v2z" type="double" arg="0;1" />
+			<Property name="version" type="string" />
+			<Property name="yieldPS" type="double" />
+			<Property name="yieldPSI" type="double" />
+			<Property name="yieldPSII" type="double" />
+		</Properties>
+	</Document>
+</DartClassCatalog>
