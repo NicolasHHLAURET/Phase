@@ -1575,8 +1575,7 @@ void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaVa
 	}
 }
 
-void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
-												const FoliarComputation & foliarComputer,
+void computeAndWriteAverageBioClimaticProfile(	const FoliarComputation & foliarComputer,
 												const vector<double> & centralBioClimaticThetaValues,
 												const vector<double> & centralBioClimaticPhiValues,
 												const vector<vector<vector<double> > > & bioClimaticProfileEta,
@@ -1623,7 +1622,7 @@ void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
 				double thetaIntegral = 0.0;
 				for (unsigned int thetaIndex = 0; thetaIndex < nbTheta; thetaIndex++) {
 					thetaIntegral += bioClimaticProfileEta[layer][thetaIndex][phiIndex] *
-							foliarComputer.getLeafAngleDistributionForAngle(modelIndex, centralBioClimaticThetaValues[thetaIndex]) *
+							foliarComputer.getLeafAngleDistributionForAngle(centralBioClimaticThetaValues[thetaIndex]) *
 							dThetaValues[thetaIndex];
 				}
 				average += thetaIntegral * dPhiValues[phiIndex];
@@ -2343,11 +2342,20 @@ void prepareProspect(PhaseGeneralParametersDTO & genDTO) {
 }
 
 /**
+ * Reads the LAD parameters of ONE vegetation model and computes its leaf angle
+ * distribution into the single-slot LAD vectors of FoliarModel. Called from
+ * VegetationMaterialWriter::treat() for the model currently being treated, so
+ * no other model's LAD data is ever stored. foliarModelIndice is the model
+ * position (indexes the per-model FoliarModel parameters and the XML reads);
+ * outputModelIndex (XML indexFunction) is only used to name the optional LAD
+ * output file.
  * TODO: Il y a une dépendance cyclique PhaseDAO <-> PhaseProperty
  */
-void computeLadData(const PhaseGeneralParametersDTO & genDTO,
+void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 					LADComputation & ladComputation,
-					FoliarModel & foliarModel) {
+				FoliarModel & foliarModel,
+				const unsigned int & foliarModelIndice,
+				const unsigned int & outputModelIndex) {
 	double ladMParameter = 0;
 	double labB0Parameter = 0;
 	double ladB1Parameter = 0;
@@ -2355,55 +2363,49 @@ void computeLadData(const PhaseGeneralParametersDTO & genDTO,
 	ofstream writeOutputLeafAngleDistribution;
 	ofstream writeOutputElliptical;
 	string ladFileName, nameDatabaseLAD = "";
-	for (unsigned int foliarModelIndice = 0; foliarModelIndice < PhaseProperty::getNumberOfFoliarModels(); foliarModelIndice++) {
-		ladMParameter = 0;
-		labB0Parameter = 0;
-		ladB1Parameter = 0;
-		ladB2Parameter = 0;
-		EXIT_IF(
-			!PhaseDAO::readCoeffDiffParametersForFoliar(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter,
-				nameDatabaseLAD, foliarModel), "");
-		switch (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice)) {
-			case globalReferences::ELLIPS:
-				if (foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) >= 1e-10) {
-					ladComputation.computeEllipsoidalLadDistribution(foliarModelIndice, foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
-				} else {
-					foliarModel.setFoliarTypeOfLeafAngleDistribution(foliarModelIndice, globalReferences::HORIZ);
-					ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 0);
-				}
-				break;
-			case globalReferences::BOUNDEDUNI:
-				ladComputation.computeBoundedUniformLadDistribution(foliarModelIndice, foliarModel.getNumberOfAla(foliarModelIndice),
-					foliarModel.getNthOfAla(foliarModelIndice));
-				break;
-
-			case globalReferences::ELLIPT:
-				ladComputation.computeEllipticalLadDistribution(foliarModelIndice, foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
-					foliarModel.getFoliarEllipseEccentricity(foliarModelIndice));
-				ladComputation.writeEllipticalLad(foliarModelIndice, writeOutputElliptical);
-				break;
-			case globalReferences::HORIZ:
+	EXIT_IF(
+		!PhaseDAO::readCoeffDiffParametersForFoliar(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter,
+			nameDatabaseLAD, foliarModel), "");
+	switch (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice)) {
+		case globalReferences::ELLIPS:
+			if (foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) >= 1e-10) {
+				ladComputation.computeEllipsoidalLadDistribution(foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
+			} else {
 				foliarModel.setFoliarTypeOfLeafAngleDistribution(foliarModelIndice, globalReferences::HORIZ);
-				ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 0);
-				break;
-			case globalReferences::VERTI:
-				ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 90);
-				break;
-			case globalReferences::MANUAL: // De Wit
-				ladComputation.computeClassicalLadDistribution(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
-				break;
-			case globalReferences::USERDEFINED:
-				ladFileName = DartEnv::getDatabasePath(nameDatabaseLAD) + nameDatabaseLAD;
-				ladComputation.readLadFile(ladFileName, foliarModelIndice);
-				break;
-			default:
-				ladComputation.getLadFile(foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice), foliarModelIndice);
-				break;
-		}
-		if (genDTO.isAskedForWritingLadResultsCheck == 1) {
-			ladComputation.writeLad(foliarModelIndice, writeOutputLeafAngleDistribution,
-				foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice));
-		}
+				ladComputation.computeVerticalHorizontalLadDistribution(0);
+			}
+			break;
+		case globalReferences::BOUNDEDUNI:
+			ladComputation.computeBoundedUniformLadDistribution(foliarModel.getNumberOfAla(foliarModelIndice),
+				foliarModel.getNthOfAla(foliarModelIndice));
+			break;
+
+		case globalReferences::ELLIPT:
+			ladComputation.computeEllipticalLadDistribution(foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
+				foliarModel.getFoliarEllipseEccentricity(foliarModelIndice));
+			ladComputation.writeEllipticalLad(writeOutputElliptical);
+			break;
+		case globalReferences::HORIZ:
+			foliarModel.setFoliarTypeOfLeafAngleDistribution(foliarModelIndice, globalReferences::HORIZ);
+			ladComputation.computeVerticalHorizontalLadDistribution(0);
+			break;
+		case globalReferences::VERTI:
+			ladComputation.computeVerticalHorizontalLadDistribution(90);
+			break;
+		case globalReferences::MANUAL: // De Wit
+			ladComputation.computeClassicalLadDistribution(ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
+			break;
+		case globalReferences::USERDEFINED:
+			ladFileName = DartEnv::getDatabasePath(nameDatabaseLAD) + nameDatabaseLAD;
+			ladComputation.readLadFile(ladFileName);
+			break;
+		default:
+			ladComputation.getLadFile(foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice));
+			break;
+	}
+	if (genDTO.isAskedForWritingLadResultsCheck == 1) {
+		ladComputation.writeLad(outputModelIndex, writeOutputLeafAngleDistribution,
+			foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice));
 	}
 }
 

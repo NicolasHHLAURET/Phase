@@ -14,58 +14,51 @@
 #include "FoliarModel.hpp"
 #include "../PhaseUtils.hpp"
 
+/**
+ * Computes the leaf angle distribution (LAD) of the model currently being
+ * treated. The LAD and g-function vectors live in FoliarModel as single
+ * slots (the previous model's data is simply overwritten), so this class
+ * holds no per-model state of its own: only a scratch PDF buffer.
+ */
 class LADComputation {
 private:
 	int _nbDisplayedWarningMessages;
 
 	std::vector<std::vector<double> > _probabilityDensityFunctionVector;
 
-	std::vector<double> & _transmTransfertFunctionVector;
-	std::vector<std::vector<double> > & _gFunctionForLadComputationFunctionVector;
-	std::vector<std::vector<double> > & _leafAngleDistributionFunctionVector;
+	std::vector<double> & _gFunctionForLadComputationFunctionVector;
+	std::vector<double> & _leafAngleDistributionFunctionVector;
 
 public:
 	LADComputation(FoliarModel & foliarModel) :
-			_gFunctionForLadComputationFunctionVector(foliarModel.getRefGFunctionForLadComputationFunctionVector()), _transmTransfertFunctionVector(
-				foliarModel.getRefTransmTransfertFunctionVector()), _leafAngleDistributionFunctionVector(
+			_gFunctionForLadComputationFunctionVector(foliarModel.getRefGFunctionForLadComputationFunctionVector()), _leafAngleDistributionFunctionVector(
 				foliarModel.getRefLeafAngleDistributionFunctionVecto()), _nbDisplayedWarningMessages(0) {
 	}
 
 	~LADComputation() {}
 
-	void initLADComputation(const unsigned int & numberOfFoliarModels,
-							const unsigned int & numberOfSpectralBands);
+	void initLADComputation();
 
-	void computeLadData(const PhaseGeneralParametersDTO & genDTO);
+	void computeEllipsoidalLadDistribution(	const double & ALA);
 
-	void computeEllipsoidalLadDistribution(	const unsigned int & modelIndex,
-											const double & ALA);
+	void computeVerticalHorizontalLadDistribution(	const int specifiedAngle);
 
-	void computeVerticalHorizontalLadDistribution(	const unsigned int & modelIndex,
-													const int specifiedAngle);
-
-	void computeBoundedUniformLadDistribution(	const unsigned int & modelIndex,
-												const int & numberOfAla,
+	void computeBoundedUniformLadDistribution(	const int & numberOfAla,
 												const int & nthAla);
 
-	void computeClassicalLadDistribution(	const unsigned int & modelIndex,
-											const double & m,
+	void computeClassicalLadDistribution(	const double & m,
 											const double & b0,
 											const double & b1,
 											const double & b2);
 
-	void computeEllipticalLadDistribution(	const unsigned int & modelIndex,
-											const double & thetaM,
+	void computeEllipticalLadDistribution(	const double & thetaM,
 											const double & eccentricity);
 
-	void readLadFile(	const std::string & leadAngleDistributionFilename,
-						const unsigned int & modelIndex);
+	void readLadFile(	const std::string & leadAngleDistributionFilename);
 
-	void writeLadFile(	std::string & leadAngleDistributionFilename,
-						const unsigned int & modelIndex);
+	void writeLadFile(	std::string & leadAngleDistributionFilename);
 
-	void getLadFile(const int & numberTypeOfLad,
-					const unsigned int & modelIndex);
+	void getLadFile(const int & numberTypeOfLad);
 
 	double computeClassicalLadWithA(const double & angle,
 									const double & m,
@@ -81,13 +74,11 @@ public:
 					std::ofstream & ofstreamLAD,
 					const int & numberTypeOfLad);
 
-	void writeEllipticalLad(const unsigned int & modelIndex,
-							std::ofstream & ofstreamElliptical);
+	void writeEllipticalLad(	std::ofstream & ofstreamElliptical);
 
-	void normalizeLeafAngleDistribution(const unsigned int & modelIndex);
+	void normalizeLeafAngleDistribution();
 
-	void computeLeafAngleDistributionFromBunnick(	const unsigned int & modelIndex,
-													const int & typeOfLad);
+	void computeLeafAngleDistributionFromBunnick(	const int & typeOfLad);
 
 	bool isFileReadableCheck(std::string & file);
 
@@ -117,14 +108,14 @@ public:
 									const int & nthAla);
 
 	double computeVerticalHorizontalLad(const double angle,
-										const int specifiedAngle);
+								const int specifiedAngle);
 
-	void testNormalisation(const unsigned int & modelIndex);
+	void testNormalisation();
 
 	void gaussLegendre(	double *Z,
 						double *WF);
 
-	int initialisationLadProbabilityDensityFunctions(const int & modelIndex);
+	int initialisationLadProbabilityDensityFunctions();
 };
 
 #endif /* INCLUDE_FOLIAR_LADCOMPUTATION_HPP_ */

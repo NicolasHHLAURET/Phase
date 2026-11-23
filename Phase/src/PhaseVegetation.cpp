@@ -49,8 +49,8 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
  * (Re)initialises the shared foliar objects for one direction set and runs the
  * direction-set-dependent precomputing. Called by VegetationMaterialWriter
  * whenever the direction set changes between models (the per-model data filled
- * by computeLadData/readMultiplicativeFactor is reset by initFoliarModel, so it
- * is redone here as well).
+ * by readMultiplicativeFactor is reset by initFoliarModel, so it is redone
+ * here as well; the per-model LAD is computed later in treat(), per model).
  */
 void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
 	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
@@ -64,9 +64,7 @@ void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, Vegetatio
 			PhaseProperty::_numberOfSpectralBands, numberOfFoliarModels, PhaseProperty::_numberOfThreads,
 			PhaseProperty::_threadEnd, *vegetation.foliarModel);
 
-	vegetation.ladComputation->initLADComputation(numberOfFoliarModels, PhaseProperty::_numberOfSpectralBands);
-
-	computeLadData(genDTO, *vegetation.ladComputation, *vegetation.foliarModel);
+	vegetation.ladComputation->initLADComputation();
 
     PhaseProperty::setParametersForPrintingProgress();
     PhaseProperty::resizePhaseParametersVectors();

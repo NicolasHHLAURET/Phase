@@ -93,8 +93,8 @@ private:
 
 	std::vector<double> _hotSpotFactor;
 
-	std::vector<std::vector<double> > & _leafAngleDistributionFunctionVector;
-	std::vector<std::vector<double> > & _gFunctionForLadComputationFunctionVector;
+	std::vector<double> & _leafAngleDistributionFunctionVector;
+	std::vector<double> & _gFunctionForLadComputationFunctionVector;
 	std::vector<FoliarModel::ParametersForFoliarModels> & _parametersForFoliarModels;
 	std::vector<double> & _transmTransfertFunctionVector;
 
@@ -419,7 +419,7 @@ public:
 		return _backFaceFluorescenceMatrix;
 	}
 
-	double getLeafAngleDistributionForAngle(const unsigned int & modelIndex, const double & theta) const;
+	double getLeafAngleDistributionForAngle(const double & theta) const;
 
 	void setBackFaceFluorescenceMatrix(const std::vector<std::vector<std::vector<double> > >& backFaceFluorescenceMatrix) {
 		_backFaceFluorescenceMatrix = backFaceFluorescenceMatrix;

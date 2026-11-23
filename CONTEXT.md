@@ -175,6 +175,18 @@ Sandbox notes for rebuilding the prefix (no root available):
     the "topUse..."/"bottomUse..." variants in the material writers); no XML
     input references these keys. Note: pitfall (f) and item 14 above still
     quote the pre-rename spelling (historical incident description).
+16. Per-model LAD (this session): the LAD and g-function vectors of FoliarModel
+    collapsed from [nbModels][...] to single slots, and LADComputation is now
+    stateless per model (only a scratch PDF buffer; the unused
+    _transmTransfertFunctionVector member reference dropped). computeLadData
+    (which looped over ALL models at direction-set preparation) is replaced by
+    computeLadDataForModel(), called from VegetationMaterialWriter::treat() for
+    the model being treated only. Index-confusion fix: PhasePolarization and
+    computeAndWriteAverageBioClimaticProfile now use the model POSITION
+    (foliarIndice) for all FoliarModel/LAD data access; the XML indexFunction
+    (getModelIndex()) is used only for output naming. LADComputation methods
+    lost their modelIndex parameter (writeLad keeps one, for the output file
+    name only).
 
 ## Known TODOs / open points (next sessions)
 
@@ -203,6 +215,13 @@ Sandbox notes for rebuilding the prefix (no root available):
   (later round): readCoeffDiffParametersForFoliar (LAD params),
   readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
   readCoeffDiffParametersForFoliarOpticalFactors.
+- Remove the redundant per-band LAD recompute inside
+  PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}: the
+  LAD of the current model is already computed once in
+  VegetationMaterialWriter::treat() via computeLadDataForModel(); the
+  polarization functions still recompute it on every call (harmless now that
+  the LAD vectors are single-slot and the data index is the model position,
+  but wasteful).
 - Rename the identifier useBioCLimaticProfileEta -> useBioClimaticProfileEta
   (lowercase l): DONE (history item 15).
 - NetCDF/HDF5 atmosphere path: build netcdf-c + netcdf-cxx4 + hdf5 into the

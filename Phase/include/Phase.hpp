@@ -404,9 +404,11 @@ FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
 								const unsigned int & iterationStepTheta,
 								const unsigned int & iterationStepPhi,
 								const double & solidAnglesSum);
-void computeLadData(const PhaseGeneralParametersDTO & genDTO,
-					LADComputation & foliarComputer,
-					FoliarModel & foliarModel);
+void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
+				LADComputation & ladComputation,
+				FoliarModel & foliarModel,
+				const unsigned int & foliarModelIndice,
+				const unsigned int & outputModelIndex);
 
 unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
 void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex);
@@ -420,8 +422,7 @@ void readBioClimaticFile( 	string bcFilePath,
 void computeAverageEta(	const vector<double> & bioClimaticThetaValues, const vector<double> & bioClimaticPhiValues,
 					  	const vector<vector<vector<double>>> & bioClimaticProfileEta, double & average);
 
-void computeAndWriteAverageBioClimaticProfile(	const unsigned int & modelIndex,
-												const FoliarComputation & foliarCompute,
+void computeAndWriteAverageBioClimaticProfile(	const FoliarComputation & foliarCompute,
 												const vector<double> & bioClimaticThetaValues,
 												const vector<double> & bioClimaticPhiValues,
 												const vector<vector<vector<double> > > & bioClimaticProfileEta,

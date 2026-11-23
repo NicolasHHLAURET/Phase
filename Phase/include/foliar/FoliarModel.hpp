@@ -47,17 +47,17 @@ public:
 
 private:
 	std::vector<FoliarModel::ParametersForFoliarModels> _parametersForFoliarModels;
-	std::vector<double> _transmTransfertFunctionVector;
-	std::vector<std::vector<double> > _leafAngleDistributionFunctionVector;
+	std::vector<double> _transmTransfertFunctionVector; // common to all models (one direction set)
+	std::vector<double> _leafAngleDistributionFunctionVector; // current model only (single slot)
 	std::vector<std::vector<double> > _hotSpotFactorDistributionFunctionVector;
-	std::vector<std::vector<double> > _gFunctionForLadComputationFunctionVector;
+	std::vector<double> _gFunctionForLadComputationFunctionVector; // current model only (single slot)
 
 public:
 	void initFoliarModel(	const unsigned int & numberOfFoliarModels,
 							const unsigned int & numberOfSpectralBands,
 							const unsigned int & numberOfDirections);
 
-	const std::vector<std::vector<double> > & getLeafAngleDistributionFunctionVector();
+	const std::vector<double> & getLeafAngleDistributionFunctionVector();
 	const std::vector<double> & getTransmTransfertFunctionVector();
 
 	std::vector<FoliarModel::ParametersForFoliarModels> & getRefParametersForFoliarModels() {
@@ -67,11 +67,11 @@ public:
 		return _transmTransfertFunctionVector;
 	}
 
-	std::vector<std::vector<double> > & getRefLeafAngleDistributionFunctionVecto() {
+	std::vector<double> & getRefLeafAngleDistributionFunctionVecto() {
 		return _leafAngleDistributionFunctionVector;
 	}
 
-	std::vector<std::vector<double> > & getRefGFunctionForLadComputationFunctionVector() {
+	std::vector<double> & getRefGFunctionForLadComputationFunctionVector() {
 		return _gFunctionForLadComputationFunctionVector;
 	}
 

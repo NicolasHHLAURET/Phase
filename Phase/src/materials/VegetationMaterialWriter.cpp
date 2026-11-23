@@ -97,6 +97,12 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 
 	foliarComputer.reInitFoliarComputation();
 
+	// Per-model LAD: read the LAD parameters of this model and compute its leaf
+	// angle distribution into the single-slot LAD vectors (no other model's LAD
+	// data is stored). Must run before the getFoliarTypeOfLeafAngleDistribution()
+	// reads below (the ELLIPS/ALA==0 case rewrites the type to HORIZ).
+	computeLadDataForModel(genDTO, ladComputation, foliarModel, foliarIndice, modelIndex);
+
 	vector<FoliarProperty> foliarProperty;
 	foliarProperty.resize(genDTO.numberOfSpectralBands);
 
@@ -119,7 +125,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 		foliarProperty[spectralBandIndex].typeOfLeafAngleDistribution = foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarIndice);
 		foliarProperty[spectralBandIndex].foliarDimension = foliarModel.getFoliarDimension(foliarIndice);
 	}
-	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions(foliarIndice);
+	fTFoliar.casPDF = ladComputation.initialisationLadProbabilityDensityFunctions();
 	ostringstream val;
 	val << modelIndex; //on ajoute le numero de la fx de phase dans le nom du fichier : sprintf (val, "%u.",j)
 	string name = val.str() + "." + foliarPropertyParameters.getModelName();
@@ -183,7 +189,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 				string topAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + topAverageBioClimaticProfileFileName;
 				ofstream ofstreamTopAverageEta;
 				ofstreamTopAverageEta.open(topAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
+				computeAndWriteAverageBioClimaticProfile(foliarComputer, topBioClimaticThetaValues, topBioClimaticPhiValues, topBioClimaticProfileEta, ofstreamTopAverageEta);
 				outCoeffSpecProperties << pkmg.cleTopFluorescenceBioClimaticFile() << topAverageBioClimaticProfileFileName << endl;
 				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyType() << topFluorescenceResults.linkedOpticalPropertyType << endl;
 				outCoeffSpecProperties << pkmg.cleFluorescenceTopBioClimaticLinkedPropertyIndex() << topFluorescenceResults.linkedOpticalPropertyIndex << endl;
@@ -199,7 +205,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 				string bottomAverageBioClimaticProfileFilePath = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + bottomAverageBioClimaticProfileFileName;
 				ofstream ofstreamBottomAverageEta;
 				ofstreamBottomAverageEta.open(bottomAverageBioClimaticProfileFilePath.c_str(), ofstream::app);
-				computeAndWriteAverageBioClimaticProfile(modelIndex, foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
+				computeAndWriteAverageBioClimaticProfile(foliarComputer, bottomBioClimaticThetaValues, bottomBioClimaticPhiValues, bottomBioClimaticProfileEta, ofstreamBottomAverageEta);
 				outCoeffSpecProperties << pkmg.cleBottomFluorescenceBioClimaticFile() << bottomAverageBioClimaticProfileFileName << endl;
 				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyType() << bottomFluorescenceResults.linkedOpticalPropertyType << endl;
 				outCoeffSpecProperties << pkmg.cleFluorescenceBottomBioClimaticLinkedPropertyIndex() << bottomFluorescenceResults.linkedOpticalPropertyIndex << endl;
@@ -344,7 +350,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 			foliarProperty);
 		if (PhaseProperty::getPolarization()) {
 			PhasePolarization::computeAndWriteFoliarPolarizationMatrix(genDTO, foliarPropertyParameters, spectralBandIndex, listDirections, genDTO.solarDirection,
-				numberOfFresnelCoefficient, foliarModel, ladComputation);
+				numberOfFresnelCoefficient, foliarIndice, foliarModel, ladComputation);
 		}
 		if (genDTO.generateEquivalentLambertianPhaseFunctionsFromVegetation) {
 			frontEquivalentLambertianProperties[spectralBandIndex].reflectance = foliarProperty[spectralBandIndex].reflectanceTop;

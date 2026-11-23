@@ -538,7 +538,7 @@ double FoliarComputation::functiondTheta(	const int & thetaF,
 											const int & iterationStepTheta,
 											const unsigned int & modelIndex) {
 	double integranddPhi = computeIntegranddPhi(thetaF, incidentDirection, outputDirection, opticalProperties, iterationStepPhi);
-	return integranddPhi * _leafAngleDistributionFunctionVector[modelIndex][thetaF * iterationStepTheta];
+	return integranddPhi * _leafAngleDistributionFunctionVector[thetaF * iterationStepTheta];
 }
 
 /**
@@ -724,7 +724,7 @@ void FoliarComputation::computeSpecularPolTransferFoliarFromIntegration(const st
 				if (index == 0) {
 					gfs = 0.;
 				} else {
-					gfs = _leafAngleDistributionFunctionVector[modelIndex][index] / PhaseUtils::getStaticSine(index * 2);
+					gfs = _leafAngleDistributionFunctionVector[index] / PhaseUtils::getStaticSine(index * 2);
 				}
 
 
@@ -782,7 +782,7 @@ void FoliarComputation::foliarPolaSpecTranferFunction(	const std::vector<Directi
 	int index = (int) floor(ZFs);
 	double gfs = 0;
 	if (index != 0) {
-		double gfs = _leafAngleDistributionFunctionVector[modelIndex][index] / PhaseUtils::getStaticSine(index * 2);
+		double gfs = _leafAngleDistributionFunctionVector[index] / PhaseUtils::getStaticSine(index * 2);
 	}
 	double Q = 8.0 * M_PI * _transmTransfertFunctionVector[incidentDirection];
 	if (casPDF == REELLE || fabs(gfs) < EPSILON) {
@@ -969,7 +969,7 @@ void FoliarComputation::generatePhaseMapDiff(	const std::vector<std::vector<doub
 							fd = opticalProperties.bottomTransmittance;
 						}
 					}
-					yy += fabs(prod_cosPsi) * fd * _leafAngleDistributionFunctionVector[modelIndex][zenithAngle];
+					yy += fabs(prod_cosPsi) * fd * _leafAngleDistributionFunctionVector[zenithAngle];
 				}
 			}
 			if (_transmTransfertFunctionVector[incidentDirection] < EPSILON) {
@@ -1047,8 +1047,8 @@ void FoliarComputation::generatePhaseMapFluo(	const std::vector<std::vector<doub
 							fdPSII = opticalProperties.bottomPSIIForward[emissionBandInex];
 						}
 					}
-					yyPSI += fabs(prod_cosPsi) * fdPSI * _leafAngleDistributionFunctionVector[modelIndex][zenithAngle];
-					yyPSII += fabs(prod_cosPsi) * fdPSII * _leafAngleDistributionFunctionVector[modelIndex][zenithAngle];
+					yyPSI += fabs(prod_cosPsi) * fdPSI * _leafAngleDistributionFunctionVector[zenithAngle];
+					yyPSII += fabs(prod_cosPsi) * fdPSII * _leafAngleDistributionFunctionVector[zenithAngle];
 				}
 			}
 			if (_transmTransfertFunctionVector[incidentDirection] < EPSILON) {
@@ -1186,7 +1186,7 @@ void FoliarComputation::computeFoliarHotSpotDirectionalFactor(	unsigned int mode
 		hotSpotCFactor = 0.;
 		for (int thetaLeaf = 0; thetaLeaf < NBMAX_TETAF; thetaLeaf += iterationStepTheta) {
 //			unsigned int thetaLADIndex = floor(thetaLeaf);
-			gfs = (_gFunctionForLadComputationFunctionVector[modelIndex][thetaLeaf * iterationStepTheta]) * M_PI / 180;
+			gfs = (_gFunctionForLadComputationFunctionVector[thetaLeaf * iterationStepTheta]) * M_PI / 180;
 
 			sumB = 0;
 			sumC = 0;
@@ -1479,7 +1479,7 @@ double FoliarComputation::integrandOf_gTheta(	const double & theta,
 												const double & theta_f,
 												const double & phi_f,
 												const unsigned int & modelIndex) {
-	return scalarProductOfDirections(theta, theta_f, phi_f) * _foliarModel.getRefGFunctionForLadComputationFunctionVector()[modelIndex][2 * theta_f];
+	return scalarProductOfDirections(theta, theta_f, phi_f) * _foliarModel.getRefGFunctionForLadComputationFunctionVector()[2 * theta_f];
 }
 
 double FoliarComputation::scalarProductOfDirections(const double & theta,
@@ -1519,16 +1519,16 @@ void FoliarComputation::resetFrontFaceFluorescenceMatrix(unsigned nbSpectralBand
 	}
 }
 
-double FoliarComputation::getLeafAngleDistributionForAngle(const unsigned int & modelIndex, const double & theta) const {
+double FoliarComputation::getLeafAngleDistributionForAngle(const double & theta) const {
 	double resultat = 0;
 	int tmp = (int) theta;
 	if (tmp == theta) {
-		resultat = _leafAngleDistributionFunctionVector[modelIndex][tmp];
+		resultat = _leafAngleDistributionFunctionVector[tmp];
 	}
 	else {
 		int n1 = floor(theta), n2 = n1 + 1;
-		double y1 = _leafAngleDistributionFunctionVector[modelIndex][n1];
-		double y2 = _leafAngleDistributionFunctionVector[modelIndex][n2];
+		double y1 = _leafAngleDistributionFunctionVector[n1];
+		double y2 = _leafAngleDistributionFunctionVector[n2];
 		double slope = (y2 - y1)/(n2 - n1);
 		double intercept = y1 - slope * n1;
 		resultat = slope * theta + intercept;

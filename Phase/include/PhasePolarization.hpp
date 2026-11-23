@@ -618,9 +618,11 @@ public:
 														const std::vector<DirectionCartesienne> & listDirections,
 														const DirectionCartesienne & sunDirection,
 														const unsigned int & numberOfFresnelStep,
+								const unsigned int & foliarIndice,
 														FoliarModel & foliarModel,
 														LADComputation & ladComputation) {
-		unsigned int foliarModelIndice = foliarPropertyParameters.getModelIndex();
+		const unsigned int foliarModelIndice = foliarIndice; // model position: FoliarModel per-model data + XML reads
+		const unsigned int outputModelIndex = foliarPropertyParameters.getModelIndex(); // XML indexFunction: output naming only
 		shared_ptr<SpecularFoliarDatabaseParameters> foliarSpecularDatabaseParameters = ::static_pointer_cast<SpecularFoliarDatabaseParameters>(
 			foliarPropertyParameters.getDatabaseParameters(SPECULAR_FOLIAR_DATABASE));
 
@@ -657,31 +659,31 @@ public:
 		if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPS
 				&& foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) != 0) {
 
-			ladComputation.computeEllipsoidalLadDistribution(foliarModelIndice, foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
+			ladComputation.computeEllipsoidalLadDistribution(foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPT) {
 
-			ladComputation.computeEllipticalLadDistribution(foliarModelIndice, foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
+			ladComputation.computeEllipticalLadDistribution(foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
 				foliarModel.getFoliarEllipseEccentricity(foliarModelIndice));
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::HORIZ
 				|| (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPS
 						&& foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) < 1e-10)) {
 
-			ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 0);
+			ladComputation.computeVerticalHorizontalLadDistribution(0);
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::VERTI) {
 
-			ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 90);
+			ladComputation.computeVerticalHorizontalLadDistribution(90);
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::MANUAL) {
 
-			ladComputation.computeClassicalLadDistribution(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
+			ladComputation.computeClassicalLadDistribution(ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
 		}
 		if (foliarSpecularDatabaseParameters != NULL) {
 			computeFoliarPolarizationMatrix(foliarSpecularDatabaseParameters->getTopForBand(spectralBandIndex),
 				foliarSpecularDatabaseParameters->getTopIndexForBand(spectralBandIndex), foliarModel.getTransmTransfertFunctionVector(),
-				foliarModel.getLeafAngleDistributionFunctionVector()[foliarModelIndice], 1.0 / 180.0 * M_PI, perpendicularFresnelCoefficient,
+				foliarModel.getLeafAngleDistributionFunctionVector(), 1.0 / 180.0 * M_PI, perpendicularFresnelCoefficient,
 				parallelFresnelCoefficient, stepFresnelCoefficient, listDirections, sunDirection, transferFoliarPolarizationMatrixPerDirection);
 		}
 	}
@@ -692,9 +694,11 @@ public:
 																	const std::vector<DirectionCartesienne> & listDirections,
 																	const DirectionCartesienne & sunDirection,
 																	const unsigned int & numberOfFresnelStep,
+												const unsigned int & foliarIndice,
 																	FoliarModel & foliarModel,
 																	LADComputation & ladComputation) {
-		unsigned int foliarModelIndice = foliarPropertyParameters.getModelIndex();
+		const unsigned int foliarModelIndice = foliarIndice; // model position: FoliarModel per-model data + XML reads
+		const unsigned int outputModelIndex = foliarPropertyParameters.getModelIndex(); // XML indexFunction: output naming only
 		shared_ptr<SpecularFoliarDatabaseParameters> foliarSpecularDatabaseParameters = ::static_pointer_cast<SpecularFoliarDatabaseParameters>(
 			foliarPropertyParameters.getDatabaseParameters(SPECULAR_FOLIAR_DATABASE));
 
@@ -726,7 +730,7 @@ public:
 			}
 		}
 		std::ostringstream val;
-		val << foliarModelIndice;
+		val << outputModelIndex;
 		std::string name;
 		name = val.str() + "." + foliarPropertyParameters.getModelName();
 		std::string pathFoliarSpecularFunctionMatrices = DartEnv::getCurrentSimulationOutputPath() + PhaseUtils::getOutputFolder() + pathSeparator + name
@@ -740,32 +744,32 @@ public:
 		if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPS
 				&& foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) != 0) {
 
-			ladComputation.computeEllipsoidalLadDistribution(foliarModelIndice, foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
+			ladComputation.computeEllipsoidalLadDistribution(foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPT) {
 
-			ladComputation.computeEllipticalLadDistribution(foliarModelIndice, foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
+			ladComputation.computeEllipticalLadDistribution(foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
 				foliarModel.getFoliarEllipseEccentricity(foliarModelIndice));
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::HORIZ
 				|| (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::ELLIPS
 						&& foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) < 1e-10)) {
 
-			ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 0);
+			ladComputation.computeVerticalHorizontalLadDistribution(0);
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::VERTI) {
 
-			ladComputation.computeVerticalHorizontalLadDistribution(foliarModelIndice, 90);
+			ladComputation.computeVerticalHorizontalLadDistribution(90);
 
 		} else if (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice) == globalReferences::MANUAL) {
 
-			ladComputation.computeClassicalLadDistribution(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
+			ladComputation.computeClassicalLadDistribution(ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
 		}
 
 		if (foliarSpecularDatabaseParameters != NULL) {
 			computeFoliarPolarizationMatrix(foliarSpecularDatabaseParameters->getTopIndexForBand(spectralBandIndex),
 				foliarSpecularDatabaseParameters->getTopIndexForBand(spectralBandIndex), foliarModel.getTransmTransfertFunctionVector(),
-				foliarModel.getLeafAngleDistributionFunctionVector()[foliarModelIndice], 1.0 / 180.0 * M_PI, perpendicularFresnelCoefficient,
+				foliarModel.getLeafAngleDistributionFunctionVector(), 1.0 / 180.0 * M_PI, perpendicularFresnelCoefficient,
 				parallelFresnelCoefficient, stepFresnelCoefficient, listDirections, sunDirection, transferFoliarPolarizationMatrixPerDirection);
 		}
 		writeMatrixNotBinary(ofstreamFoliarSpecularFunctionMatrices, transferFoliarPolarizationMatrixPerAngularSector);

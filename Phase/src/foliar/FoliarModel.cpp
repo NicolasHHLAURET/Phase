@@ -11,7 +11,7 @@ void FoliarModel::initFoliarModel(	const unsigned int & numberOfFoliarModels,
 									const unsigned int & numberOfSpectralBands,
 									const unsigned int & numberOfDirections) {
 
-	_leafAngleDistributionFunctionVector.resize(numberOfFoliarModels, std::vector<double>(NBMAX_TETAF + 1));
+	_leafAngleDistributionFunctionVector.resize(NBMAX_TETAF + 1);
 	_transmTransfertFunctionVector.resize(numberOfDirections + 1);
 
 	_parametersForFoliarModels.resize(numberOfFoliarModels);
@@ -33,10 +33,10 @@ void FoliarModel::initFoliarModel(	const unsigned int & numberOfFoliarModels,
 		_parametersForFoliarModels[j].adaxialReflectanceVector.resize(numberOfSpectralBands, 1.0);
 	}
 
-	_gFunctionForLadComputationFunctionVector.resize(numberOfFoliarModels, std::vector<double>(NBMAX_TETAF * 2 + 1));
+	_gFunctionForLadComputationFunctionVector.resize(NBMAX_TETAF * 2 + 1);
 }
 
-const std::vector<std::vector<double> > & FoliarModel::getLeafAngleDistributionFunctionVector() {
+const std::vector<double> & FoliarModel::getLeafAngleDistributionFunctionVector() {
 	return _leafAngleDistributionFunctionVector;
 }
 
