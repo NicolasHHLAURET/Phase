@@ -187,6 +187,13 @@ Sandbox notes for rebuilding the prefix (no root available):
     (getModelIndex()) is used only for output naming. LADComputation methods
     lost their modelIndex parameter (writeLad keeps one, for the output file
     name only).
+17. Per-model LAD patch delivery (same session): owner-applied as a45629a,
+    tree 549048aa5bce3f61089ec33cb93db22a896594bc instead of the sender's
+    2293cda4... -- classified BENIGN: 1047/1047 lines arrived (no structural
+    damage), 353 lines with leading-indentation damage only (315 tab->space,
+    38 tabs dropped), `git diff -w` vs the sender's commit empty. New
+    pitfall variant noted in (a); failed transfer files now live in the
+    dedicated AICommunications repo (protocol 3/5, checklist 4).
 
 ## Known TODOs / open points (next sessions)
 
@@ -245,7 +252,12 @@ Sandbox notes for rebuilding the prefix (no root available):
       b708ea6: git am "Corrupt patch at line 59", git apply "corrupt patch at
       line 76"; the "\t" slip was fixed in 11a774d). Retry with
       `git am --ignore-whitespace`; `index` lines and blob shas in headers are
-      not verified and may be hand-fixed.
+      not verified and may be hand-fixed. Variant observed on the per-model
+      LAD patch (evidence: AICommunications repo, transfer/failed/, commit
+      b1bfbe6): besides tab->space(s), some leading tabs are DELETED outright
+      (38 of 353 damaged lines) -- still benign: no line-count change, so no
+      "corrupt patch" error, and the tree differs only by whitespace (`git
+      diff -w` vs the sender's commit is the gate).
   (b) sender-side character slips in long pastes, on ANY character, not just
       tabs -- plain patches included. Verified on eqLambertian.b64 (added in
       f65f439, removed in 39e3635): a 489-line base64 arrived with 3 harmful
@@ -352,8 +364,10 @@ text is emitted more reliably than base64 -- so plain text is the default:
    `git am --ignore-whitespace` (index/blob-sha lines are not verified and
    may be hand-fixed).
 3. Repair loop on ANY gate failure or raw-sha mismatch: the receiver pushes
-   the file as received into `transfer/failed/` on the repo; the sender
-   fetches it anonymously, diffs locally against the true file, and classifies
+   the file as received into `transfer/failed/` of the DEDICATED transfer
+   repo https://github.com/NicolasHHLAURET/AICommunications.git (anonymous
+   clone; keeps the Phase repo clean); the sender fetches it anonymously,
+   diffs locally against the true file, and classifies
    the difference (benign whitespace-strip vs harmful character slip). If
    harmful, the sender sends back ONLY a minimal correction -- the differing
    lines by number, each with its own sha256, or a short python script --
@@ -366,7 +380,9 @@ text is emitted more reliably than base64 -- so plain text is the default:
    == sender's decoded-patch sha256 (the whole-file hash may differ by a
    trailing newline). Decode/apply success proves nothing -- only the hash.
 5. Validated plain-text repair loop (2026-11-19, foliar patch, evidence in
-   transfer/failed/ + commit 965fa10): receiver compares PER-CHUNK sha256
+   transfer/failed/ + commit 965fa10; since 2026-11-23 failed files go to the
+   AICommunications repo, e.g. commit b1bfbe6 for the per-model LAD patch):
+   receiver compares PER-CHUNK sha256
    first (cheap, localizes the damage), pushes received chunks to
    transfer/failed/, sender fetches and diffs against the true chunks,
    classifies each difference (benign tab/space mangling on context/removed
@@ -400,7 +416,9 @@ text is emitted more reliably than base64 -- so plain text is the default:
    (one code block per chunk), each chunk with its sha256, plus the full
    patch sha256 and the post-am tree hash; give the `cat chunk_* > p.patch`
    reassembly command. On any receiver-side failure, expect the received
-   files in transfer/failed/ and follow protocol point 3/5.
+   files in transfer/failed/ of the AICommunications repo (clone
+   https://github.com/NicolasHHLAURET/AICommunications.git) and follow
+   protocol point 3/5.
 5. Update this file at the end of each session (history item + TODOs +
    pitfalls); it is the only handoff between sessions.
 6. Build only if needed: no DART_DEPS_PREFIX in a fresh sandbox; see "Build
