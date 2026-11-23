@@ -306,20 +306,6 @@ public:
 														std::string & material2Name,
 														double & percentOfMaterial1);
 
-	static bool readCoeffDiffParametersForFoliar(	const unsigned int & foliarModelIndice,
-													double &m,
-													double &b0,
-													double &b1,
-													double &b2,
-													std::string& nameDatabaseLAD,
-													FoliarModel & foliarModel);
-	static bool readCoeffDiffParametersForFoliarXML(const unsigned int & foliarModelIndice,
-													double &m,
-													double &b0,
-													double &b1,
-													double &b2,
-													std::string& nameDatabaseLAD,
-													FoliarModel & foliarModel);
 	static bool readFoliarMultiplicativeFactorForModelXML(	const string & temp,
 															const string & modelKey,
 															const bool & isBottomFace,

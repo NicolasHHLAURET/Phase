@@ -407,6 +407,7 @@ FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
 void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 				LADComputation & ladComputation,
 				FoliarModel & foliarModel,
+				const phsdata::UnderstoryMulti & understory,
 				const unsigned int & foliarModelIndice,
 				const unsigned int & outputModelIndex);
 

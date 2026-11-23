@@ -2342,45 +2342,53 @@ void prepareProspect(PhaseGeneralParametersDTO & genDTO) {
 }
 
 /**
- * Reads the LAD parameters of ONE vegetation model and computes its leaf angle
- * distribution into the single-slot LAD vectors of FoliarModel. Called from
- * VegetationMaterialWriter::treat() for the model currently being treated, so
- * no other model's LAD data is ever stored. foliarModelIndice is the model
- * position (indexes the per-model FoliarModel parameters and the XML reads);
+ * Copies the LAD parameters of ONE vegetation model from its phsdata storage
+ * (UnderstoryMulti) into the per-model FoliarModel parameters and computes its
+ * leaf angle distribution into the single-slot LAD vectors of FoliarModel.
+ * Called from VegetationMaterialWriter::treat() for the model currently being
+ * treated, so no other model's LAD data is ever stored. foliarModelIndice is
+ * the model position (indexes the per-model FoliarModel parameters);
  * outputModelIndex (XML indexFunction) is only used to name the optional LAD
  * output file.
- * TODO: Il y a une dépendance cyclique PhaseDAO <-> PhaseProperty
  */
 void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 					LADComputation & ladComputation,
 				FoliarModel & foliarModel,
+				const phsdata::UnderstoryMulti & understory,
 				const unsigned int & foliarModelIndice,
 				const unsigned int & outputModelIndex) {
-	double ladMParameter = 0;
-	double labB0Parameter = 0;
-	double ladB1Parameter = 0;
-	double ladB2Parameter = 0;
 	ofstream writeOutputLeafAngleDistribution;
 	ofstream writeOutputElliptical;
-	string ladFileName, nameDatabaseLAD = "";
-	EXIT_IF(
-		!PhaseDAO::readCoeffDiffParametersForFoliar(foliarModelIndice, ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter,
-			nameDatabaseLAD, foliarModel), "");
-	switch (foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice)) {
+
+	// Port the phsdata storage into the per-model FoliarModel parameters
+	foliarModel.setFoliarTypeOfLeafAngleDistribution(foliarModelIndice, understory.lad);
+	foliarModel.setFoliarClumpingA(foliarModelIndice, understory.clumpingA);
+	foliarModel.setFoliarClumpingB(foliarModelIndice, understory.clumpingB);
+	foliarModel.setFoliarOmegaMin(foliarModelIndice, understory.omegaMin);
+	foliarModel.setFoliarOmegaMax(foliarModelIndice, understory.omegaMax);
+	foliarModel.setFoliarDimension(foliarModelIndice, understory.dimFoliar);
+	foliarModel.setHotSpotFactor(foliarModelIndice, understory.thermalHotSpotFactor);
+
+	switch (understory.lad) {
 		case globalReferences::ELLIPS:
-			if (foliarModel.getFoliarAverageLeafAngle(foliarModelIndice) >= 1e-10) {
-				ladComputation.computeEllipsoidalLadDistribution(foliarModel.getFoliarAverageLeafAngle(foliarModelIndice));
+			if (understory.ellipsoidalAla.is_initialized() && understory.ellipsoidalAla.value() >= 1e-10) {
+				foliarModel.setFoliarAverageLeafAngle(foliarModelIndice, understory.ellipsoidalAla.value());
+				ladComputation.computeEllipsoidalLadDistribution(understory.ellipsoidalAla.value());
 			} else {
 				foliarModel.setFoliarTypeOfLeafAngleDistribution(foliarModelIndice, globalReferences::HORIZ);
 				ladComputation.computeVerticalHorizontalLadDistribution(0);
 			}
 			break;
 		case globalReferences::BOUNDEDUNI:
+			foliarModel.setNumberOfAla(foliarModelIndice, understory.boundedUniformNbAla.value_or(1));
+			foliarModel.setNthAla(foliarModelIndice, understory.boundedUniformNthAla.value_or(1));
 			ladComputation.computeBoundedUniformLadDistribution(foliarModel.getNumberOfAla(foliarModelIndice),
 				foliarModel.getNthOfAla(foliarModelIndice));
 			break;
 
 		case globalReferences::ELLIPT:
+			foliarModel.setFoliarEllipsePrincipalAngle(foliarModelIndice, understory.ellipticalThetaM.value_or(0.));
+			foliarModel.setFoliarEllipseEccentricity(foliarModelIndice, understory.ellipticalEpsilon.value_or(0.));
 			ladComputation.computeEllipticalLadDistribution(foliarModel.getFoliarEllipsePrincipalAngle(foliarModelIndice),
 				foliarModel.getFoliarEllipseEccentricity(foliarModelIndice));
 			ladComputation.writeEllipticalLad(writeOutputElliptical);
@@ -2393,14 +2401,17 @@ void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 			ladComputation.computeVerticalHorizontalLadDistribution(90);
 			break;
 		case globalReferences::MANUAL: // De Wit
-			ladComputation.computeClassicalLadDistribution(ladMParameter, labB0Parameter, ladB1Parameter, ladB2Parameter);
+			ladComputation.computeClassicalLadDistribution(understory.manualLad.m, understory.manualLad.b0,
+				understory.manualLad.b1, understory.manualLad.b2);
 			break;
-		case globalReferences::USERDEFINED:
-			ladFileName = DartEnv::getDatabasePath(nameDatabaseLAD) + nameDatabaseLAD;
+		case globalReferences::USERDEFINED: {
+			const std::string nameDatabaseLAD = understory.userDefinedLadFileName.value_or("");
+			const std::string ladFileName = DartEnv::getDatabasePath(nameDatabaseLAD) + nameDatabaseLAD;
 			ladComputation.readLadFile(ladFileName);
 			break;
+		}
 		default:
-			ladComputation.getLadFile(foliarModel.getFoliarTypeOfLeafAngleDistribution(foliarModelIndice));
+			ladComputation.getLadFile(understory.lad);
 			break;
 	}
 	if (genDTO.isAskedForWritingLadResultsCheck == 1) {

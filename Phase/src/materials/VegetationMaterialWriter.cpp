@@ -101,7 +101,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 	// angle distribution into the single-slot LAD vectors (no other model's LAD
 	// data is stored). Must run before the getFoliarTypeOfLeafAngleDistribution()
 	// reads below (the ELLIPS/ALA==0 case rewrites the type to HORIZ).
-	computeLadDataForModel(genDTO, ladComputation, foliarModel, foliarIndice, modelIndex);
+	computeLadDataForModel(genDTO, ladComputation, foliarModel, understory, foliarIndice, modelIndex);
 
 	vector<FoliarProperty> foliarProperty;
 	foliarProperty.resize(genDTO.numberOfSpectralBands);

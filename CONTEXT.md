@@ -202,6 +202,17 @@ Sandbox notes for rebuilding the prefix (no root available):
     parameters (and the LADComputation include) were dropped from both
     functions; behavior unchanged (same model, same parameters, single-slot
     LAD vectors).
+19. Foliar LAD params ported to phsdata (this session, templates in
+    Phase/inputTest/XMLTemplate v5+v6 used as the exhaustive reference):
+    phsdata::UnderstoryMulti now loads lad, dimFoliar, thermalHotSpotFactor,
+    DirectionalClumpingIndexProperties (clumpinga/clumpingb/omegaMin/omegaMax)
+    and the conditional LAD children (Ellipsoidal.ala, Elliptical.thetam/
+    epsilon, BoundedUniform.nbAla/nthAla, UserDefined.fileName,
+    Manual.lad_m/lad_b0/lad_b1/lad_b2) via exists() guards.
+    computeLadDataForModel() now takes the UnderstoryMulti and copies these
+    into the per-model FoliarModel params (no PhaseDAO read); the DAO functions
+    readCoeffDiffParametersForFoliar{,XML} are deleted. v5->v6 renames handled
+    by the external XML upgrader, not here.
 
 ## Known TODOs / open points (next sessions)
 
@@ -226,9 +237,10 @@ Sandbox notes for rebuilding the prefix (no root available):
   loops the UnderstoryMulti models grouped by DirectionSetLink and redoes the
   direction-set-dependent precomputing only on change; output model index is
   UnderstoryMulti::indexFunction.
-- Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti
-  (later round): readCoeffDiffParametersForFoliar (LAD params),
-  readMultiplicativeFactorFoliar (UnderstoryNodeMultiplicativeFactorForLUT),
+- Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti:
+  readCoeffDiffParametersForFoliar (LAD params) DONE (history item 19);
+  still to do: readMultiplicativeFactorFoliar
+  (UnderstoryNodeMultiplicativeFactorForLUT),
   readCoeffDiffParametersForFoliarOpticalFactors.
 - Remove the redundant per-band LAD recompute inside
   PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}:
