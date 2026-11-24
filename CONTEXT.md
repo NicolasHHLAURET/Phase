@@ -226,6 +226,12 @@ Sandbox notes for rebuilding the prefix (no root available):
     PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors deleted.
     NOTE: duplicateFirstMatrixLayer in the v6 template is a producer-side
     error (to be dropped from the XML); phsdata deliberately does NOT read it.
+21. TODO section consolidated (this session, agreed with owner): added the
+    open points below (Foliar C-structure cleanup, treatSpecular/
+    treatPhaseExtern/treatMixedMaterial refactorization, treatHapke dead code,
+    remaining PhaseDAO call sites, database self-destruct, foliar OF
+    Top-vs-Bottom). PhaseOld/ (added in 9dc5a2f) holds the pre-factorization
+    code for old-vs-new comparison and validation.
 
 ## Known TODOs / open points (next sessions)
 
@@ -272,6 +278,51 @@ Sandbox notes for rebuilding the prefix (no root available):
 - librairieDart files NOT in dart_core yet (libIlwis, MakInversionParser,
   netcdf, yaml, lut/inversion databases, JobWriter): add when a module
   needs them. MakInversionParser still uses TinyXML (needs port to pugixml).
+- FOLIAR C-STRUCTURE CLEANUP: continue cleaning the old C Foliar storage
+  (FoliarModel / FoliarComputation / LADComputation): separate
+  common-to-all-models data from per-model data (single-slot LAD vectors
+  already done, history item 17), compute/allocate per-model data only when
+  the model is treated, and drop it afterwards. Diagnostic (item 17): no
+  cross-model access exists, except one unintended case where the XML
+  indexFunction was used for data access instead of the loop position --
+  fixed by the foliarIndice/outputModelIndex split.
+- REFACTOR INTO MaterialWriter CLASSES (same pattern as the Lambertian / Hapke
+  / RPV writers): treatSpecular (Phase.cpp:1031), treatPhaseExtern
+  (Phase.cpp:1356), treatMixedMaterial (Phase.cpp:1423).
+- DEAD CODE REMOVAL: treatHapke (definition PhaseSurfaces.cpp:10, declaration
+  Phase.hpp:305) has NO callers -- Hapke1981MaterialWriter replaced it;
+  delete it (also check the treatHapke2 declaration, Phase.hpp:332), then
+  sweep for other dead code.
+- REMAINING PhaseDAO CALL SITES to port into phsdata / remove:
+  Phase.cpp:1003 readMultiplicativeFactorFoliar (the last foliar DAO read;
+  note it also snaps iterationStepTheta/Phi to divisor tables -- preserve
+  that when porting; it reads BOTH Top and Bottom models via
+  readFoliarMultiplicativeFactorForModelXML, reusable through
+  phsdata::UnderstoryMultiplicativeFactorList);
+  PhaseSurfaces.cpp:116 and Phase.cpp:1195 call
+  readCoeffDiffParametersForLambertianOpticalFactors with the HAPKE /
+  SPECULAR model index -- same pattern as the line-387 bug fixed in item 20;
+  verify against the v5/v6 templates whether specular/hapke own an optical
+  factor subtree in v6 or intentionally reuse the lambertian one;
+  Phase.cpp:1768 readCoeffDiffParametersForFluidOpticalFactors
+  (atmosphere / fluid path).
+- DATABASE SELF-DESTRUCT not properly handled: the selfDestruct loop
+  (Phase.cpp ~2234, over opticalPropertiesDatabases built by
+  createDatabasesReadingProperties) must cover ALL temporary databases. After
+  the writer refactor, lambertian prospect/marmit DBs get selfDestruct=true
+  in LambertianMaterialWriter::prepareDatabase -- check they are also
+  registered in the reading-properties list (gap noticed during the
+  vegetation-writer session).
+- FOLIAR OPTICAL FACTORS Top-vs-Bottom: the v5/v6 XMLs define optical
+  factors for BOTH UnderstoryMultiTopModel and UnderstoryMultiBottomModel.
+  The standard v<i>OF section currently uses Top only, and the
+  equivalent-lambertian materials reuse the SAME foliar texture for
+  consistency (item 20). Open question: what are the Bottom OFs for?
+  Compare with PhaseOld/ and the templates; decide whether bottom-face
+  outputs must use the Bottom list.
+- PhaseOld/ (added in 9dc5a2f) = code of Phase before the factorization, kept
+  for old-vs-new comparison and validation (bugs, unintended behavior
+  changes, new behaviors to document).
 
 ## Pitfalls encountered (do not rediscover)
 
