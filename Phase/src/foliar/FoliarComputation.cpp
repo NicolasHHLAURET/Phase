@@ -48,11 +48,9 @@ void FoliarComputation::initFoliarComputation(	const unsigned int & numberOfDire
 	}
 
 	// New precomputation
-	_preDiffuseTransfertFunctionVector.resize(numberOfFoliarModels, std::vector<std::vector<std::vector<double> > >(4));
-	for (unsigned int q = 0; q < numberOfFoliarModels; q++) {
-		for (unsigned int i = 0; i < 4; i++) {
-			_preDiffuseTransfertFunctionVector[q][i].resize(_numberOfDirections, std::vector<double>(_numberOfDirections));
-		}
+	_preDiffuseTransfertFunctionVector.resize(4);
+	for (unsigned int i = 0; i < 4; i++) {
+		_preDiffuseTransfertFunctionVector[i].resize(_numberOfDirections, std::vector<double>(_numberOfDirections));
 	}
 }
 
@@ -146,23 +144,20 @@ void FoliarComputation::computeFoliarPerBand(	FoliarProperty & foliarProperty,
 	_albedoVector[spectralBandIndex] = 0;
 	_albedoSpecVector[spectralBandIndex] = 0;
 
-	foliarProperty.diffuseTransmittanceAccelerationFactor = _parametersForFoliarModels[modelIndex].diffuseTransmittanceAccelerationFactor;
-	foliarProperty.bottomDiffuseTransmittanceAccelerationFactor = _parametersForFoliarModels[modelIndex].bottomDiffuseTransmittanceAccelerationFactor;
-
-	foliarProperty.typeOfLeafAngleDistribution = _parametersForFoliarModels[modelIndex].typeOfLeafAngleDistribution;
-	foliarProperty.foliarDimension = _parametersForFoliarModels[modelIndex].foliarDimension;
+	foliarProperty.typeOfLeafAngleDistribution = _parametersForCurrentModel.typeOfLeafAngleDistribution;
+	foliarProperty.foliarDimension = _parametersForCurrentModel.foliarDimension;
 
 	foliarProperty.reflectanceTop = 0.01 * foliarDatabaseParameters->getTopReflectanceForBand(spectralBandIndex)
-			* _parametersForFoliarModels[modelIndex].adaxialReflectanceVector[spectralBandIndex];
+			* _parametersForCurrentModel.adaxialReflectanceVector[spectralBandIndex];
 
 	foliarProperty.reflectanceBottom = 0.01 * foliarDatabaseParameters->getBottomReflectanceForBand(spectralBandIndex)
-			* _parametersForFoliarModels[modelIndex].abaxialReflectanceVector[spectralBandIndex];
+			* _parametersForCurrentModel.abaxialReflectanceVector[spectralBandIndex];
 
 	foliarProperty.transmittance = 0.01 * foliarDatabaseParameters->getTransmittanceForBand(spectralBandIndex)
-			* _parametersForFoliarModels[modelIndex].leafTransmittanceVector[spectralBandIndex];
+			* _parametersForCurrentModel.leafTransmittanceVector[spectralBandIndex];
 
 	foliarProperty.bottomTransmittance = 0.01 * foliarDatabaseParameters->getBottomTransmittanceForBand(spectralBandIndex)
-			* _parametersForFoliarModels[modelIndex].bottomLeafTransmittanceVector[spectralBandIndex];
+			* _parametersForCurrentModel.bottomLeafTransmittanceVector[spectralBandIndex];
 
 	if (_topFluorescenceComputation || _bottomFluorescenceComputation) {
 		foliarProperty.topPSIBackward.resize(_numberOfSpectralBands);
@@ -366,10 +361,10 @@ void FoliarComputation::preComputeTransfertFunctionOfFoliarDiffuse(	const std::v
 		if (_transmTransfertFunctionVector[incidentDirection] < EPSILON) {
 			double solidAngleCorrection = listDirections[outputDirection].getCosThetaDOmega()
 					/ (std::cos(listDirections[outputDirection].getCenterTheta()) * listDirections[outputDirection].getSolidAngle());
-			_preDiffuseTransfertFunctionVector[modelIndex][idMaskFoliarProperty][incidentDirection][outputDirection] = integranddTheta
+			_preDiffuseTransfertFunctionVector[idMaskFoliarProperty][incidentDirection][outputDirection] = integranddTheta
 					* listDirections[outputDirection].getSolidAngle() * solidAngleCorrection * _clumpingIndex[incidentDirection] * iterationStepPhi;
 		} else {
-			_preDiffuseTransfertFunctionVector[modelIndex][idMaskFoliarProperty][incidentDirection][outputDirection] = integranddTheta
+			_preDiffuseTransfertFunctionVector[idMaskFoliarProperty][incidentDirection][outputDirection] = integranddTheta
 					* _foliarPrecomputedNormalisation[incidentDirection][outputDirection];
 		}
 	}
@@ -475,12 +470,12 @@ void FoliarComputation::computeTransfertFunctionOfFoliarDiffuse(const std::vecto
 																const unsigned int & modelIndex,
 																const unsigned int & reflectanceMode) {
 	// A + B + C + D
-	double fReflectanceTop = opticalProperties.reflectanceTop * _preDiffuseTransfertFunctionVector[modelIndex][0][incidentDirection][outputDirection];
+	double fReflectanceTop = opticalProperties.reflectanceTop * _preDiffuseTransfertFunctionVector[0][incidentDirection][outputDirection];
 	double fReflectanceBottom = opticalProperties.reflectanceBottom
-			* _preDiffuseTransfertFunctionVector[modelIndex][1][incidentDirection][outputDirection];
-	double fTransmittance = opticalProperties.transmittance * _preDiffuseTransfertFunctionVector[modelIndex][2][incidentDirection][outputDirection];
+			* _preDiffuseTransfertFunctionVector[1][incidentDirection][outputDirection];
+	double fTransmittance = opticalProperties.transmittance * _preDiffuseTransfertFunctionVector[2][incidentDirection][outputDirection];
 	double fTransmittanceBottom = opticalProperties.bottomTransmittance
-			* _preDiffuseTransfertFunctionVector[modelIndex][3][incidentDirection][outputDirection];
+			* _preDiffuseTransfertFunctionVector[3][incidentDirection][outputDirection];
 
 	_diffuseTransfertFunctionVector[reflectanceMode][incidentDirection][outputDirection] = fReflectanceTop + fReflectanceBottom + fTransmittance
 			+ fTransmittanceBottom;
@@ -498,12 +493,12 @@ void FoliarComputation::computeFluorescenceTransferFunction(const std::vector<Di
 //	double bottomAbsorption = (1. - opticalProperties.reflectanceBottom - opticalProperties.bottomTransmittance);
 	for (unsigned int bandId = 0; bandId < _numberOfSpectralBands; ++bandId) {
 		if (_topFluorescenceComputation) {
-			_fluorescenceDirectionTransferMatrixPSI[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[modelIndex][0][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][0] + _preDiffuseTransfertFunctionVector[modelIndex][2][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][2];
-			_fluorescenceDirectionTransferMatrixPSII[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[modelIndex][0][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][1] + _preDiffuseTransfertFunctionVector[modelIndex][2][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][3];
+			_fluorescenceDirectionTransferMatrixPSI[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[0][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][0] + _preDiffuseTransfertFunctionVector[2][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][2];
+			_fluorescenceDirectionTransferMatrixPSII[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[0][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][1] + _preDiffuseTransfertFunctionVector[2][incidentDirection][outputDirection] * _frontFaceFluorescenceMatrix[reflectanceMode][bandId][3];
 		}
 		if (_bottomFluorescenceComputation) {
-			_fluorescenceDirectionTransferMatrixPSI[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[modelIndex][1][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][0] + _preDiffuseTransfertFunctionVector[modelIndex][3][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][2];
-			_fluorescenceDirectionTransferMatrixPSII[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[modelIndex][1][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][1] + _preDiffuseTransfertFunctionVector[modelIndex][3][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][3];
+			_fluorescenceDirectionTransferMatrixPSI[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[1][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][0] + _preDiffuseTransfertFunctionVector[3][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][2];
+			_fluorescenceDirectionTransferMatrixPSII[reflectanceMode * _numberOfSpectralBands + bandId][incidentDirection * (_numberOfDirections) + outputDirection] += _preDiffuseTransfertFunctionVector[1][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][1] + _preDiffuseTransfertFunctionVector[3][incidentDirection][outputDirection] * _backFaceFluorescenceMatrix[reflectanceMode][bandId][3];
 		}
 	}
 }
@@ -1100,17 +1095,17 @@ void FoliarComputation::writeFoliar(const unsigned int& modelIndex,
 	pkmg.setBandeSpectrale(spectralBandIndex);
 	outCoeffSpecProperties << pkmg.clePhaseUtilisee() << "1" << std::endl;
 	outCoeffSpecProperties << pkmg.cleNomFichier() << modelName << std::endl;
-	outCoeffSpecProperties << pkmg.cleOmegaMin() << _foliarModel.getFoliarOmegaMin(modelIndex) << std::endl;
-	outCoeffSpecProperties << pkmg.cleOmegaMax() << _foliarModel.getFoliarOmegaMax(modelIndex) << std::endl;
-	outCoeffSpecProperties << pkmg.cleClumpingA() << _foliarModel.getFoliarClumpingA(modelIndex) << std::endl;
-	outCoeffSpecProperties << pkmg.cleClumpingB() << _foliarModel.getFoliarClumpingB(modelIndex) << std::endl;
+	outCoeffSpecProperties << pkmg.cleOmegaMin() << _foliarModel.getFoliarOmegaMin() << std::endl;
+	outCoeffSpecProperties << pkmg.cleOmegaMax() << _foliarModel.getFoliarOmegaMax() << std::endl;
+	outCoeffSpecProperties << pkmg.cleClumpingA() << _foliarModel.getFoliarClumpingA() << std::endl;
+	outCoeffSpecProperties << pkmg.cleClumpingB() << _foliarModel.getFoliarClumpingB() << std::endl;
 	outCoeffSpecProperties << pkmg.cleLAD() << foliarPropertyVector[spectralBandIndex].typeOfLeafAngleDistribution << std::endl;
 
 	if (foliarPropertyVector[spectralBandIndex].typeOfLeafAngleDistribution == globalReferences::ELLIPS) {
-		outCoeffSpecProperties << pkmg.cleALA() << _foliarModel.getFoliarAverageLeafAngle(modelIndex) << std::endl;
+		outCoeffSpecProperties << pkmg.cleALA() << _foliarModel.getFoliarAverageLeafAngle() << std::endl;
 	} else if (foliarPropertyVector[spectralBandIndex].typeOfLeafAngleDistribution == globalReferences::ELLIPT) {
-		outCoeffSpecProperties << pkmg.cleThetaM() << _foliarModel.getFoliarEllipsePrincipalAngle(modelIndex) << std::endl;
-		outCoeffSpecProperties << pkmg.cleEccentricity() << _foliarModel.getFoliarEllipseEccentricity(modelIndex) << std::endl;
+		outCoeffSpecProperties << pkmg.cleThetaM() << _foliarModel.getFoliarEllipsePrincipalAngle() << std::endl;
+		outCoeffSpecProperties << pkmg.cleEccentricity() << _foliarModel.getFoliarEllipseEccentricity() << std::endl;
 	}
 	outCoeffSpecProperties << pkmg.cleDimensionFoliaire() << foliarPropertyVector[spectralBandIndex].foliarDimension << std::endl;
 	outCoeffSpecProperties << pkmg.cleRoSuperieur() << foliarPropertyVector[spectralBandIndex].reflectanceTop << std::endl;
@@ -1411,23 +1406,22 @@ void FoliarComputation::writeTransmittance(	const FTFoliar & fTFoliar,
 }
 
 void FoliarComputation::computeClumpingIndex(	const std::vector<DirectionCartesienne> & listDirections,
-												const DirectionCartesienne & sunDirection,
-												const unsigned int & modelIndex) {
+								const DirectionCartesienne & sunDirection) {
 	double theta = 0;
 	for (int incidentDirection = 0; incidentDirection < listDirections.size(); incidentDirection++) {
 		const DirectionCartesienne & inDir = incidentDirection == listDirections.size() ? sunDirection: listDirections[incidentDirection];
 		theta = inDir.getCenterTheta();
-		if (fabs(_foliarModel.getFoliarOmegaMin(modelIndex) - _foliarModel.getFoliarOmegaMax(modelIndex)) < EPSILON
-				&& fabs(_foliarModel.getFoliarOmegaMax(modelIndex) - _foliarModel.getFoliarClumpingA(modelIndex)) < EPSILON) {
-			_clumpingIndex[incidentDirection] = _foliarModel.getFoliarClumpingA(modelIndex) + _foliarModel.getFoliarClumpingB(modelIndex) * theta;
+		if (fabs(_foliarModel.getFoliarOmegaMin() - _foliarModel.getFoliarOmegaMax()) < EPSILON
+				&& fabs(_foliarModel.getFoliarOmegaMax() - _foliarModel.getFoliarClumpingA()) < EPSILON) {
+			_clumpingIndex[incidentDirection] = _foliarModel.getFoliarClumpingA() + _foliarModel.getFoliarClumpingB() * theta;
 			_transmTransfertFunctionVector[incidentDirection] *= _clumpingIndex[incidentDirection];
 		} else {
 			if (theta > 90.) {
 				theta = 180 - theta;
 			}
-			_clumpingIndex[incidentDirection] = _foliarModel.getFoliarOmegaMin(modelIndex)
-					+ _foliarModel.getFoliarOmegaMax(modelIndex)
-							/ (1 + exp(-_foliarModel.getFoliarClumpingA(modelIndex) * (theta - _foliarModel.getFoliarClumpingB(modelIndex))));
+			_clumpingIndex[incidentDirection] = _foliarModel.getFoliarOmegaMin()
+					+ _foliarModel.getFoliarOmegaMax()
+							/ (1 + exp(-_foliarModel.getFoliarClumpingA() * (theta - _foliarModel.getFoliarClumpingB())));
 			_transmTransfertFunctionVector[incidentDirection] *= _clumpingIndex[incidentDirection];
 		}
 	}

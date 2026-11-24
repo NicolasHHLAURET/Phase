@@ -260,6 +260,30 @@ Sandbox notes for rebuilding the prefix (no root available):
     top model when hasDifferentModelForBottom=0. v6 node/attr names:
     UnderstoryNodeMultiplicativeFactorForLUT /
     UnderstoryMultiplicativeFactorForLUT / leafTransmittanceFactor.
+23. Foliar C-structure cleanup (this session): FoliarModel now stores ONE
+    FoliarModelParameters slot for the current model (the LAD/g-function
+    vectors were already single-slot since item 16); all setters/getters lost
+    their model-index parameter. Per-model data is computed only when the
+    model is treated: computeLadDataForModel() and the new per-model
+    fillFoliarModelMultiplicativeFactors(understory, foliarModel) are both
+    called from VegetationMaterialWriter::treat() (the fill moved out of
+    prepareVegetationDirectionSet, which no longer loops the models).
+    FoliarComputation's _preDiffuseTransfertFunctionVector lost its
+    [modelIndex] level (single slot [4][dir][dir]) and now references the
+    single FoliarModelParameters slot. This removes the last
+    indexFunction-vs-position mixup: computeFoliarPerBand used to read
+    _parametersForFoliarModels[foliarPropertyParameters.getModelIndex()]
+    (= XML indexFunction) while the setters wrote at the loop position --
+    latent out-of-bounds when indexFunction != position (e.g. template
+    default -1). Removed dead code: struct fields hasDifferentModelForBottom,
+    typeDiffPhase, tMinLeaf/tMaxLeaf/standardDeviationVector,
+    diffuseTransmittanceAccelerationFactor/bottom... (v6 dropped the XML
+    attribute in item 22; the FoliarProperty fields were write-only), the
+    _hotSpotFactorDistributionFunctionVector member + accessors, the unused
+    reflectance/transmittance/acceleration getters, and the dead free
+    resizePhaseParametersVectors declaration (old Phase.hpp:165).
+    initFoliarModel(numberOfSpectralBands, numberOfDirections) only resets
+    the common (direction-set) vectors and the single slot now.
 
 ## Known TODOs / open points (next sessions)
 
@@ -304,14 +328,12 @@ Sandbox notes for rebuilding the prefix (no root available):
 - librairieDart files NOT in dart_core yet (libIlwis, MakInversionParser,
   netcdf, yaml, lut/inversion databases, JobWriter): add when a module
   needs them. MakInversionParser still uses TinyXML (needs port to pugixml).
-- FOLIAR C-STRUCTURE CLEANUP: continue cleaning the old C Foliar storage
-  (FoliarModel / FoliarComputation / LADComputation): separate
-  common-to-all-models data from per-model data (single-slot LAD vectors
-  already done, history item 17), compute/allocate per-model data only when
-  the model is treated, and drop it afterwards. Diagnostic (item 17): no
-  cross-model access exists, except one unintended case where the XML
-  indexFunction was used for data access instead of the loop position --
-  fixed by the foliarIndice/outputModelIndex split.
+- FOLIAR C-STRUCTURE CLEANUP: DONE (item 23). Single-slot per-model storage
+  in FoliarModel/FoliarComputation; per-model data computed in treat() only.
+  (Reference note: the single-slot LAD vectors were item 16, commit a45629a;
+  item 17 is the patch-transfer incident of that delivery.) Possible later
+  iterations: equivalentFront/BackLambertian live in the slot although they
+  are only used within treat() -- could become writer locals.
 - REFACTOR INTO MaterialWriter CLASSES (same pattern as the Lambertian / Hapke
   / RPV writers): treatSpecular (Phase.cpp:1031), treatPhaseExtern
   (Phase.cpp:1356), treatMixedMaterial (Phase.cpp:1423).

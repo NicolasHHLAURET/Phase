@@ -13,10 +13,7 @@
 
 class FoliarModel {
 public:
-	struct ParametersForFoliarModels {
-		bool hasDifferentModelForBottom;
-
-		int typeDiffPhase;
+	struct FoliarModelParameters {
 		int typeOfLeafAngleDistribution;
 		int numberOfAla;
 		int nthAla;
@@ -24,9 +21,6 @@ public:
 		unsigned int equivalentFrontLambertian;
 		unsigned int equivalentBackLambertian;
 
-		double tMinLeaf;
-		double tMaxLeaf;
-		double standardDeviationVector;
 		double foliarDimension;
 		double hotSpotFactor;
 		double omegaMin;
@@ -37,8 +31,6 @@ public:
 		double ellipsePrincipalAngle;
 		double ellipseEccentricity;
 
-		double diffuseTransmittanceAccelerationFactor;
-		double bottomDiffuseTransmittanceAccelerationFactor;
 		std::vector<double> adaxialReflectanceVector; // == TOP
 		std::vector<double> abaxialReflectanceVector; // == BOTTOM
 		std::vector<double> leafTransmittanceVector;
@@ -46,22 +38,20 @@ public:
 	};
 
 private:
-	std::vector<FoliarModel::ParametersForFoliarModels> _parametersForFoliarModels;
+	FoliarModelParameters _parametersForCurrentModel; // current model only (single slot)
 	std::vector<double> _transmTransfertFunctionVector; // common to all models (one direction set)
 	std::vector<double> _leafAngleDistributionFunctionVector; // current model only (single slot)
-	std::vector<std::vector<double> > _hotSpotFactorDistributionFunctionVector;
 	std::vector<double> _gFunctionForLadComputationFunctionVector; // current model only (single slot)
 
 public:
-	void initFoliarModel(	const unsigned int & numberOfFoliarModels,
-							const unsigned int & numberOfSpectralBands,
+	void initFoliarModel(	const unsigned int & numberOfSpectralBands,
 							const unsigned int & numberOfDirections);
 
 	const std::vector<double> & getLeafAngleDistributionFunctionVector();
 	const std::vector<double> & getTransmTransfertFunctionVector();
 
-	std::vector<FoliarModel::ParametersForFoliarModels> & getRefParametersForFoliarModels() {
-		return _parametersForFoliarModels;
+	FoliarModelParameters & getRefParametersForCurrentModel() {
+		return _parametersForCurrentModel;
 	}
 	std::vector<double> & getRefTransmTransfertFunctionVector() {
 		return _transmTransfertFunctionVector;
@@ -75,110 +65,68 @@ public:
 		return _gFunctionForLadComputationFunctionVector;
 	}
 
-	const std::vector<std::vector<double> >& getHotSpotFactorDistributionFunctionVector() const {
-		return _hotSpotFactorDistributionFunctionVector;
-	}
+	void setFoliarClumpingA(const double& value);
 
-	void setHotSpotFactorDistributionFunctionVector(const std::vector<std::vector<double> >& hotSpotFactorDistributionFunctionVector) {
-		_hotSpotFactorDistributionFunctionVector = hotSpotFactorDistributionFunctionVector;
-	}
+	void setFoliarClumpingB(const double& value);
 
-	void setFoliarClumpingA(const unsigned int& indice,
-							const double& value);
+	void setFoliarOmegaMin(const double& value);
 
-	void setFoliarClumpingB(const unsigned int& indice,
-							const double& value);
+	void setFoliarOmegaMax(const double& value);
 
-	void setFoliarOmegaMin(	const unsigned int& indice,
-							const double& value);
+	double getFoliarClumpingA();
 
-	void setFoliarOmegaMax(	const unsigned int& indice,
-							const double& value);
+	double getFoliarClumpingB();
 
-	double getFoliarClumpingA(const unsigned int& indice);
+	double getFoliarOmegaMin();
 
-	double getFoliarClumpingB(const unsigned int& indice);
+	double getFoliarOmegaMax();
 
-	double getFoliarOmegaMin(const unsigned int& indice);
+	void setFoliarDimension(const double& value);
 
-	double getFoliarOmegaMax(const unsigned int& indice);
+	double getFoliarDimension();
 
-	void setFoliarDimension(const unsigned int& indice,
-							const double& value);
+	double getHotSpotFactor() const;
 
-	double getFoliarDimension(const unsigned int& indice);
-	//
+	void setHotSpotFactor(const double& value);
 
-	double getHotSpotFactor(const unsigned int& indice) const;
+	void setFoliarAverageLeafAngle(const double& value);
 
-	void setHotSpotFactor(const unsigned int& indice,
-							const double& value);
+	double getFoliarAverageLeafAngle();
 
-	void setFoliarAverageLeafAngle(	const unsigned int& indice,
-									const double& value);
+	void setNumberOfAla(const int& value);
 
-	double getFoliarAverageLeafAngle(const unsigned int& indice);
+	int getNumberOfAla();
 
-	void setNumberOfAla(const int& indice,
-						const int& value);
+	void setNthAla(const int& value);
 
-	int getNumberOfAla(const int& indice);
+	int getNthOfAla();
 
-	void setNthAla(	const int& indice,
-					const int& value);
+	void setFoliarEllipsePrincipalAngle(const double& value);
 
-	int getNthOfAla(const int& indice);
+	void setFoliarEllipseEccentricity(const double& value);
 
-	void setFoliarEllipsePrincipalAngle(const unsigned int& indice,
-										const double& value);
+	double getFoliarEllipsePrincipalAngle();
 
-	void setFoliarEllipseEccentricity(	const unsigned int& indice,
-										const double& value);
+	double getFoliarEllipseEccentricity();
 
-	double getFoliarEllipsePrincipalAngle(const unsigned int& indice);
+	void setFoliarTypeOfLeafAngleDistribution(const int& value);
 
-	double getFoliarEllipseEccentricity(const unsigned int& indice);
+	int getFoliarTypeOfLeafAngleDistribution();
 
-	void setFoliarTypeOfLeafAngleDistribution(	const unsigned int& indice,
-												const int& value);
-
-	int getFoliarTypeOfLeafAngleDistribution(const unsigned int& indice);
-
-
-	void setAbaxialDiffuseTransmittanceAccelerationForFoliar(	const unsigned int& indice,
-															const double & value);
-	void setAdaxialDiffuseTransmittanceAccelerationForFoliar(	const unsigned int& indice,
-															const double & value);
-	double getAbaxialDiffuseTransmittanceAccelerationForFoliar(	const unsigned int& indice) const;
-	double getAdaxialDiffuseTransmittanceAccelerationForFoliar(	const unsigned int& indice) const;
-
-	void setAdaxialReflectanceForFoliar(const unsigned int& indice,
-										const unsigned int& spectralBand,
+	void setAdaxialReflectanceForFoliar(	const unsigned int& spectralBand,
 										const double & value);
 
-	void setAbaxialReflectanceForFoliar(const unsigned int& indice,
-										const unsigned int& spectralBand,
+	void setAbaxialReflectanceForFoliar(	const unsigned int& spectralBand,
 										const double & value);
 
-	void setLeafTransmittanceForFoliar(	const unsigned int& indice,
-										const unsigned int& spectralBand,
+	void setLeafTransmittanceForFoliar(	const unsigned int& spectralBand,
 										const double & value,
 										const bool & isBottomFace);
 
-	double getAdaxialReflectanceForFoliar(	const unsigned int& indice,
-											const unsigned int& spectralBand);
-
-	double getAbaxialReflectanceForFoliar(	const unsigned int& indice,
-											const unsigned int& spectralBand);
-
-	double getLeafTransmittanceForFoliar(	const unsigned int& indice,
-											const unsigned int& spectralBand,
-											const bool & isBottomFace);
-
-	void setEquivalentFrontLambertianIndex(const unsigned int foliarIndex, const unsigned int lambertianIndex);
-	void setEquivalentBackLambertianIndex(const unsigned int foliarIndex, const unsigned int lambertianIndex);
-	unsigned int getEquivalentFrontLambertianIndex(const unsigned int foliarIndex) const;
-	unsigned int getEquivalentBackLambertianIndex(const unsigned int foliarIndex) const;
+	void setEquivalentFrontLambertianIndex(const unsigned int lambertianIndex);
+	void setEquivalentBackLambertianIndex(const unsigned int lambertianIndex);
+	unsigned int getEquivalentFrontLambertianIndex() const;
+	unsigned int getEquivalentBackLambertianIndex() const;
 
 };
 

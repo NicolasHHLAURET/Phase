@@ -45,7 +45,7 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
 	return vegetation;
 }
 
-static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel, const unsigned int modelPosition,
+static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel,
 		const phsdata::UnderstoryModel * model, const bool isBottomFace, const unsigned int numberOfBands) {
 	if (model == nullptr || !model->useMultiplicativeFactorForLUT || !model->nodeMultiplicativeFactor.is_initialized())
 		return;
@@ -53,40 +53,35 @@ static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel, 
 	for (unsigned int sbi = 0; sbi < numberOfBands && sbi < mfl.factors.size(); ++sbi) {
 		auto umf = std::static_pointer_cast<const phsdata::UnderstoryMultiplicativeFactor>(mfl.factors[sbi]);
 		if (isBottomFace)
-			foliarModel.setAbaxialReflectanceForFoliar(modelPosition, sbi, umf->reflectanceFactor);
+			foliarModel.setAbaxialReflectanceForFoliar(sbi, umf->reflectanceFactor);
 		else
-			foliarModel.setAdaxialReflectanceForFoliar(modelPosition, sbi, umf->reflectanceFactor);
-		foliarModel.setLeafTransmittanceForFoliar(modelPosition, sbi, umf->leafTransmittanceFactor, isBottomFace);
+			foliarModel.setAdaxialReflectanceForFoliar(sbi, umf->reflectanceFactor);
+		foliarModel.setLeafTransmittanceForFoliar(sbi, umf->leafTransmittanceFactor, isBottomFace);
 	}
 }
 
-void fillFoliarModelMultiplicativeFactors(const PhaseGeneralParametersDTO & genDTO, FoliarModel & foliarModel) {
+void fillFoliarModelMultiplicativeFactors(const phsdata::UnderstoryMulti & understory, FoliarModel & foliarModel) {
 	const unsigned int numberOfBands = PhaseProperty::getNumberOfSpectralBands();
-	for (unsigned int modelPosition = 0; modelPosition < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelPosition) {
-		const phsdata::UnderstoryMulti & understory = *genDTO._volumesMaterials.understoryMultiFunctions[modelPosition];
-		const phsdata::UnderstoryModel * topModel = understory.getTopModel();
-		const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
-		if (bottomModel == nullptr)
-			bottomModel = topModel;
-		fillFoliarModelFaceMultiplicativeFactors(foliarModel, modelPosition, topModel, false, numberOfBands);
-		fillFoliarModelFaceMultiplicativeFactors(foliarModel, modelPosition, bottomModel, true, numberOfBands);
-	}
+	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
+	const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
+	if (bottomModel == nullptr)
+		bottomModel = topModel;
+	fillFoliarModelFaceMultiplicativeFactors(foliarModel, topModel, false, numberOfBands);
+	fillFoliarModelFaceMultiplicativeFactors(foliarModel, bottomModel, true, numberOfBands);
 }
 
 /**
  * (Re)initialises the shared foliar objects for one direction set and runs the
  * direction-set-dependent precomputing. Called by VegetationMaterialWriter
- * whenever the direction set changes between models (the per-model data filled
- * by fillFoliarModelMultiplicativeFactors is reset by initFoliarModel, so it is
- * redone here as well; the per-model LAD is computed later in treat(), per
- * model).
+ * whenever the direction set changes between models (the per-model data is
+ * reset by initFoliarModel, so it is recomputed in treat(), per model).
  */
 void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
 	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
 	const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
 	const unsigned int numberOfDirections = listDirections.size();
 
-	vegetation.foliarModel->initFoliarModel(numberOfFoliarModels, PhaseProperty::_numberOfSpectralBands,
+	vegetation.foliarModel->initFoliarModel(PhaseProperty::_numberOfSpectralBands,
 			numberOfDirections);
 
 	vegetation.foliarComputation->initFoliarComputation(numberOfDirections,
@@ -99,7 +94,6 @@ void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, Vegetatio
     PhaseProperty::resizePhaseParametersVectors();
 
 	readMultiplicativeFactor(genDTO);
-	fillFoliarModelMultiplicativeFactors(genDTO, *vegetation.foliarModel);
     printNumberOfFoliarModels();
 
     int iterationStepPhi = genDTO._volumesMaterials.integrationStepOnPhi;

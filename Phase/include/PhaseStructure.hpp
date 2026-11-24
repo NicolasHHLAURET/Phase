@@ -154,8 +154,6 @@ struct FoliarProperty {
 	std::vector<double> bottomPSIIBackward;
 	std::vector<double> bottomPSIIForward;
 
-	double diffuseTransmittanceAccelerationFactor;
-	double bottomDiffuseTransmittanceAccelerationFactor;
 
 	int typeOfLeafAngleDistribution;
 	double foliarDimension;

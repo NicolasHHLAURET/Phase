@@ -64,7 +64,7 @@ private:
 	std::vector<double> _albedoVector;
 	std::vector<double> _albedoSpecVector;
 
-	std::vector<std::vector<std::vector<std::vector<double> > > > _preDiffuseTransfertFunctionVector;
+	std::vector<std::vector<std::vector<double> > > _preDiffuseTransfertFunctionVector; // current model only (single slot): [4 masks][incidentDirection][outputDirection]
 
 	std::vector<std::vector<std::vector<double> > > _diffuseTransfertFunctionVector;
 	std::vector<std::vector<std::vector<double> > > _specularTransfertFunctionVector;
@@ -95,7 +95,7 @@ private:
 
 	std::vector<double> & _leafAngleDistributionFunctionVector;
 	std::vector<double> & _gFunctionForLadComputationFunctionVector;
-	std::vector<FoliarModel::ParametersForFoliarModels> & _parametersForFoliarModels;
+	FoliarModel::FoliarModelParameters & _parametersForCurrentModel;
 	std::vector<double> & _transmTransfertFunctionVector;
 
 	bool _topFluorescenceComputation;
@@ -107,8 +107,8 @@ private:
 	FoliarModel & _foliarModel;
 
 public:
-	FoliarComputation(FoliarModel & foliarModel) : _numberOfSpectralBands(1), _numberOfFoliarModels(1), _numberOfDirections(100), _numberOfAngularSectors(10), _rad2Deg(180. / M_PI), _nbDisplayedWarningMessages(0), _numberOfThreads(1), _leafAngleDistributionFunctionVector(foliarModel.getRefLeafAngleDistributionFunctionVecto()), _gFunctionForLadComputationFunctionVector(foliarModel.getRefGFunctionForLadComputationFunctionVector()), _parametersForFoliarModels(
-				foliarModel.getRefParametersForFoliarModels()), _transmTransfertFunctionVector(foliarModel.getRefTransmTransfertFunctionVector()), _topFluorescenceComputation(false), _bottomFluorescenceComputation(false), _foliarModel(foliarModel) {
+	FoliarComputation(FoliarModel & foliarModel) : _numberOfSpectralBands(1), _numberOfFoliarModels(1), _numberOfDirections(100), _numberOfAngularSectors(10), _rad2Deg(180. / M_PI), _nbDisplayedWarningMessages(0), _numberOfThreads(1), _leafAngleDistributionFunctionVector(foliarModel.getRefLeafAngleDistributionFunctionVecto()), _gFunctionForLadComputationFunctionVector(foliarModel.getRefGFunctionForLadComputationFunctionVector()), _parametersForCurrentModel(
+			foliarModel.getRefParametersForCurrentModel()), _transmTransfertFunctionVector(foliarModel.getRefTransmTransfertFunctionVector()), _topFluorescenceComputation(false), _bottomFluorescenceComputation(false), _foliarModel(foliarModel) {
 	}
 
 	~FoliarComputation() {}
@@ -336,8 +336,7 @@ public:
 							const string & pathFluorescence);
 
 	void computeClumpingIndex(	const std::vector<DirectionCartesienne> & listDirections,
-								const DirectionCartesienne & sunDirection,
-								const unsigned int & modelIndex);
+					const DirectionCartesienne & sunDirection);
 
 	void transmissionTransferFunction(	const double & theta,
 										const double & phi,

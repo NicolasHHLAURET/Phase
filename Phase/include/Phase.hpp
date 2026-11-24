@@ -161,14 +161,6 @@ int Initialisations(int &,
 					int &,
 					std::vector<Vecteur<double> > & tab_dir_vect);
 
-// Allocate dynamic variable we need.
-void resizePhaseParametersVectors(	ReflectanceModelsParameters& reflectanceModelsParameters,
-									std::vector<MultiplicativeFactorForRpv>& parametersForRPVModels,
-									std::vector<FoliarModel::ParametersForFoliarModels>& parametersForFoliarModels,
-									std::vector<MultiplicativeFactorForHapke>& parametersForHapkeModels,
-									std::vector<MultiplicativeFactorForHapke2>& parametersForHapke2Models,
-									std::vector<MultiplicativeFactorForLambertien>& parametersForLambertianModels);
-
 // Initialize PDF array with typeOfLeafAngleDistribution array for a specific foliar distribution.
 /*
  int initialisationLadProbabilityDensityFunctions(	const int & NumLAD,
@@ -396,7 +388,7 @@ double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirectio
 								double & solidAnglesSum);
 void printNumberOfFoliarModels();
 void readMultiplicativeFactor(const PhaseGeneralParametersDTO & genDTO);
-void fillFoliarModelMultiplicativeFactors(const PhaseGeneralParametersDTO & genDTO, FoliarModel & foliarModel);
+void fillFoliarModelMultiplicativeFactors(const phsdata::UnderstoryMulti & understory, FoliarModel & foliarModel);
 FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
 								const vector<DirectionCartesienne> & listDirections,
 								const unsigned int & iterationStepTheta,
@@ -406,7 +398,6 @@ void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 				LADComputation & ladComputation,
 				FoliarModel & foliarModel,
 				const phsdata::UnderstoryMulti & understory,
-				const unsigned int & foliarModelIndice,
 				const unsigned int & outputModelIndex);
 
 unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
