@@ -292,50 +292,22 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 		}
 	}
 
-	OpticalFactorParameters opticalFactorParameters;
-	if (PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors(foliarIndice, opticalFactorParameters)) {
-		std::string textureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opticalFactors", textureName);
-
-		std::string textureKeyRoot = "scene.textures." + textureName;
-		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".type", "opticalFactors");
-		genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".file", textureName + ".bin");
-
-		if (opticalFactorParameters.sameOpticalFactorForAllBands) {
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", opticalFactorParameters.fileNames[0]);
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", opticalFactorParameters.duplicateFirstLayer[0] ? "1" : "0");
-		} else {
-			std::ostringstream inputsOSS, duplicationOSS;
-			inputsOSS << opticalFactorParameters.fileNames[0];
-			duplicationOSS << opticalFactorParameters.duplicateFirstLayer[0];
-			for (unsigned int spectralBandIndex = 1; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-				inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
-				duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
-			}
-
-			if (PhaseProperty::getPolarization()) {
-				// 3 * numberOfSpectralBands are added to simulate Q, U, V
-				// The optical properties are repeated in these bands
-				for (unsigned int stokesCompoent = 0; stokesCompoent < 3; ++stokesCompoent) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
-					}
-				}
-			}
-
-			if (PhaseProperty::getFluorescence()) {
-				// 2 * numberOfSpectralBands are added to simulate PSI and PSII
-				// The optical properties are repeated in these bands
-				for (unsigned int photoSystemIndex = 0; photoSystemIndex < 2; ++photoSystemIndex) {
-					for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-						inputsOSS << ";" << (opticalFactorParameters.fileNames[spectralBandIndex] == "" ? "1" : opticalFactorParameters.fileNames[spectralBandIndex]);
-						duplicationOSS << ";" << (opticalFactorParameters.duplicateFirstLayer[spectralBandIndex] ? "1" : "0");
-					}
-				}
-			}
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputs", inputsOSS.str());
-			genDTO.luxCoreRenderSceneProperties.ajouterCle(textureKeyRoot + ".inputsDuplication", duplicationOSS.str());
+	// Optical factors texture of the foliar model, written directly by Phase via
+	// OpticalFactorsTextureWriter (like the surface materials), from the phsdata storage.
+	std::string opticalFactorsTextureName;
+	if (topModel->nodeMultiplicativeFactor.is_initialized()) {
+		const phsdata::MultiplicativeFactorList & mfl = *topModel->nodeMultiplicativeFactor;
+		bool useOpticalFactorMatrix = mfl.useSameOpticalFactorMatrixForAllBands && mfl.bandCommonOpticalFactors.is_initialized();
+		if (!useOpticalFactorMatrix) {
+			const unsigned int nbFactors = std::min<unsigned int>(genDTO.numberOfSpectralBands, mfl.factors.size());
+			for (unsigned int sbi = 0; sbi < nbFactors && !useOpticalFactorMatrix; sbi++)
+				useOpticalFactorMatrix = mfl.factors[sbi]->useOpticalFactorMatrix && mfl.factors[sbi]->opticalFactorMatrix.is_initialized();
+		}
+		if (useOpticalFactorMatrix) {
+			opticalFactorsTextureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
+			const boost::filesystem::path outputDir = boost::filesystem::path(DartEnv::getCurrentSimulationOutputPath()) / PhaseUtils::getOutputFolder();
+			if (!outputDir.empty() && _opticalFactorsWriter.writeTexture(genDTO, opticalFactorsTextureName, mfl, outputDir.string()))
+				genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRootScatObj.str() + "opticalFactors", opticalFactorsTextureName);
 		}
 	}
 	foliarComputer.writeTransmittance(fTFoliar, listDirections, genDTO.radiativeTransferMethod, 2, foliarProperty[0].specularFoliarData._isSpecular,
@@ -382,15 +354,15 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 					backEquivalentLambertianProperties, bottomFluorescenceResults);
 		}
 
-		/* Optical factors of the equivalent lambertians come from the foliar model */
-		OpticalFactorParameters opticalFactorParameters;
-		if (PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(foliarIndice, opticalFactorParameters)) {
-			const std::string textureName = "v" + boost::lexical_cast<std::string>(foliarIndice) + "OF";
+		/* Optical factors of the equivalent lambertians: same foliar texture as the
+		 * vegscatter one above, read from the phsdata storage. (The old code wrongly
+		 * read the LAMBERTIAN optical factors with the foliar model index.) */
+		if (!opticalFactorsTextureName.empty()) {
 			genDTO.luxCoreRenderSceneProperties.ajouterCle(
-					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", textureName);
+					"scene.materials.lambertian" + std::to_string(frontEquivalentLambertianIndex) + ".opticalFactors", opticalFactorsTextureName);
 			if (backEquivalentLambertianIndex != frontEquivalentLambertianIndex) {
 				genDTO.luxCoreRenderSceneProperties.ajouterCle(
-						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", textureName);
+						"scene.materials.lambertian" + std::to_string(backEquivalentLambertianIndex) + ".opticalFactors", opticalFactorsTextureName);
 			}
 		}
 	}

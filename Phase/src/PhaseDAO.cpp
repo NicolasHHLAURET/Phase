@@ -702,12 +702,6 @@ bool PhaseDAO::readCoeffDiffParametersForLambertianOpticalFactors(const int & in
 /*
  * Foliar
  */
-bool PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors(const int & index,
-																  OpticalFactorParameters & opticalFactorParameters) {
-		ostringstream oss;
-		oss << index;
-		return readCoeffDiffParametersOpticalFactorsXML("Coeff_diff.Volumes.UnderstoryMultiFunctions.UnderstoryMulti[" + oss.str() + "].UnderstoryMultiModel.understoryNodeMultiplicativeFactorForLUT.", "understoryMultiplicativeFactorForLUT", opticalFactorParameters);
-}
 
 bool PhaseDAO::readCoeffDiffParametersForFluidOpticalFactors(const int & index,
 																  OpticalFactorParameters & opticalFactorParameters) {

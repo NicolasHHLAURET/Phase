@@ -135,8 +135,6 @@ public:
 
 	static bool readCoeffDiffParametersForLambertianOpticalFactors(const int & index,
 																OpticalFactorParameters & opticalFactorParameters);
-	static bool readCoeffDiffParametersForFoliarOpticalFactors(const int & index,
-																OpticalFactorParameters & opticalFactorParameters);
 	static bool readCoeffDiffParametersForFluidOpticalFactors(const int & index,
 																OpticalFactorParameters & opticalFactorParameters);
 	static bool readCoeffDiffParametersOpticalFactorsXML(	const string & key,

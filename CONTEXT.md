@@ -213,6 +213,19 @@ Sandbox notes for rebuilding the prefix (no root available):
     into the per-model FoliarModel params (no PhaseDAO read); the DAO functions
     readCoeffDiffParametersForFoliar{,XML} are deleted. v5->v6 renames handled
     by the external XML upgrader, not here.
+20. Foliar optical factors ported to phsdata + written by Phase itself (this
+    session): new phsdata::UnderstoryMultiplicativeFactor{,List} (mirrors the
+    lambertian ones, with leafTransmittanceFactor), loaded in
+    UnderstoryModel as nodeMultiplicativeFactor from
+    UnderstoryNodeMultiplicativeFactorForLUT. VegetationMaterialWriter::treat()
+    now writes the v<foliarIndice>OF texture via
+    OpticalFactorsTextureWriter::writeTexture() (like the surface writers;
+    previously written by another module) and the equivalent-lambertian
+    materials reference the SAME foliar texture -- fixing the bug where the
+    old code read the LAMBERTIAN optical factors with the foliar model index.
+    PhaseDAO::readCoeffDiffParametersForFoliarOpticalFactors deleted.
+    NOTE: duplicateFirstMatrixLayer in the v6 template is a producer-side
+    error (to be dropped from the XML); phsdata deliberately does NOT read it.
 
 ## Known TODOs / open points (next sessions)
 
@@ -238,10 +251,11 @@ Sandbox notes for rebuilding the prefix (no root available):
   direction-set-dependent precomputing only on change; output model index is
   UnderstoryMulti::indexFunction.
 - Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti:
-  readCoeffDiffParametersForFoliar (LAD params) DONE (history item 19);
+  readCoeffDiffParametersForFoliar (LAD params) DONE (item 19);
+  readCoeffDiffParametersForFoliarOpticalFactors DONE (item 20);
   still to do: readMultiplicativeFactorFoliar
-  (UnderstoryNodeMultiplicativeFactorForLUT),
-  readCoeffDiffParametersForFoliarOpticalFactors.
+  (UnderstoryNodeMultiplicativeFactorForLUT -- same subtree as the optical
+  factors, can reuse phsdata::UnderstoryMultiplicativeFactorList).
 - Remove the redundant per-band LAD recompute inside
   PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}:
   DONE (history item 18).
