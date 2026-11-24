@@ -395,10 +395,8 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
 double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirections,
 								double & solidAnglesSum);
 void printNumberOfFoliarModels();
-void readMultiplicativeFactor(	int & iterationStepPhi,
-								int & iterationStepTheta,
-								FoliarModel & foliarModel,
-								const PhaseGeneralParametersDTO & genDTO);
+void readMultiplicativeFactor(const PhaseGeneralParametersDTO & genDTO);
+void fillFoliarModelMultiplicativeFactors(const PhaseGeneralParametersDTO & genDTO, FoliarModel & foliarModel);
 FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
 								const vector<DirectionCartesienne> & listDirections,
 								const unsigned int & iterationStepTheta,

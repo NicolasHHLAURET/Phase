@@ -45,12 +45,41 @@ VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParameter
 	return vegetation;
 }
 
+static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel, const unsigned int modelPosition,
+		const phsdata::UnderstoryModel * model, const bool isBottomFace, const unsigned int numberOfBands) {
+	if (model == nullptr || !model->useMultiplicativeFactorForLUT || !model->nodeMultiplicativeFactor.is_initialized())
+		return;
+	const phsdata::MultiplicativeFactorList & mfl = *model->nodeMultiplicativeFactor;
+	for (unsigned int sbi = 0; sbi < numberOfBands && sbi < mfl.factors.size(); ++sbi) {
+		auto umf = std::static_pointer_cast<const phsdata::UnderstoryMultiplicativeFactor>(mfl.factors[sbi]);
+		if (isBottomFace)
+			foliarModel.setAbaxialReflectanceForFoliar(modelPosition, sbi, umf->reflectanceFactor);
+		else
+			foliarModel.setAdaxialReflectanceForFoliar(modelPosition, sbi, umf->reflectanceFactor);
+		foliarModel.setLeafTransmittanceForFoliar(modelPosition, sbi, umf->leafTransmittanceFactor, isBottomFace);
+	}
+}
+
+void fillFoliarModelMultiplicativeFactors(const PhaseGeneralParametersDTO & genDTO, FoliarModel & foliarModel) {
+	const unsigned int numberOfBands = PhaseProperty::getNumberOfSpectralBands();
+	for (unsigned int modelPosition = 0; modelPosition < genDTO._volumesMaterials.understoryMultiFunctions.size(); ++modelPosition) {
+		const phsdata::UnderstoryMulti & understory = *genDTO._volumesMaterials.understoryMultiFunctions[modelPosition];
+		const phsdata::UnderstoryModel * topModel = understory.getTopModel();
+		const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
+		if (bottomModel == nullptr)
+			bottomModel = topModel;
+		fillFoliarModelFaceMultiplicativeFactors(foliarModel, modelPosition, topModel, false, numberOfBands);
+		fillFoliarModelFaceMultiplicativeFactors(foliarModel, modelPosition, bottomModel, true, numberOfBands);
+	}
+}
+
 /**
  * (Re)initialises the shared foliar objects for one direction set and runs the
  * direction-set-dependent precomputing. Called by VegetationMaterialWriter
  * whenever the direction set changes between models (the per-model data filled
- * by readMultiplicativeFactor is reset by initFoliarModel, so it is redone
- * here as well; the per-model LAD is computed later in treat(), per model).
+ * by fillFoliarModelMultiplicativeFactors is reset by initFoliarModel, so it is
+ * redone here as well; the per-model LAD is computed later in treat(), per
+ * model).
  */
 void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
 	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
@@ -69,10 +98,12 @@ void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, Vegetatio
     PhaseProperty::setParametersForPrintingProgress();
     PhaseProperty::resizePhaseParametersVectors();
 
-    int iterationStepPhi = 10.0;
-    int iterationStepTheta = 1.0;
-	readMultiplicativeFactor(iterationStepPhi, iterationStepTheta, *vegetation.foliarModel, genDTO);
+	readMultiplicativeFactor(genDTO);
+	fillFoliarModelMultiplicativeFactors(genDTO, *vegetation.foliarModel);
     printNumberOfFoliarModels();
+
+    int iterationStepPhi = genDTO._volumesMaterials.integrationStepOnPhi;
+    int iterationStepTheta = genDTO._volumesMaterials.integrationStepOnTheta;
 
 	vegetation.foliarComputation->computeFoliarCosinePsi(listDirections, iterationStepPhi, iterationStepTheta);
 

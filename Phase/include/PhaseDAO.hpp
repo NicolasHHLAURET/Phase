@@ -304,12 +304,6 @@ public:
 														std::string & material2Name,
 														double & percentOfMaterial1);
 
-	static bool readFoliarMultiplicativeFactorForModelXML(	const string & temp,
-															const string & modelKey,
-															const bool & isBottomFace,
-															const unsigned int & modelIndex,
-															FoliarModel & foliarModel);
-
 	static bool readCoeffDiffParametersForFoliarFluspect(	const int & index,
 															FluorescenceParameters & fluorescenceParameters,
 															bool & hasDifferentBottom,
@@ -348,14 +342,6 @@ public:
 
 	static bool readMultiplicativeFactorSpecular(const PhaseGeneralParametersDTO & genDTO);
 	static bool readMultiplicativeFactorSpecularXML();
-
-	static bool readMultiplicativeFactorFoliar(	int & iterationStepPhi,
-												int & iterationStepTheta,
-												FoliarModel & foliarModel,
-												const PhaseGeneralParametersDTO & genDTO);
-	static bool readMultiplicativeFactorFoliarXML(	int & iterationStepPhi,
-													int & iterationStepTheta,
-													FoliarModel & foliarModel);
 
 	static bool readAndStoreDirections(PhaseGeneralParametersDTO & genDTO);
 

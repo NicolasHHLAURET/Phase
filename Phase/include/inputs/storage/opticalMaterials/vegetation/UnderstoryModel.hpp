@@ -19,12 +19,15 @@ class UnderstoryModel {
 public:
 	std::string modelName;
 	std::string databaseName;  // Overwritten by prepareProspect() when a prospect database is generated
+	bool useMultiplicativeFactorForLUT = false;
 	ProspectExternalModule prospectExternalModule;
 	boost::optional<UnderstoryMultiplicativeFactorList> nodeMultiplicativeFactor;  // Child node
 
 	void loadFromParameters(const std::string& prefix) {
 		modelName = DartSAParameters::get<std::string>(prefix + ".modelName");
 		databaseName = DartSAParameters::get<std::string>(prefix + ".databaseName");
+		if (DartSAParameters::exists(prefix + ".useMultiplicativeFactorForLUT"))
+			useMultiplicativeFactorForLUT = DartSAParameters::get<bool>(prefix + ".useMultiplicativeFactorForLUT");
 
 		prospectExternalModule.loadFromParameters(prefix + ".ProspectExternalModule");
 

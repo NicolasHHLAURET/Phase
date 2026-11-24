@@ -991,16 +991,12 @@ void writePhasePropertiesNumberOfModels(ofstream & outCoeffSpecProperties,
 
 }
 
-void readMultiplicativeFactor(	int & iterationStepPhi,
-								int & iterationStepTheta,
-								FoliarModel & foliarModel,
-								const PhaseGeneralParametersDTO & genDTO) {
+void readMultiplicativeFactor(const PhaseGeneralParametersDTO & genDTO) {
 	PhaseProperty::resizeForMultiplicativeFactorforLUT();
 	EXIT_IF(!PhaseDAO::readMultiplicativeFactorLambertien(genDTO), "");
 	EXIT_IF(!PhaseDAO::readMultiplicativeFactorSpecular(genDTO), "");
 	EXIT_IF(!PhaseDAO::readMultiplicativeFactorHapke(genDTO), "");
 	EXIT_IF(!PhaseDAO::readMultiplicativeFactorHapke2(genDTO), "");
-	EXIT_IF(!PhaseDAO::readMultiplicativeFactorFoliar(iterationStepPhi, iterationStepTheta, foliarModel, genDTO), "");
 	EXIT_IF(!PhaseDAO::readMultiplicativeFactorRPV(genDTO), "");
 }
 

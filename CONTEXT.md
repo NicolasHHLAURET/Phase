@@ -232,6 +232,34 @@ Sandbox notes for rebuilding the prefix (no root available):
     remaining PhaseDAO call sites, database self-destruct, foliar OF
     Top-vs-Bottom). PhaseOld/ (added in 9dc5a2f) holds the pre-factorization
     code for old-vs-new comparison and validation.
+22. Foliar multiplicative factors ported to phsdata (this session): the last
+    foliar PhaseDAO read is gone. phsdata::VolumesMaterials now loads
+    integrationStepOnTheta/Phi (defaults 1/10, like the old DAO) and snaps
+    them to the divisor tables via snapToNearestDivider -- verified
+    equivalent to the old DAO snapping for all integer values -5..500.
+    phsdata::UnderstoryModel loads the useMultiplicativeFactorForLUT flag.
+    The v5-only diffuseTransmittanceAcceleration attribute is no longer read
+    (dropped in the v6 template): the FoliarModel acceleration factors stay
+    at the initFoliarModel default 0, and will disappear with the FoliarModel
+    C-structure cleanup. New fillFoliarModelMultiplicativeFactors()
+    (PhaseVegetation.cpp) fills the per-model FoliarModel adaxial/abaxial
+    reflectance and leaf transmittance from each UnderstoryMulti's top/bottom
+    nodeMultiplicativeFactor, iterating the per-band factors one-to-one with
+    the spectral bands (producer guarantee documented in
+    MultiplicativeFactor.hpp; same convention as the lambertian writer).
+    readMultiplicativeFactor() (Phase.cpp) lost its foliar call and its
+    step/foliarModel out-params; prepareVegetationDirectionSet() takes the
+    snapped steps from genDTO._volumesMaterials. PhaseDAO::
+    readMultiplicativeFactorFoliar{,XML} and
+    readFoliarMultiplicativeFactorForModelXML are deleted. BEHAVIOR FIX
+    (agreed with owner): the old readFoliarMultiplicativeFactorForModelXML
+    shadowed its modelKey parameter with a local, so with
+    hasDifferentModelForBottom=1 the bottom face was filled from the TOP
+    model's node; the port reads the actual Bottom model
+    (UnderstoryMultiBottomModel) for the abaxial side, falling back to the
+    top model when hasDifferentModelForBottom=0. v6 node/attr names:
+    UnderstoryNodeMultiplicativeFactorForLUT /
+    UnderstoryMultiplicativeFactorForLUT / leafTransmittanceFactor.
 
 ## Known TODOs / open points (next sessions)
 
@@ -259,9 +287,7 @@ Sandbox notes for rebuilding the prefix (no root available):
 - Port the remaining foliar PhaseDAO reads into phsdata::UnderstoryMulti:
   readCoeffDiffParametersForFoliar (LAD params) DONE (item 19);
   readCoeffDiffParametersForFoliarOpticalFactors DONE (item 20);
-  still to do: readMultiplicativeFactorFoliar
-  (UnderstoryNodeMultiplicativeFactorForLUT -- same subtree as the optical
-  factors, can reuse phsdata::UnderstoryMultiplicativeFactorList).
+  readMultiplicativeFactorFoliar DONE (item 22).
 - Remove the redundant per-band LAD recompute inside
   PhasePolarization::computeAndWriteFoliarPolarizationMatrix{,NotBinary}:
   DONE (history item 18).
@@ -294,11 +320,7 @@ Sandbox notes for rebuilding the prefix (no root available):
   delete it (also check the treatHapke2 declaration, Phase.hpp:332), then
   sweep for other dead code.
 - REMAINING PhaseDAO CALL SITES to port into phsdata / remove:
-  Phase.cpp:1003 readMultiplicativeFactorFoliar (the last foliar DAO read;
-  note it also snaps iterationStepTheta/Phi to divisor tables -- preserve
-  that when porting; it reads BOTH Top and Bottom models via
-  readFoliarMultiplicativeFactorForModelXML, reusable through
-  phsdata::UnderstoryMultiplicativeFactorList);
+  readMultiplicativeFactorFoliar DONE (item 22; the last foliar DAO read);
   PhaseSurfaces.cpp:116 and Phase.cpp:1195 call
   readCoeffDiffParametersForLambertianOpticalFactors with the HAPKE /
   SPECULAR model index -- same pattern as the line-387 bug fixed in item 20;
