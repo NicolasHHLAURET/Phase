@@ -48,7 +48,7 @@
 										</LambertianMultiplicativeFactorForLUT>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -75,7 +75,7 @@
 									<DartDocumentTemplateNode type="list" min="1" static="1">
 										<HapkeMultiplicativeFactorForLUT directTransmittanceFactor="0" diffuseTransmittanceFactor="0" hapkeParameterW="1.0" hapkeParameterC1="1.0" hapkeParameterC2="1.0" hapkeParameterC3="1.0" hapkeParameterC4="1.0" hapkeParameterH1="1.0" hapkeParameterH2="1.0" useOpticalFactorMatrix="0">
 											<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -85,7 +85,7 @@
 										</HapkeMultiplicativeFactorForLUT>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -101,7 +101,7 @@
 									<DartDocumentTemplateNode type="list" min="1" static="1">
 										<Hapke2MultiplicativeFactorForLUT directTransmittanceFactor="0" diffuseTransmittanceFactor="0" hapkeParameterW="1.0" hapkeParameterC="1.0" hapkeParameterB="1.0" hapkeParameterH="1.0" hapkeParameterB0="1.0" hapkeParameterTh="1.0" useOpticalFactorMatrix="0">
 											<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -111,7 +111,7 @@
 										</Hapke2MultiplicativeFactorForLUT>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -131,7 +131,7 @@
 									<DartDocumentTemplateNode type="list" min="1" static="1">
 										<RPVMultiplicativeFactorForLUT rhoZero_RPVMultiplicativeFactor="0.70" k_RPVMultiplicativeFactor="0.95" g_RPVMultiplicativeFactor="0.1" h_RPVMultiplicativeFactor="0.7" directTransmittanceFactor="1" diffuseTransmittanceFactor="1" useOpticalFactorMatrix="0">
 											<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -141,7 +141,7 @@
 										</RPVMultiplicativeFactorForLUT>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -174,7 +174,7 @@
 									<DartDocumentTemplateNode type="list" min="1" static="1">
 										<SpecularMultiplicativeFactorForLUT niFactor="1" ntFactor="1" reflectionIntensityFactor="1" transmissionIntensityFactor="1" opticalDepthFactor="1" useOpticalFactorMatrix="0">
 											<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1 and parent.parent.useSameOpticalFactorMatrixForAllBands==0">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -184,7 +184,7 @@
 										</SpecularMultiplicativeFactorForLUT>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -235,7 +235,7 @@
 											<DartDocumentTemplateNode type="list" min="1" static="1">
 												<UnderstoryMultiplicativeFactorForLUT reflectanceFactor="1" leafTransmittanceFactor="1" useOpticalFactorMatrix="0">
 													<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-														<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+														<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 															<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 															<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 																<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -245,7 +245,7 @@
 												</UnderstoryMultiplicativeFactorForLUT>
 											</DartDocumentTemplateNode>
 											<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -282,7 +282,7 @@
 											<DartDocumentTemplateNode type="list" min="1" static="1">
 												<UnderstoryMultiplicativeFactorForLUT reflectanceFactor="1" leafTransmittanceFactor="1" useOpticalFactorMatrix="0">
 													<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-														<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+														<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 															<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 															<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 																<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -292,7 +292,7 @@
 												</UnderstoryMultiplicativeFactorForLUT>
 											</DartDocumentTemplateNode>
 											<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -329,7 +329,7 @@
 											<DartDocumentTemplateNode type="list" min="1" static="1">
 												<UnderstoryMultiplicativeFactorForLUT reflectanceFactor="1" leafTransmittanceFactor="1" useOpticalFactorMatrix="0">
 													<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-														<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+														<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 															<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 															<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 																<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -339,7 +339,7 @@
 												</UnderstoryMultiplicativeFactorForLUT>
 											</DartDocumentTemplateNode>
 											<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -378,7 +378,7 @@
 									<DartDocumentTemplateNode type="list" min="1" static="1">
 										<AirFunctionMultiplicativeFactorForLut sigma="1.0" albedo="1.0" multiplicativeFactor1="1.0" multiplicativeFactor2="1.0" multiplicativeFactor3="1.0" useOpticalFactorMatrix="0">
 											<DartDocumentTemplateNode test="parent.useOpticalFactorMatrix==1">
-												<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+												<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 													<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 													<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 														<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
@@ -388,7 +388,7 @@
 										</AirFunctionMultiplicativeFactorForLut>
 									</DartDocumentTemplateNode>
 									<DartDocumentTemplateNode test="parent.useSameOpticalFactorMatrixForAllBands==1">
-										<OpticalFactorMatrix opticalFactorMatrixFile="choose" duplicateFirstMatrixLayer="0" useDifferentCellDimensions="0">
+										<OpticalFactorMatrix opticalFactorMatrixFile="choose" useDifferentCellDimensions="0">
 											<VoxelNumber numberX="40" numberY="40" numberZ="1" />
 											<DartDocumentTemplateNode test="parent.useDifferentCellDimensions==1">
 												<CellDimensions cellX="1" cellZ="1" roundToExact="0" />
