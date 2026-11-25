@@ -38,6 +38,297 @@ static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
 	}
 }
 
+/**
+ * Direction set used by one vegetation model: its own DirectionSetLink when
+ * valid, else the first direction set.
+ */
+static unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition) {
+	const unsigned int indexDirectionSetLink = genDTO._volumesMaterials.understoryMultiFunctions[modelPosition]->directionSetLink.indexDirectionSetLink;
+	if (indexDirectionSetLink < genDTO._directionSet.size()) {
+		return indexDirectionSetLink;
+	}
+	return 0;
+}
+
+static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel,
+		const phsdata::UnderstoryModel * model, const bool isBottomFace, const unsigned int numberOfBands) {
+	if (model == nullptr || !model->useMultiplicativeFactorForLUT || !model->nodeMultiplicativeFactor.is_initialized())
+		return;
+	const phsdata::MultiplicativeFactorList & mfl = *model->nodeMultiplicativeFactor;
+	for (unsigned int sbi = 0; sbi < numberOfBands && sbi < mfl.factors.size(); ++sbi) {
+		auto umf = std::static_pointer_cast<const phsdata::UnderstoryMultiplicativeFactor>(mfl.factors[sbi]);
+		if (isBottomFace)
+			foliarModel.setAbaxialReflectanceForFoliar(sbi, umf->reflectanceFactor);
+		else
+			foliarModel.setAdaxialReflectanceForFoliar(sbi, umf->reflectanceFactor);
+		foliarModel.setLeafTransmittanceForFoliar(sbi, umf->leafTransmittanceFactor, isBottomFace);
+	}
+}
+
+static void fillFoliarModelMultiplicativeFactors(const phsdata::UnderstoryMulti & understory, FoliarModel & foliarModel) {
+	const unsigned int numberOfBands = PhaseProperty::getNumberOfSpectralBands();
+	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
+	const phsdata::UnderstoryModel * bottomModel = understory.getBottomModel();
+	if (bottomModel == nullptr)
+		bottomModel = topModel;
+	fillFoliarModelFaceMultiplicativeFactors(foliarModel, topModel, false, numberOfBands);
+	fillFoliarModelFaceMultiplicativeFactors(foliarModel, bottomModel, true, numberOfBands);
+}
+
+/**
+ * (Re)initialises the shared foliar objects for one direction set and runs the
+ * direction-set-dependent precomputing. Called by VegetationMaterialWriter
+ * whenever the direction set changes between models (the per-model data is
+ * reset by initFoliarModel, so it is recomputed in treat(), per model).
+ */
+static void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO,
+		FoliarModel & foliarModel,
+		FoliarComputation & foliarComputation,
+		LADComputation & ladComputation,
+		FTFoliar & fTFoliar,
+		const unsigned int directionSetIndex) {
+	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
+	const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
+	const unsigned int numberOfDirections = listDirections.size();
+
+	foliarModel.initFoliarModel(PhaseProperty::_numberOfSpectralBands,
+			numberOfDirections);
+
+	foliarComputation.initFoliarComputation(numberOfDirections,
+			PhaseProperty::_numberOfSpectralBands, numberOfFoliarModels, PhaseProperty::_numberOfThreads,
+			PhaseProperty::_threadEnd, foliarModel);
+
+	ladComputation.initLADComputation();
+
+    PhaseProperty::setParametersForPrintingProgress();
+    PhaseProperty::resizePhaseParametersVectors();
+
+	readMultiplicativeFactor(genDTO);
+    printNumberOfFoliarModels();
+
+    int iterationStepPhi = genDTO._volumesMaterials.integrationStepOnPhi;
+    int iterationStepTheta = genDTO._volumesMaterials.integrationStepOnTheta;
+
+	foliarComputation.computeFoliarCosinePsi(listDirections, iterationStepPhi, iterationStepTheta);
+
+    /* FOLIAR precomputing */
+    if (PhaseProperty::getNumberOfFoliarModels() > 0) {
+		cout << "\tProcessing Vegetation models" << endl;
+    }
+	double solidAnglesSum = 0.;
+	numberOfAngularSectors(listDirections, solidAnglesSum);
+	fTFoliar = foliarPrecomputing(genDTO, listDirections, iterationStepTheta, iterationStepPhi, solidAnglesSum);
+
+    if (PhaseProperty::getFluorescence()) {
+        PhaseProperty::initYields();
+        if (PhaseProperty::getNumberOfFoliarModels() > 0) {
+			foliarComputation.initFluorescenceMatrix();
+        }
+    }
+}
+
+/**
+ * Copies the LAD parameters of ONE vegetation model from its phsdata storage
+ * (UnderstoryMulti) into the per-model FoliarModel parameters and computes its
+ * leaf angle distribution into the single-slot LAD vectors of FoliarModel.
+ * Called from VegetationMaterialWriter::treat() for the model currently being
+ * treated, so no other model's LAD data is ever stored (single-slot storage).
+ * outputModelIndex (XML indexFunction) is only used to name the optional LAD
+ * output file.
+ */
+static void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
+				LADComputation & ladComputation,
+				FoliarModel & foliarModel,
+				const phsdata::UnderstoryMulti & understory,
+				const unsigned int & outputModelIndex) {
+	ofstream writeOutputLeafAngleDistribution;
+	ofstream writeOutputElliptical;
+
+	// Port the phsdata storage into the per-model FoliarModel parameters
+	foliarModel.setFoliarTypeOfLeafAngleDistribution(understory.lad);
+	foliarModel.setFoliarClumpingA(understory.clumpingA);
+	foliarModel.setFoliarClumpingB(understory.clumpingB);
+	foliarModel.setFoliarOmegaMin(understory.omegaMin);
+	foliarModel.setFoliarOmegaMax(understory.omegaMax);
+	foliarModel.setFoliarDimension(understory.dimFoliar);
+	foliarModel.setHotSpotFactor(understory.thermalHotSpotFactor);
+
+	switch (understory.lad) {
+		case globalReferences::ELLIPS:
+			if (understory.ellipsoidalAla.is_initialized() && understory.ellipsoidalAla.value() >= 1e-10) {
+				foliarModel.setFoliarAverageLeafAngle(understory.ellipsoidalAla.value());
+				ladComputation.computeEllipsoidalLadDistribution(understory.ellipsoidalAla.value());
+			} else {
+				foliarModel.setFoliarTypeOfLeafAngleDistribution(globalReferences::HORIZ);
+				ladComputation.computeVerticalHorizontalLadDistribution(0);
+			}
+			break;
+		case globalReferences::BOUNDEDUNI:
+			foliarModel.setNumberOfAla(understory.boundedUniformNbAla.value_or(1));
+			foliarModel.setNthAla(understory.boundedUniformNthAla.value_or(1));
+			ladComputation.computeBoundedUniformLadDistribution(foliarModel.getNumberOfAla(),
+					foliarModel.getNthOfAla());
+			break;
+
+		case globalReferences::ELLIPT:
+			foliarModel.setFoliarEllipsePrincipalAngle(understory.ellipticalThetaM.value_or(0.));
+			foliarModel.setFoliarEllipseEccentricity(understory.ellipticalEpsilon.value_or(0.));
+			ladComputation.computeEllipticalLadDistribution(foliarModel.getFoliarEllipsePrincipalAngle(),
+					foliarModel.getFoliarEllipseEccentricity());
+			ladComputation.writeEllipticalLad(writeOutputElliptical);
+			break;
+		case globalReferences::HORIZ:
+			foliarModel.setFoliarTypeOfLeafAngleDistribution(globalReferences::HORIZ);
+			ladComputation.computeVerticalHorizontalLadDistribution(0);
+			break;
+		case globalReferences::VERTI:
+			ladComputation.computeVerticalHorizontalLadDistribution(90);
+			break;
+		case globalReferences::MANUAL: // De Wit
+			ladComputation.computeClassicalLadDistribution(understory.manualLad.m, understory.manualLad.b0,
+					understory.manualLad.b1, understory.manualLad.b2);
+			break;
+		case globalReferences::USERDEFINED: {
+			const std::string nameDatabaseLAD = understory.userDefinedLadFileName.value_or("");
+			const std::string ladFileName = DartEnv::getDatabasePath(nameDatabaseLAD) + nameDatabaseLAD;
+			ladComputation.readLadFile(ladFileName);
+			break;
+		}
+		default:
+			ladComputation.getLadFile(understory.lad);
+			break;
+	}
+	if (genDTO.isAskedForWritingLadResultsCheck == 1) {
+		ladComputation.writeLad(outputModelIndex, writeOutputLeafAngleDistribution,
+				foliarModel.getFoliarTypeOfLeafAngleDistribution());
+	}
+}
+
+static void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaValues,
+						vector<double> & bioClimaticPhiValues,
+						vector<vector<vector<double> > > & bioClimaticProfileEta) {
+	bioClimaticThetaValues.clear();
+	bioClimaticPhiValues.clear();
+	bool binary = boost::algorithm::ends_with(bcFilePath, ".bin");
+	ifstream bcStream;
+	if (binary) {
+		bcStream.open(bcFilePath.c_str(), ifstream::in | ifstream::binary);
+	} else {
+		bcStream.open(bcFilePath.c_str(), ifstream::in);
+	}
+	if (bcStream) {
+		unsigned int nbLayer, nbTheta, nbPhi;
+		if (binary) {
+			bcStream.read((char*) &nbLayer, sizeof(unsigned int));
+			bcStream.read((char*) &nbTheta, sizeof(unsigned int));
+			bcStream.read((char*) &nbPhi, sizeof(unsigned int));
+		} else {
+			bcStream >> nbLayer >> nbTheta >> nbPhi;
+		}
+		if (nbTheta != 1) {
+			// Recover the median value of each range
+			bioClimaticThetaValues.resize(nbTheta);
+			for (unsigned int i = 0; i < nbTheta; ++i) {
+				if (binary) {
+					bcStream.read((char*) &bioClimaticThetaValues[i], sizeof(double));
+				} else {
+					bcStream >> bioClimaticThetaValues[i];
+				}
+			}
+		}
+		if (nbPhi != 1) {
+			// Recover the median value of each range
+			bioClimaticPhiValues.resize(nbPhi);
+			for (unsigned int i = 0; i < nbPhi; ++i) {
+				if (binary) {
+					bcStream.read((char*) &bioClimaticPhiValues[i], sizeof(double));
+				} else {
+					bcStream >> bioClimaticPhiValues[i];
+				}
+			}
+		}
+		bioClimaticProfileEta.clear();
+		bioClimaticProfileEta.resize(nbLayer, std::vector<std::vector<double> >(nbTheta, std::vector<double>(nbPhi)));
+		for (unsigned int l = 0; l < nbLayer; ++l) {
+			for (unsigned int t = 0; t < nbTheta; ++t) {
+				for (unsigned int p = 0; p < nbPhi; ++p) {
+					if (binary) {
+						bcStream.read((char*) &bioClimaticProfileEta[l][t][p], sizeof(double));
+					} else {
+						bcStream >> bioClimaticProfileEta[l][t][p];
+					}
+				}
+			}
+		}
+		bcStream.close();
+	}
+}
+
+static void computeAndWriteAverageBioClimaticProfile(	const FoliarComputation & foliarComputer,
+												const vector<double> & centralBioClimaticThetaValues,
+												const vector<double> & centralBioClimaticPhiValues,
+												const vector<vector<vector<double> > > & bioClimaticProfileEta,
+												ofstream & ofstreamAverageEta) {
+	vector<double> averageBioClimaticProfileEta;
+	unsigned int nbLayers = bioClimaticProfileEta.size(), nbTheta = centralBioClimaticThetaValues.size(), nbPhi = centralBioClimaticPhiValues.size();
+	nbTheta = max(1, nbTheta);
+	nbPhi = max(1, nbPhi);
+	if (nbTheta == 1 && nbPhi == 1) {
+		// nbTheta == 1 && nbPhi == 1 => The biochemical profile eta is aleady an average
+		averageBioClimaticProfileEta.resize(nbLayers);
+		for (unsigned int i = 0; i < nbLayers; i++) {
+			averageBioClimaticProfileEta[i] = bioClimaticProfileEta[i][0][0];
+		}
+	}
+	else {
+		// We compute an average profile of bioclimatic eta per layer
+		averageBioClimaticProfileEta.resize(nbLayers);
+		vector<double> thetaValues, phiValues;
+		thetaValues.resize(nbTheta + 1);
+		phiValues.resize(nbPhi + 1);
+		thetaValues[0] = 0;
+		thetaValues[1] = 2 * centralBioClimaticThetaValues[0];
+		phiValues[0] = 0;
+		phiValues[1] = 2 * centralBioClimaticPhiValues[0];
+		for (unsigned int i = 2; i < thetaValues.size(); i++) {
+			thetaValues[i] = 2 * centralBioClimaticThetaValues[i - 1] - thetaValues[i - 1];
+		}
+		for (unsigned int i = 2; i < phiValues.size(); i++) {
+			phiValues[i] = 2 * centralBioClimaticPhiValues[i - 1] - phiValues[i - 1];
+		}
+		vector<double> dThetaValues, dPhiValues;
+		dThetaValues.resize(nbTheta);
+		dPhiValues.resize(nbPhi);
+		for (unsigned int i = 0; i < dThetaValues.size(); i++) {
+			dThetaValues[i] = thetaValues[i+1] - thetaValues[i];
+		}
+		for (unsigned int i = 0; i < dPhiValues.size(); i++) {
+			dPhiValues[i] = phiValues[i+1] - phiValues[i];
+		}
+		for (unsigned int layer = 0; layer < nbLayers; layer++) {
+			double average = 0.0;
+			for (unsigned int phiIndex = 0; phiIndex < nbPhi; phiIndex++) {
+				double thetaIntegral = 0.0;
+				for (unsigned int thetaIndex = 0; thetaIndex < nbTheta; thetaIndex++) {
+					thetaIntegral += bioClimaticProfileEta[layer][thetaIndex][phiIndex] *
+							foliarComputer.getLeafAngleDistributionForAngle(centralBioClimaticThetaValues[thetaIndex]) *
+							dThetaValues[thetaIndex];
+				}
+				average += thetaIntegral * dPhiValues[phiIndex];
+			}
+			averageBioClimaticProfileEta[layer] = average / 360;
+		}
+	}
+	if (ofstreamAverageEta) {
+		ofstreamAverageEta << nbLayers << " 1 1" << std::endl;
+		for (unsigned int layer = 0; layer < nbLayers; layer++){
+			ofstreamAverageEta << averageBioClimaticProfileEta[layer] << std::endl;
+		}
+	}
+	ofstreamAverageEta.close();
+
+}
+
 VegetationMaterialWriter::VegetationMaterialWriter(	const FluorescenceService & fluorescenceService,
 							const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}

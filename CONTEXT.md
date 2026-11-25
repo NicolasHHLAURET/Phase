@@ -326,6 +326,23 @@ Sandbox notes for rebuilding the prefix (no root available):
     recorded as "OWNER: confirm" in item 9. Regression vs PhaseOld, now
     fixed, in 3 cases that used to sun-weight foliar reflectance anyway:
     weighting disabled, LiDAR mode, non-database irradiance.
+27. Free foliar helpers moved from Phase.hpp / Phase.cpp / PhaseVegetation.cpp
+    into VegetationMaterialWriter.cpp as file-static functions (this session,
+    owner request): getUnderstoryDirectionSetIndex,
+    fillFoliarModelMultiplicativeFactors (+ its static helper
+    fillFoliarModelFaceMultiplicativeFactors), prepareVegetationDirectionSet,
+    computeLadDataForModel, readBioClimaticFile,
+    computeAndWriteAverageBioClimaticProfile. Each had VegetationMaterialWriter
+    as its only caller (verified repo-wide, PhaseOld excluded).
+    buildFoliarOpticalPropertyParameters STAYS public in PhaseVegetation.cpp:
+    also called from Phase.cpp createDatabasesReadingProperties(). Dead
+    declarations removed from Phase.hpp: computeAverageEta and the free
+    writeFoliar (no definition, no callers -- the writer calls the
+    FoliarComputation::writeFoliar method). Note: foliarPrecomputing /
+    numberOfAngularSectors / printNumberOfFoliarModels are still declared in
+    Phase.hpp and defined in Phase.cpp; their only caller is now the moved
+    prepareVegetationDirectionSet() -- candidates for a later pass.
+    readMultiplicativeFactor stays (5 surface call sites in Phase.cpp).
 
 ## Known TODOs / open points (next sessions)
 

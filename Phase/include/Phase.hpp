@@ -378,49 +378,12 @@ double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirectio
 								double & solidAnglesSum);
 void printNumberOfFoliarModels();
 void readMultiplicativeFactor(const PhaseGeneralParametersDTO & genDTO);
-void fillFoliarModelMultiplicativeFactors(const phsdata::UnderstoryMulti & understory, FoliarModel & foliarModel);
 FTFoliar foliarPrecomputing(	const PhaseGeneralParametersDTO & genDTO,
 								const vector<DirectionCartesienne> & listDirections,
 								const unsigned int & iterationStepTheta,
 								const unsigned int & iterationStepPhi,
 								const double & solidAnglesSum);
-void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
-				LADComputation & ladComputation,
-				FoliarModel & foliarModel,
-				const phsdata::UnderstoryMulti & understory,
-				const unsigned int & outputModelIndex);
-
-unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
-void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO,
-				FoliarModel & foliarModel,
-				FoliarComputation & foliarComputation,
-				LADComputation & ladComputation,
-				FTFoliar & fTFoliar,
-				const unsigned int directionSetIndex);
 OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands);
-
-void readBioClimaticFile( 	string bcFilePath,
-							vector<double> & bioClimaticThetaValues,
-							vector<double> & bioClimaticPhiValues,
-							vector<vector<vector<double> > > & bioClimaticProfileEta);
-
-void computeAverageEta(	const vector<double> & bioClimaticThetaValues, const vector<double> & bioClimaticPhiValues,
-					  	const vector<vector<vector<double>>> & bioClimaticProfileEta, double & average);
-
-void computeAndWriteAverageBioClimaticProfile(	const FoliarComputation & foliarCompute,
-												const vector<double> & bioClimaticThetaValues,
-												const vector<double> & bioClimaticPhiValues,
-												const vector<vector<vector<double> > > & bioClimaticProfileEta,
-												ofstream & ofstreamAverageEta);
-
-
-void writeFoliar(	const unsigned int& modelIndex,
-					const unsigned int& spectralBandIndex,
-					const std::string & modelName,
-					PhaseKeyMappingGenerator & pkmg,
-					std::ofstream & outCoeffSpecProperties,
-					std::vector<FoliarProperty> & opticalPropertiesVector,
-					FoliarComputation & foliarComputer);
 
 void writeSecondarySourcesOfLight(PhaseGeneralParametersDTO & genDTO, ofstream & outCoeffSpecProperties, const LightsContainer & lightsContainer);
 
