@@ -8,20 +8,6 @@
 #include "Phase.hpp"
 
 /**
- * Decides, for each spectral band, whether the reflectance values must be
- * weighted by the sun spectral irradiance: only the bands located in the
- * reflective (non thermal-only) domain use the sun irradiance.
- */
-static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
-		std::vector<bool> & useSpectralIrradianceForReflectance) {
-	useSpectralIrradianceForReflectance.assign(genDTO.numberOfSpectralBands, false);
-	for (unsigned int bandIndex = 0; bandIndex < genDTO.numberOfSpectralBands; ++bandIndex) {
-		useSpectralIrradianceForReflectance[bandIndex] =
-				(genDTO.spectralDomain[bandIndex] != PhaseGeneralParametersDTO::Thermal);
-	}
-}
-
-/**
  * Direction set used by one vegetation model: its own DirectionSetLink when
  * valid, else the first direction set.
  */
@@ -31,18 +17,6 @@ unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & ge
 		return indexDirectionSetLink;
 	}
 	return 0;
-}
-
-VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO) {
-	VegetationVolumeMaterials vegetation;
-
-	vegetation.foliarModel.reset(new FoliarModel());
-	vegetation.foliarComputation.reset(new FoliarComputation(*vegetation.foliarModel));
-	vegetation.ladComputation.reset(new LADComputation(*vegetation.foliarModel));
-
-	testIfUseSun(genDTO, vegetation.useSpectralIrradianceForReflectance);
-
-	return vegetation;
 }
 
 static void fillFoliarModelFaceMultiplicativeFactors(FoliarModel & foliarModel,
@@ -76,19 +50,24 @@ void fillFoliarModelMultiplicativeFactors(const phsdata::UnderstoryMulti & under
  * whenever the direction set changes between models (the per-model data is
  * reset by initFoliarModel, so it is recomputed in treat(), per model).
  */
-void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex) {
+void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO,
+		FoliarModel & foliarModel,
+		FoliarComputation & foliarComputation,
+		LADComputation & ladComputation,
+		FTFoliar & fTFoliar,
+		const unsigned int directionSetIndex) {
 	const unsigned int numberOfFoliarModels = genDTO._volumesMaterials.understoryMultiFunctions.size();
 	const vector<DirectionCartesienne> & listDirections = genDTO._directionSet[directionSetIndex]._directions;
 	const unsigned int numberOfDirections = listDirections.size();
 
-	vegetation.foliarModel->initFoliarModel(PhaseProperty::_numberOfSpectralBands,
+	foliarModel.initFoliarModel(PhaseProperty::_numberOfSpectralBands,
 			numberOfDirections);
 
-	vegetation.foliarComputation->initFoliarComputation(numberOfDirections,
+	foliarComputation.initFoliarComputation(numberOfDirections,
 			PhaseProperty::_numberOfSpectralBands, numberOfFoliarModels, PhaseProperty::_numberOfThreads,
-			PhaseProperty::_threadEnd, *vegetation.foliarModel);
+		PhaseProperty::_threadEnd, foliarModel);
 
-	vegetation.ladComputation->initLADComputation();
+	ladComputation.initLADComputation();
 
     PhaseProperty::setParametersForPrintingProgress();
     PhaseProperty::resizePhaseParametersVectors();
@@ -99,7 +78,7 @@ void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, Vegetatio
     int iterationStepPhi = genDTO._volumesMaterials.integrationStepOnPhi;
     int iterationStepTheta = genDTO._volumesMaterials.integrationStepOnTheta;
 
-	vegetation.foliarComputation->computeFoliarCosinePsi(listDirections, iterationStepPhi, iterationStepTheta);
+	foliarComputation.computeFoliarCosinePsi(listDirections, iterationStepPhi, iterationStepTheta);
 
     /* FOLIAR precomputing */
     if (PhaseProperty::getNumberOfFoliarModels() > 0) {
@@ -107,12 +86,12 @@ void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, Vegetatio
     }
 	double solidAnglesSum = 0.;
 	numberOfAngularSectors(listDirections, solidAnglesSum);
-	vegetation.fTFoliar = foliarPrecomputing(genDTO, listDirections, iterationStepTheta, iterationStepPhi, solidAnglesSum);
+	fTFoliar = foliarPrecomputing(genDTO, listDirections, iterationStepTheta, iterationStepPhi, solidAnglesSum);
 
     if (PhaseProperty::getFluorescence()) {
         PhaseProperty::initYields();
         if (PhaseProperty::getNumberOfFoliarModels() > 0) {
-			vegetation.foliarComputation->initFluorescenceMatrix();
+			foliarComputation.initFluorescenceMatrix();
         }
     }
 }

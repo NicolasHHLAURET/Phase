@@ -2207,8 +2207,7 @@ void execute_batchPhase(PhaseGeneralParametersDTO & genDTO,
 	phase::FluorescenceService vegetationFluorescenceService;
 	phase::OpticalFactorsTextureWriter vegetationOpticalFactorsWriter;
 	phase::VegetationMaterialWriter vegetationWriter(vegetationFluorescenceService, vegetationOpticalFactorsWriter);
-	VegetationVolumeMaterials vegetationMaterials = processVegetationVolumeMaterials(genDTO);
-	vegetationWriter.processAll(genDTO, vegetationMaterials, pkmg, outCoeffSpecProperties);
+	vegetationWriter.processAll(genDTO, pkmg, outCoeffSpecProperties);
 	writePhasePropertiesSpectralIrradiance(outCoeffSpecProperties, pkmg, genDTO);
 
 //	// Lecture des bases de donnees

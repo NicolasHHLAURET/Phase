@@ -23,17 +23,39 @@
 
 namespace phase {
 
+/**
+ * Decides, for each spectral band, whether the reflectance values must be
+ * weighted by the sun spectral irradiance: only the bands located in the
+ * reflective (non thermal-only) domain use the sun irradiance.
+ */
+static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
+		std::vector<bool> & useSpectralIrradianceForReflectance) {
+	useSpectralIrradianceForReflectance.assign(genDTO.numberOfSpectralBands, false);
+	for (unsigned int bandIndex = 0; bandIndex < genDTO.numberOfSpectralBands; ++bandIndex) {
+		useSpectralIrradianceForReflectance[bandIndex] =
+				(genDTO.spectralDomain[bandIndex] != PhaseGeneralParametersDTO::Thermal);
+	}
+}
+
 VegetationMaterialWriter::VegetationMaterialWriter(	const FluorescenceService & fluorescenceService,
 							const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
 
 void VegetationMaterialWriter::processAll(	PhaseGeneralParametersDTO & genDTO,
-						VegetationVolumeMaterials & vegetation,
 						PhaseKeyMappingGenerator & pkmg,
 						std::ofstream & outCoeffSpecProperties) {
 	const std::vector<std::shared_ptr<phsdata::UnderstoryMulti> > & models = genDTO._volumesMaterials.understoryMultiFunctions;
 	if (models.empty())
 		return;
+
+	// FoliarComputation and LADComputation hold references into foliarModel:
+	// foliarModel is declared first so that it is destroyed last.
+	FoliarModel foliarModel;
+	FoliarComputation foliarComputation(foliarModel);
+	LADComputation ladComputation(foliarModel);
+	FTFoliar fTFoliar;
+	std::vector<bool> useSpectralIrradianceForReflectance;
+	testIfUseSun(genDTO, useSpectralIrradianceForReflectance);
 
 	// Iterate grouped by direction set (stable within a group) so that the
 	// direction-set-dependent precomputing is redone only when the direction
@@ -49,12 +71,13 @@ void VegetationMaterialWriter::processAll(	PhaseGeneralParametersDTO & genDTO,
 	for (unsigned int position : order) {
 		const unsigned int directionSetIndex = getUnderstoryDirectionSetIndex(genDTO, position);
 		if (directionSetIndex != lastDirectionSetIndex) {
-			prepareVegetationDirectionSet(genDTO, vegetation, directionSetIndex);
+			prepareVegetationDirectionSet(genDTO, foliarModel, foliarComputation, ladComputation, fTFoliar, directionSetIndex);
 			lastDirectionSetIndex = directionSetIndex;
 			if (!_sphereMap)
-				_sphereMap.reset(new SphereDiscretizationMap(1.0, vegetation.fTFoliar.iterationStepPhi));
+				_sphereMap.reset(new SphereDiscretizationMap(1.0, fTFoliar.iterationStepPhi));
 		}
-		treat(*models[position], position, genDTO, vegetation, genDTO._directionSet[directionSetIndex]._directions, pkmg, outCoeffSpecProperties);
+		treat(*models[position], position, genDTO, foliarModel, foliarComputation, ladComputation, fTFoliar,
+				useSpectralIrradianceForReflectance, genDTO._directionSet[directionSetIndex]._directions, pkmg, outCoeffSpecProperties);
 	}
 }
 
@@ -80,14 +103,15 @@ void VegetationMaterialWriter::computeFaceFluorescence(	FluorescenceResults & re
 bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understory,
 						unsigned int foliarIndice,
 						PhaseGeneralParametersDTO & genDTO,
-						VegetationVolumeMaterials & vegetation,
+				FoliarModel & foliarModel,
+				FoliarComputation & foliarComputation,
+				LADComputation & ladComputation,
+				FTFoliar & fTFoliar,
+				const std::vector<bool> & useSpectralIrradianceForReflectance,
 						const std::vector<DirectionCartesienne> & listDirections,
 						PhaseKeyMappingGenerator & pkmg,
 						std::ofstream & outCoeffSpecProperties) {
-	FoliarComputation & foliarComputer = *vegetation.foliarComputation;
-	LADComputation & ladComputation = *vegetation.ladComputation;
-	FoliarModel & foliarModel = *vegetation.foliarModel;
-	FTFoliar & fTFoliar = vegetation.fTFoliar;
+	FoliarComputation & foliarComputer = foliarComputation;
 
 	const unsigned int modelIndex = understory.indexFunction;
 	const phsdata::UnderstoryModel * topModel = understory.getTopModel();
@@ -118,7 +142,7 @@ bool VegetationMaterialWriter::treat(	const phsdata::UnderstoryMulti & understor
 				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_UP
 				&& foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase).get()->getDatabaseType() != WATER_NO_DATABASE_USER_DEFINED_DOWN) {
 			shared_ptr<PhaseDatabaseParameters> currentDatabase = foliarPropertyParameters.getDatabaseForProperty(numPropertyDatabase);
-			PhaseProperty::readReflectanceParameters(vegetation.useSpectralIrradianceForReflectance, currentDatabase);
+			PhaseProperty::readReflectanceParameters(useSpectralIrradianceForReflectance, currentDatabase);
 		}
 	}
 

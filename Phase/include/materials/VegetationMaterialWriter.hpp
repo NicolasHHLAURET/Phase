@@ -21,7 +21,9 @@
 #include "fluorescence/FluorescenceMatrices.hpp"
 #include "opticalfactors/OpticalFactorsTextureWriter.hpp"
 
-struct VegetationVolumeMaterials;
+class FoliarModel;
+class FoliarComputation;
+class LADComputation;
 
 namespace phase {
 
@@ -34,8 +36,10 @@ public:
 	// DirectionSetLink (original order kept within a group; the output model
 	// index is UnderstoryMulti::indexFunction). Calls
 	// prepareVegetationDirectionSet() only when the direction set changes.
+	// The foliar objects are locals of this method: FoliarComputation and
+	// LADComputation hold references into FoliarModel, so foliarModel must be
+	// declared first (destroyed last).
 	void processAll(	PhaseGeneralParametersDTO & genDTO,
-					VegetationVolumeMaterials & vegetation,
 					PhaseKeyMappingGenerator & pkmg,
 					std::ofstream & outCoeffSpecProperties);
 
@@ -47,7 +51,11 @@ private:
 	bool treat(	const phsdata::UnderstoryMulti & understory,
 			unsigned int foliarIndice,
 			PhaseGeneralParametersDTO & genDTO,
-			VegetationVolumeMaterials & vegetation,
+			FoliarModel & foliarModel,
+			FoliarComputation & foliarComputation,
+			LADComputation & ladComputation,
+			FTFoliar & fTFoliar,
+			const std::vector<bool> & useSpectralIrradianceForReflectance,
 			const std::vector<DirectionCartesienne> & listDirections,
 			PhaseKeyMappingGenerator & pkmg,
 			std::ofstream & outCoeffSpecProperties);

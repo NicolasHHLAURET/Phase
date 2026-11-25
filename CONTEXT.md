@@ -293,6 +293,21 @@ Sandbox notes for rebuilding the prefix (no root available):
     documented for trees that differ only by whitespace (item 14/23
     precedent -- the authoritative tree-hash gate then reports a different
     hash, e.g. 608ca5ff vs 0e9bfb0a for item 23).
+25. VegetationVolumeMaterials struct deleted (this session): it only provided
+    lifetime grouping -- FoliarComputation/LADComputation hold references into
+    FoliarModel, so the three must be co-owned with foliarModel destroyed last.
+    processVegetationVolumeMaterials() was useless (only allocated the objects +
+    testIfUseSun); its content moved into VegetationMaterialWriter::processAll(),
+    which now declares the foliar objects as locals (FoliarModel foliarModel;
+    FoliarComputation foliarComputation(foliarModel); LADComputation
+    ladComputation(foliarModel); FTFoliar fTFoliar; useSpectralIrradiance...).
+    They CANNOT be locals of treat(): treat() runs per model while
+    prepareVegetationDirectionSet() (called from processAll on direction-set
+    change) initializes the shared per-direction-set state they reuse. The dead
+    pointsListSpec/pointsListDiff members went away with the struct (treat()
+    already had its own locals). processAll/treat/prepareVegetationDirectionSet
+    now take the individual refs instead of the struct; the Phase.cpp call site
+    is just vegetationWriter.processAll(genDTO, pkmg, outCoeffSpecProperties).
 
 ## Known TODOs / open points (next sessions)
 

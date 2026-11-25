@@ -374,16 +374,6 @@ void treatMixedMaterial(PhaseGeneralParametersDTO & genDTO,	unsigned int opIndex
 std::string getMaterialName(unsigned int modelType, unsigned int modelIndex);
 
 /* Foliar */
-struct VegetationVolumeMaterials {
-	std::unique_ptr<FoliarModel> foliarModel;
-	std::unique_ptr<FoliarComputation> foliarComputation;
-	std::unique_ptr<LADComputation> ladComputation;
-	FTFoliar fTFoliar;
-	PointsListsNCIntegration<DirectionCartesienne> pointsListSpec;
-	PointsListsNCIntegration<DirectionCartesienne> pointsListDiff;
-	std::vector<bool> useSpectralIrradianceForReflectance;
-};
-VegetationVolumeMaterials processVegetationVolumeMaterials(PhaseGeneralParametersDTO & genDTO);
 double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirections,
 								double & solidAnglesSum);
 void printNumberOfFoliarModels();
@@ -401,7 +391,12 @@ void computeLadDataForModel(const PhaseGeneralParametersDTO & genDTO,
 				const unsigned int & outputModelIndex);
 
 unsigned int getUnderstoryDirectionSetIndex(const PhaseGeneralParametersDTO & genDTO, const unsigned int modelPosition);
-void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO, VegetationVolumeMaterials & vegetation, const unsigned int directionSetIndex);
+void prepareVegetationDirectionSet(PhaseGeneralParametersDTO & genDTO,
+				FoliarModel & foliarModel,
+				FoliarComputation & foliarComputation,
+				LADComputation & ladComputation,
+				FTFoliar & fTFoliar,
+				const unsigned int directionSetIndex);
 OpticalPropertyParameters buildFoliarOpticalPropertyParameters(const phsdata::UnderstoryMulti & understory, const unsigned int numberOfBands);
 
 void readBioClimaticFile( 	string bcFilePath,
