@@ -284,6 +284,15 @@ Sandbox notes for rebuilding the prefix (no root available):
     resizePhaseParametersVectors declaration (old Phase.hpp:165).
     initFoliarModel(numberOfSpectralBands, numberOfDirections) only resets
     the common (direction-set) vectors and the single slot now.
+24. CONTEXT.md protocol/pitfall update (this session, agreed with owner):
+    plain-text patch chunks are sent in BATCHES OF AT MOST 4 CHUNKS PER
+    MESSAGE (session memory limits -- observed on the 12-chunk item-23
+    patch); new pitfall (g) recorded (duplicated bare "-" lines, dropped
+    whitespace-only context lines at chunk seams); receiver command
+    checklist added as protocol point 7; the `git diff -w` empty gate is
+    documented for trees that differ only by whitespace (item 14/23
+    precedent -- the authoritative tree-hash gate then reports a different
+    hash, e.g. 608ca5ff vs 0e9bfb0a for item 23).
 
 ## Known TODOs / open points (next sessions)
 
@@ -454,6 +463,16 @@ Sandbox notes for rebuilding the prefix (no root available):
       to "-" in transit (hand-fixed by the receiver; the decoded sha256
       still mismatched due to further benign edits) -- again, only the
       decoded-output hash is the gate, decode/apply success proves nothing.
+  (g) new variant observed on the FoliarModel-cleanup patch (receiver
+      evidence: AICommunications commit e8cc536): DUPLICATED bare "-" lines
+      (removed blank-line markers, post-marker content empty) INSERTED in a
+      received chunk -- structural: the hunk then has more lines than its @@
+      header claims -> "corrupt patch at line N" (observed at patch line 397 =
+      chunk_03 line 97). Repair: delete the duplicated lines at their
+      received-file positions (chunk_03 lines 56/76/80/84), validated by
+      applying with --ignore-whitespace and an empty `git diff -w` against
+      the sender's commit. Related: whitespace-only context lines dropped at
+      chunk seams (chunk_08 line 100) are also structural.
 - Sessions cannot push to GitHub (connector disabled). Delivery = patches per
   the protocol below; the owner pushes, sessions fetch anonymously.
 - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
@@ -477,7 +496,8 @@ text is emitted more reliably than base64 -- so plain text is the default:
 
 1. Prefer PLAIN-TEXT patches, kept small: split one logical change into
    several patches of <= ~100 lines each (slip probability grows with payload
-   length).
+   length), and send the chunks in batches of AT MOST 4 chunks per message
+   (session memory limits).
 2. Every patch travels with its `sha256sum` AND the sender's post-am tree
    hash (`git rev-parse HEAD^{tree}` after am, or `git ls-tree HEAD -- <file>`
    blob shas). Receiver gates, in order: (a) `git apply --check` (loud
@@ -526,6 +546,19 @@ text is emitted more reliably than base64 -- so plain text is the default:
    (`base64 -d p.b64 | sha256sum`) against the sender's value -- never on
    decode/apply success. Expect "=" padding flips to "-" and silent
    substitutions; only the hash catches them.
+7. Receiver checklist, once all chunks are received (owner side):
+     cat chunk_00 chunk_01 ... chunk_NN > p.patch        # in order
+     sha256sum chunk_*                                   # difference detector vs sender's per-chunk sha256
+     git apply --check --ignore-whitespace p.patch       # loud structural gate (plain --check fails on tab mangling)
+     git -c user.name=... -c user.email=... am --ignore-whitespace p.patch
+     git rev-parse HEAD^{tree}                           # AUTHORITATIVE: must equal the sender's post-am tree hash
+   If the tree hash differs but `git diff -w <applied-commit> <sender-commit>`
+   is empty, the difference is whitespace-only on added lines (benign, item
+   14/23 precedent) -- accepted by the owner with diff -w as the gate.
+   On ANY failure: push the received files (chunks + p.patch) to
+   transfer/failed/ of the AICommunications repo, then follow point 3/5
+   (sender sends back only a minimal correction, base64 + decoded-sha256
+   gate per point 6).
 
 ## Session handoff checklist (for AI agents)
 
@@ -538,9 +571,11 @@ text is emitted more reliably than base64 -- so plain text is the default:
 3. Commit locally as `Vibe <vibe@localhost>` -- the owner uses this identity
    to tell AI-made commits apart from his own.
 4. Deliver changes as `git format-patch` plain-text chunks of <= ~100 lines
-   (one code block per chunk), each chunk with its sha256, plus the full
-   patch sha256 and the post-am tree hash; give the `cat chunk_* > p.patch`
-   reassembly command. On any receiver-side failure, expect the received
+   (one code block per chunk), sent in batches of at most 4 chunks per
+   message, each chunk with its sha256, plus the full patch sha256 and the
+   post-am tree hash; give the `cat chunk_* > p.patch` reassembly command
+   (see protocol point 7 for the full receiver checklist). On any
+   receiver-side failure, expect the received
    files in transfer/failed/ of the AICommunications repo (clone
    https://github.com/NicolasHHLAURET/AICommunications.git) and follow
    protocol point 3/5.
