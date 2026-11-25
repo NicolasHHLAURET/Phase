@@ -25,15 +25,16 @@ namespace phase {
 
 /**
  * Decides, for each spectral band, whether the reflectance values must be
- * weighted by the sun spectral irradiance: only the bands located in the
- * reflective (non thermal-only) domain use the sun irradiance.
+ * weighted by the sun spectral irradiance (PhaseOld rule minus the LiDAR
+ * term; same as SurfaceMaterialProcessor::computeUseSpectralIrradiance).
  */
 static void testIfUseSun(const PhaseGeneralParametersDTO & genDTO,
 		std::vector<bool> & useSpectralIrradianceForReflectance) {
 	useSpectralIrradianceForReflectance.assign(genDTO.numberOfSpectralBands, false);
 	for (unsigned int bandIndex = 0; bandIndex < genDTO.numberOfSpectralBands; ++bandIndex) {
 		useSpectralIrradianceForReflectance[bandIndex] =
-				(genDTO.spectralDomain[bandIndex] != PhaseGeneralParametersDTO::Thermal);
+				PhaseProperty::getWeightingOfReflectanceParameters()
+				&& PhaseProperty::getIrradianceFromDatabaseComputationMethod() == 0;
 	}
 }
 

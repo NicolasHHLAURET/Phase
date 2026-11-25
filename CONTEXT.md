@@ -93,8 +93,11 @@ Sandbox notes for rebuilding the prefix (no root available):
    Direction set resolved by getVegetationDirectionSetIndex(): first valid
    UnderstoryMulti link drives the SHARED precomputing. TRUE per-model
    direction sets still need per-model support in FoliarModel/FoliarComputation.
-   testIfUseSun implemented as: sun spectral irradiance for every band whose
-   spectralDomain != PhaseGeneralParametersDTO::Thermal. OWNER: confirm.
+   testIfUseSun RESOLVED in item 26: the "spectralDomain != Thermal" variant
+   below was authored at 30ea479 on the broken initial commit cfa3288
+   (dangling call in src/PhaseVegetation.cpp:35, no definition in the tree);
+   the PhaseOld rule minus the LiDAR term was restored instead (OWNER
+   confirmed).
 10. misc: Hapke2012/RPV writer constructors defined; header-defined functions
     marked inline (DartXML::getStringWithPossibleWhiteSpace, luxcore helpers,
     CSVReader::split) — multiple-definition link errors otherwise;
@@ -308,6 +311,21 @@ Sandbox notes for rebuilding the prefix (no root available):
     already had its own locals). processAll/treat/prepareVegetationDirectionSet
     now take the individual refs instead of the struct; the Phase.cpp call site
     is just vegetationWriter.processAll(genDTO, pkmg, outCoeffSpecProperties).
+26. testIfUseSun RESTORED to the PhaseOld rule minus the LiDAR term (this
+    session, owner decision): useSpectralIrradianceForReflectance[band] =
+    PhaseProperty::getWeightingOfReflectanceParameters() &&
+    PhaseProperty::getIrradianceFromDatabaseComputationMethod() == 0.
+    getCalculatorMethod() != 2 dropped: in v6 LiDAR is its own light source
+    and the user controls sun weighting via weightReflectanceParameters.
+    VegetationMaterialWriter.cpp testIfUseSun now matches
+    SurfaceMaterialProcessor::computeUseSpectralIrradiance exactly.
+    Diagnosis (git archaeology): PhaseOld/src/Phase.cpp:962 had the full
+    PhaseOld rule (weighting && calculatorMethod != 2 && irrFromDB == 0)
+    shared by surface and foliar; public cfa3288 was already broken (call,
+    no definition); the Thermal-domain variant was written at 30ea479 and
+    recorded as "OWNER: confirm" in item 9. Regression vs PhaseOld, now
+    fixed, in 3 cases that used to sun-weight foliar reflectance anyway:
+    weighting disabled, LiDAR mode, non-database irradiance.
 
 ## Known TODOs / open points (next sessions)
 
