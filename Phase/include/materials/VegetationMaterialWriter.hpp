@@ -49,25 +49,53 @@ private:
 	// FoliarModel/FoliarComputation/LADComputation accessors); the output model
 	// index is understory.indexFunction.
 	bool treat(	const phsdata::UnderstoryMulti & understory,
-			unsigned int foliarIndice,
-			PhaseGeneralParametersDTO & genDTO,
-			FoliarModel & foliarModel,
-			FoliarComputation & foliarComputation,
-			LADComputation & ladComputation,
-			FTFoliar & fTFoliar,
-			const std::vector<bool> & useSpectralIrradianceForReflectance,
-			const std::vector<DirectionCartesienne> & listDirections,
-			PhaseKeyMappingGenerator & pkmg,
-			std::ofstream & outCoeffSpecProperties);
+				unsigned int foliarIndice,
+				PhaseGeneralParametersDTO & genDTO,
+				FoliarModel & foliarModel,
+				FoliarComputation & foliarComputation,
+				FTFoliar & fTFoliar,
+				const std::vector<bool> & useSpectralIrradianceForReflectance,
+				const std::vector<DirectionCartesienne> & listDirections,
+				PhaseKeyMappingGenerator & pkmg,
+				std::ofstream & outCoeffSpecProperties);
 
 	// Computes the fluorescence matrices of one face from the phsdata prospect
 	// module of the model node (replaces the old computeFoliarFluorescenceMatrices).
 	void computeFaceFluorescence(	FluorescenceResults & results,
-							std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
-							const phsdata::UnderstoryModel & model,
-							unsigned int modelIndex,
-							const PhaseGeneralParametersDTO & genDTO,
-							unsigned int face) const;
+									std::vector<std::vector<std::vector<double> > > & fluorescenceMatrix,
+									const phsdata::UnderstoryModel & model,
+									unsigned int modelIndex,
+									const PhaseGeneralParametersDTO & genDTO,
+									unsigned int face) const;
+
+	static void testIfUseSun(	const PhaseGeneralParametersDTO & genDTO,
+								std::vector<bool> & useSpectralIrradianceForReflectance);
+	static unsigned int getUnderstoryDirectionSetIndex(	const PhaseGeneralParametersDTO & genDTO,
+														const unsigned int modelPosition);
+	static void fillFoliarModelFaceMultiplicativeFactors(	FoliarModel & foliarModel,
+															const phsdata::UnderstoryModel * model,
+															const bool isBottomFace,
+															const unsigned int numberOfBands);
+	static void fillFoliarModelMultiplicativeFactors(	const phsdata::UnderstoryMulti & understory,
+														FoliarModel & foliarModel);
+	static void prepareVegetationDirectionSet(	PhaseGeneralParametersDTO & genDTO,
+												FoliarModel & foliarModel,
+												FoliarComputation & foliarComputation,
+												FTFoliar & fTFoliar,
+												const unsigned int directionSetIndex);
+	static void computeLadDataForModel(	const PhaseGeneralParametersDTO & genDTO,
+										LADComputation & ladComputation,
+										FoliarModel & foliarModel,
+										const phsdata::UnderstoryMulti & understory,
+										const unsigned int & outputModelIndex);
+	static void readBioClimaticFile(	string bcFilePath, vector<double> & bioClimaticThetaValues,
+							vector<double> & bioClimaticPhiValues,
+							vector<vector<vector<double> > > & bioClimaticProfileEta);
+	static void computeAndWriteAverageBioClimaticProfile(	const FoliarComputation & foliarComputer,
+													const vector<double> & centralBioClimaticThetaValues,
+													const vector<double> & centralBioClimaticPhiValues,
+													const vector<vector<vector<double> > > & bioClimaticProfileEta,
+													ofstream & ofstreamAverageEta);
 
 	const FluorescenceService & _fluorescenceService;
 	const OpticalFactorsTextureWriter & _opticalFactorsWriter;

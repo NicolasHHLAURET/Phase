@@ -33,6 +33,7 @@ public:
 	LADComputation(FoliarModel & foliarModel) :
 			_gFunctionForLadComputationFunctionVector(foliarModel.getRefGFunctionForLadComputationFunctionVector()), _leafAngleDistributionFunctionVector(
 				foliarModel.getRefLeafAngleDistributionFunctionVecto()), _nbDisplayedWarningMessages(0) {
+		initLADComputation();
 	}
 
 	~LADComputation() {}
