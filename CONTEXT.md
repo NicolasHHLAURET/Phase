@@ -371,6 +371,13 @@ Sandbox notes for rebuilding the prefix (no root available):
     (Q,U,V / PSI,PSII) is now zero-padded like the other writers (legacy padded
     with 1). The "notImpementedYet" base-material literal is kept for output
     parity.
+30. CONTEXT.md rules added (this session, owner request): protocol point 8
+    (corrections fix only harmful errors; whitespace/tabulation mangling is
+    benign and covered by --ignore-whitespace + tree/diff-w gates);
+    handoff items 7 (diagnostic first, ask owner before coding) and 8
+    (sandbox /workspace+/tmp are ephemeral -- wipeout observed 2026-11-26;
+    the pushed repo is the only durable state, keep changes committed so
+    patches are regenerable).
 
 ## Known TODOs / open points (next sessions)
 
@@ -644,6 +651,15 @@ text is emitted more reliably than base64 -- so plain text is the default:
    transfer/failed/ of the AICommunications repo, then follow point 3/5
    (sender sends back only a minimal correction, base64 + decoded-sha256
    gate per point 6).
+8. Corrections fix ONLY harmful errors (dropped/duplicated/substituted
+   lines, stray characters, line-count breaks). Non-harmful
+   whitespace/tabulation mangling (tabs<->spaces on context/removed lines,
+   in diffstat headers, or on added lines) is NEVER corrected: it is
+   covered by `git apply/am --ignore-whitespace` and by the tree-hash /
+   `git diff -w` gates. Correcting it only bloats the correction payload
+   and invites new slips (observed 2026-11-26, specular patch: a
+   byte-identical-rebuild repair script was 5.2 KB; the harmful-only fix
+   was a 0.5 KB two-line insertion).
 
 ## Session handoff checklist (for AI agents)
 
@@ -668,3 +684,13 @@ text is emitted more reliably than base64 -- so plain text is the default:
    pitfalls); it is the only handoff between sessions.
 6. Build only if needed: no DART_DEPS_PREFIX in a fresh sandbox; see "Build
    state" for rebuilding it (foreground single command, no background).
+7. DIAGNOSTIC FIRST (owner rule, 2026-11-26): for multi-step tasks, do the
+   diagnostic first and END IT by asking the owner for the go-ahead before
+   writing any code. One-shot implementation of a multi-step task is
+   error-prone; the owner validates the diagnostic, then says proceed.
+8. SANDBOX IS EPHEMERAL: /workspace and /tmp were observed wiped mid-session
+   (2026-11-26) while network access stayed up. The pushed git repo is the
+   only durable state: commit every change locally (identity
+   `Vibe <vibe@localhost>`) so any deliverable can be regenerated with
+   `git format-patch`; do not rely on /tmp artifacts (stubs, chunks, repair
+   scripts) surviving between messages.
