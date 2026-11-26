@@ -378,6 +378,19 @@ Sandbox notes for rebuilding the prefix (no root available):
     (sandbox /workspace+/tmp are ephemeral -- wipeout observed 2026-11-26;
     the pushed repo is the only durable state, keep changes committed so
     patches are regenerable).
+31. Mixed material -> phase::MixedMaterialWriter (this session): each
+    MaterialWriter now exposes static getMaterialName(indexFunction) and builds
+    its keyRoot from it, so mixed links can reference the exact LuxCore material
+    name. SurfaceMaterialProcessor gained a per-type name-provider registry
+    (auto-filled by the template registerWriter), surfaceTypeFromXmlType()
+    (XML/globalReferences type -> phsdata Type: 0,2,4,11,13,22,23) and
+    materialNameFor(xmlType, index). MixedMaterialWriter resolves
+    FirstProperty/SecondProperty links through the processor and validates them
+    against genDTO._surfaceMaterials.surfaceOpticalFunctions; volume links exit
+    -6, unknown/unregistered -7 (old code silently wrote "notImplementedYet"
+    for Hapke; Hapke/Hapke2 links now resolve to "Hapke"/"Hapke2_" names).
+    Old treatMixedMaterial + getMaterialName (Phase.cpp/Phase.hpp) and
+    PhaseDAO::readCoeffDiffParametersForMixedMaterial{,XML} deleted.
 
 ## Known TODOs / open points (next sessions)
 
@@ -429,8 +442,8 @@ Sandbox notes for rebuilding the prefix (no root available):
   iterations: equivalentFront/BackLambertian live in the slot although they
   are only used within treat() -- could become writer locals.
 - REFACTOR INTO MaterialWriter CLASSES (same pattern as the Lambertian / Hapke
-  / RPV writers): treatSpecular DONE (item 29, SpecularMaterialWriter); remaining:
-  treatPhaseExtern (Phase.cpp), treatMixedMaterial (Phase.cpp).
+  / RPV writers): treatSpecular DONE (item 29), treatMixedMaterial DONE (item 31,
+  MixedMaterialWriter); remaining: treatPhaseExtern (Phase.cpp).
 - DEAD CODE REMOVAL: treatHapke (definition PhaseSurfaces.cpp:10, declaration
   Phase.hpp:305) has NO callers -- Hapke1981MaterialWriter replaced it;
   delete it (also check the treatHapke2 declaration, Phase.hpp:332), then

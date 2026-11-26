@@ -16,6 +16,10 @@
 
 namespace phase {
 
+std::string RPVMaterialWriter::getMaterialName(unsigned int indexFunction) {
+	return "RPV" + std::to_string(indexFunction);
+}
+
 RPVMaterialWriter::RPVMaterialWriter(	const FluorescenceService & fluorescenceService,
 												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
@@ -136,7 +140,7 @@ void RPVMaterialWriter::writeLuxCoreMaterial(const phsdata::RPVMulti & r,
                                              const std::vector<PropertyRpv> & rpvProperties,
                                              unsigned int materialID) const {
     const unsigned int nbBands = genDTO.numberOfSpectralBands;
-    const std::string keyRoot = "scene.materials.RPV" + std::to_string(r.indexFunction) + ".";
+    const std::string keyRoot = "scene.materials." + getMaterialName(r.indexFunction) + ".";
 
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "type", "RPV");
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "generator", "phase");

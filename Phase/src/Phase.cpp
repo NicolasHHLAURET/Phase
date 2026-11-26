@@ -107,6 +107,7 @@ extern "C" int sqlite3_initialize(void);
 #include "materials/Hapke2012MaterialWriter.hpp"
 #include "materials/RPVMaterialWriter.hpp"
 #include "materials/SpecularMaterialWriter.hpp"
+#include "materials/MixedMaterialWriter.hpp"
 #include "materials/VegetationMaterialWriter.hpp"
 
 //----------------------------------------------------------------------------------------
@@ -1187,70 +1188,6 @@ void readLiDAR(){
 	PhaseDAO::readLiDARXML();
 }
 
-void treatMixedMaterial(PhaseGeneralParametersDTO & genDTO,	unsigned int opIndex, unsigned int pfIndex) {
-	// LuxCore
-	unsigned int model1Type, model1Index, model2Type, model2Index;
-	std::string phaseName, model1Name, model2Name;
-	double percentOfModel1;
-	EXIT_IF(!PhaseDAO::readCoeffDiffParametersForMixedMaterial(pfIndex, phaseName, model1Type, model1Index, model1Name, model2Type, model2Index, model2Name, percentOfModel1), "");
-
-	std::string material1Name = getMaterialName(model1Type, model1Index);
-	std::string material2Name = getMaterialName(model2Type, model2Index);
-
-	std::string mixedMaterialRootKey = "scene.materials.mixedMat" + boost::lexical_cast<std::string>(pfIndex) + ".";
-
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "type", "mix");
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "generator", "phase");
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "id", std::to_string(opIndex));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "amount", boost::lexical_cast<std::string>(percentOfModel1 / 100.));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material1", material1Name);
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material1Type", boost::lexical_cast<std::string>(model1Type));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material1Index", boost::lexical_cast<std::string>(model1Index));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material2", material2Name);
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material2Type", boost::lexical_cast<std::string>(model2Type));
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(mixedMaterialRootKey + "material2Index", boost::lexical_cast<std::string>(model2Index));
-}
-
-std::string getMaterialName(unsigned int modelType, unsigned int modelIndex) {
-	std::string materialName = "";
-	switch (modelType) {
-		case globalReferences::LAMBERTIEN:
-			if (modelIndex >= PhaseProperty::getNumberOfLambertianModels()) {
-				cerr << "Lambertian optical property " << modelIndex << " referenced by a mixed material doesn't exists." << endl;
-				exit(-7);
-			}
-			materialName = "lambertian";
-			break;
-		case globalReferences::RPV_PHASE:
-			if (modelIndex >= PhaseProperty::getNumberOfRPVModels()) {
-				cerr << "RPV optical property " << modelIndex << " referenced by a mixed material doesn't exists." << endl;
-				exit(-7);
-			}
-			materialName = "RPV";
-			break;
-		case globalReferences::AIR_FP:
-		case globalReferences::FOLIAIRE:
-		case globalReferences::MIX_VOLUME:
-			cerr << "Can not create a mixed material out of a volume." << endl;
-			exit(-6);
-		case globalReferences::SPECULAR_LUX:
-			if (modelIndex >= PhaseProperty::getNumberOfSpecularModels()) {
-				cerr << "Specular optical property " << modelIndex << " referenced by a mixed material doesn't exists." << endl;
-				exit(-7);
-			}
-			materialName = "specular";
-			break;
-		case globalReferences::MIX_MATERIAL:
-			materialName = "mixedMat";
-			break;
-		default:
-			materialName = "notImplementedYet";
-			break;
-	}
-	materialName += boost::lexical_cast<std::string>(modelIndex) /*+ "_0"*/;
-	return materialName;
-}
-
 FTFoliar foliarPrecomputing(const PhaseGeneralParametersDTO & genDTO,
 							const vector<DirectionCartesienne> & listDirections,
 							const unsigned int & iterationStepTheta,
@@ -1918,6 +1855,7 @@ void processSurfaceMaterials(	PhaseGeneralParametersDTO & genDTO,
     processor.registerWriter(phsdata::SurfaceFunction::Type::Hapke2012, std::make_shared<phase::Hapke2012MaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::RPV, std::make_shared<phase::RPVMaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::Specular, std::make_shared<phase::SpecularMaterialWriter>(fs, oftw));
+    processor.registerWriter(phsdata::SurfaceFunction::Type::Mixed, std::make_shared<phase::MixedMaterialWriter>(processor));
 
     processor.processAll(genDTO, pkmg, outCoeffSpecProperties);
 }

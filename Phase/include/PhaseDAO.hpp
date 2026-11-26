@@ -284,25 +284,6 @@ public:
 													std::string & transmittanceDatabaseName);
 
 	// Mixed optical properties
-	static bool readCoeffDiffParametersForMixedMaterial(unsigned int modelIndex,
-														std::string & phaseName,
-														unsigned int & material1Type,
-														unsigned int & material1Index,
-														std::string & material1Name,
-														unsigned int & material2Type,
-														unsigned int & material2Index,
-														std::string & material2Name,
-														double & percentOfMaterial1);
-
-	static bool readCoeffDiffParametersForMixedMaterialXML(unsigned int modelIndex,
-														std::string & phaseName,
-														unsigned int & material1Type,
-														unsigned int & material1Index,
-														std::string & material1Name,
-														unsigned int & material2Type,
-														unsigned int & material2Index,
-														std::string & material2Name,
-														double & percentOfMaterial1);
 
 	static bool readCoeffDiffParametersForFoliarFluspect(	const int & index,
 															FluorescenceParameters & fluorescenceParameters,

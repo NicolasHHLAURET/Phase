@@ -357,9 +357,6 @@ void writeRPV(	PhaseKeyMappingGenerator & pkmg,
 				const unsigned int& modelIndex,
 				const unsigned int& spectralBandIndex);
 
-void treatMixedMaterial(PhaseGeneralParametersDTO & genDTO,	unsigned int opIndex, unsigned int pfIndex);
-std::string getMaterialName(unsigned int modelType, unsigned int modelIndex);
-
 /* Foliar */
 double numberOfAngularSectors(	const vector<DirectionCartesienne> & listDirections,
 								double & solidAnglesSum);

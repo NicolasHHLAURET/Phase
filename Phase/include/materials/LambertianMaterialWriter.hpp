@@ -25,6 +25,10 @@ public:
 	// Full Lambertian treatment: database preparation, optical properties,
 	// LuxCore scene keys and fluorescence. Returns false if nothing could be
 	// processed (no Lambertian node, Marmit failure, ...).
+	// LuxCore material name (the part after "scene.materials."): shared with
+	// SurfaceMaterialProcessor so mixed materials can reference this material.
+	static std::string getMaterialName(unsigned int indexFunction);
+
 	bool treat(	const phsdata::SurfaceFunction & sf,
 				PhaseGeneralParametersDTO & genDTO,
 				const std::vector<bool> & useSpectralIrradianceForReflectance,

@@ -1180,48 +1180,6 @@ bool PhaseDAO::readCoeffDiffParametersForSpecularTauXML(const int & index, doubl
 	return true;
 }
 
-// Mixed materials
-bool PhaseDAO::readCoeffDiffParametersForMixedMaterial(unsigned int modelIndex,
-													std::string & phaseName,
-													unsigned int & material1Type,
-													unsigned int & material1Index,
-													std::string & material1Name,
-													unsigned int & material2Type,
-													unsigned int & material2Index,
-													std::string & material2Name,
-													double & percentOfMaterial1) {
-	return readCoeffDiffParametersForMixedMaterialXML(modelIndex, phaseName, material1Type, material1Index, material1Name, material2Type, material2Index, material2Name, percentOfMaterial1);
-}
-
-bool PhaseDAO::readCoeffDiffParametersForMixedMaterialXML(unsigned int modelIndex,
-													std::string & phaseName,
-													unsigned int & material1Type,
-													unsigned int & material1Index,
-													std::string & material1Name,
-													unsigned int & material2Type,
-													unsigned int & material2Index,
-													std::string & material2Name,
-													double & percentOfMaterial1) {
-	try {
-		ostringstream oss;
-		oss << modelIndex;
-		string temp = "Coeff_diff.Surfaces.MixedMultiFunctions.MixedMulti[" + oss.str();
-		DartSAParameters::get(temp + "].ident", phaseName);
-		DartSAParameters::get(temp + "].FirstProperty.percentFirst", percentOfMaterial1);
-		DartSAParameters::get(temp + "].FirstProperty.OpticalPropertyLink.type", material1Type);
-		DartSAParameters::get(temp + "].FirstProperty.OpticalPropertyLink.indexFctPhase", material1Index);
-		DartSAParameters::get(temp + "].FirstProperty.OpticalPropertyLink.ident", material1Name);
-		DartSAParameters::get(temp + "].SecondProperty.OpticalPropertyLink.type", material2Type);
-		DartSAParameters::get(temp + "].SecondProperty.OpticalPropertyLink.indexFctPhase", material2Index);
-		DartSAParameters::get(temp + "].SecondProperty.OpticalPropertyLink.ident", material2Name);
-	} catch (DartException &E) {
-		cerr << E.getOriginMessage() << endl;
-		return false;
-	}
-
-	return true;
-}
-
 bool PhaseDAO::readCoeffDiffParametersForRPV(	const int & indice,
 												string & phaseName,
 												string & modelName,

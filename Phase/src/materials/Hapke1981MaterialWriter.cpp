@@ -15,6 +15,10 @@
 #include "database/model/TransmittanceDatabaseParameters.hpp"
 
 namespace phase {
+
+std::string Hapke1981MaterialWriter::getMaterialName(unsigned int indexFunction) {
+	return "Hapke" + std::to_string(indexFunction);
+}
 Hapke1981MaterialWriter::Hapke1981MaterialWriter(	const FluorescenceService & fluorescenceService,
 													const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
@@ -136,7 +140,7 @@ void Hapke1981MaterialWriter::writeLuxCoreMaterial(const phsdata::Hapke1981 & h,
                                                    const std::vector<PropertyHapke> & hapkeProperties,
                                                    unsigned int materialID) const {
     const unsigned int nbBands = genDTO.numberOfSpectralBands;
-    const std::string keyRoot = "scene.materials.Hapke" + std::to_string(h.indexFunction) + ".";
+    const std::string keyRoot = "scene.materials." + getMaterialName(h.indexFunction) + ".";
 
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "type", "Hapke1981");
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "generator", "phase");

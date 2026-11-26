@@ -17,6 +17,10 @@
 #include <boost/uuid/uuid_io.hpp>
 
 namespace phase {
+
+std::string LambertianMaterialWriter::getMaterialName(unsigned int indexFunction) {
+	return "lambertian" + std::to_string(indexFunction);
+}
 LambertianMaterialWriter::LambertianMaterialWriter(	const FluorescenceService & fluorescenceService,
 													const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
@@ -173,7 +177,7 @@ void LambertianMaterialWriter::writeLuxCoreMaterial(	PhaseGeneralParametersDTO &
 							const std::vector<PropertyLambertian> & lambertianProperties,
 							const FluorescenceResults & fluorescenceResults) const {
 	const unsigned int nbBands = genDTO.numberOfSpectralBands;
-	const std::string keyRoot = "scene.materials.lambertian" + std::to_string(materialIndex) + ".";
+	const std::string keyRoot = "scene.materials." + getMaterialName(materialIndex) + ".";
 
    // Fluorescent only if the matrices were actually computed and written successfully.
 	const bool fluorescentMaterial = PhaseProperty::getFluorescence() && fluorescenceResults.isFluorescent;

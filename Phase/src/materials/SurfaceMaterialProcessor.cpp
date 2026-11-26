@@ -8,12 +8,54 @@
 #include "materials/SurfaceMaterialProcessor.hpp"
 #include "PhaseProperty.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 namespace phase {
 void SurfaceMaterialProcessor::registerWriter(phsdata::SurfaceFunction::Type type, MaterialHandler handler) {
 	if (!handler) {
 		throw std::invalid_argument("SurfaceMaterialProcessor: null material handler");
 	}
 	_handlers[type] = std::move(handler);
+}
+
+void SurfaceMaterialProcessor::registerNameProvider(phsdata::SurfaceFunction::Type type, NameProvider provider) {
+	if (!provider) {
+		throw std::invalid_argument("SurfaceMaterialProcessor: null name provider");
+	}
+	_nameProviders[type] = std::move(provider);
+}
+
+phsdata::SurfaceFunction::Type SurfaceMaterialProcessor::surfaceTypeFromXmlType(int xmlType) {
+	switch (xmlType) {
+		case globalReferences::LAMBERTIEN:
+			return phsdata::SurfaceFunction::Type::Lambertian;
+		case globalReferences::HAPKE_SPEC:
+			return phsdata::SurfaceFunction::Type::Hapke1981;
+		case globalReferences::HAPKE2_SPEC:
+			return phsdata::SurfaceFunction::Type::Hapke2012;
+		case globalReferences::RPV_PHASE:
+			return phsdata::SurfaceFunction::Type::RPV;
+		case globalReferences::PHASE_EXTERN:
+			return phsdata::SurfaceFunction::Type::DiscreteBSDF;
+		case globalReferences::SPECULAR_LUX:
+			return phsdata::SurfaceFunction::Type::Specular;
+		case globalReferences::MIX_MATERIAL:
+			return phsdata::SurfaceFunction::Type::Mixed;
+		default:
+			cerr << "Unknown optical link type " << xmlType << endl;
+			exit(-7);
+	}
+}
+
+std::string SurfaceMaterialProcessor::materialNameFor(int xmlType, unsigned int indexFunction) const {
+	const phsdata::SurfaceFunction::Type type = surfaceTypeFromXmlType(xmlType);
+	const auto it = _nameProviders.find(type);
+	if (it == _nameProviders.cend()) {
+		cerr << "No material writer registered for optical link type " << xmlType << endl;
+		exit(-7);
+	}
+	return it->second(indexFunction);
 }
 
 void SurfaceMaterialProcessor::processAll(	PhaseGeneralParametersDTO & genDTO,

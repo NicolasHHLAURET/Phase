@@ -13,6 +13,10 @@
 
 namespace phase {
 
+std::string SpecularMaterialWriter::getMaterialName(unsigned int indexFunction) {
+	return "specular" + std::to_string(indexFunction);
+}
+
 SpecularMaterialWriter::SpecularMaterialWriter(	const FluorescenceService & fluorescenceService,
 												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 	_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
@@ -122,7 +126,7 @@ void SpecularMaterialWriter::writeLuxCoreMaterial(const phsdata::Specular & s,
 												  const std::string & baseMaterial,
 												  unsigned int materialID) const {
 	const unsigned int nbBands = genDTO.numberOfSpectralBands;
-	const std::string keyRoot = "scene.materials.specular" + std::to_string(s.indexFunction) + ".";
+	const std::string keyRoot = "scene.materials." + getMaterialName(s.indexFunction) + ".";
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "generator", "phase");
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "id", std::to_string(materialID));
 	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "opIndex", std::to_string(s.indexFunction));

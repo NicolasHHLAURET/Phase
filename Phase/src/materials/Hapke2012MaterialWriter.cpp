@@ -16,6 +16,10 @@
 
 namespace phase {
 
+std::string Hapke2012MaterialWriter::getMaterialName(unsigned int indexFunction) {
+	return "Hapke2_" + std::to_string(indexFunction);
+}
+
 Hapke2012MaterialWriter::Hapke2012MaterialWriter(	const FluorescenceService & fluorescenceService,
 												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
 		_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
@@ -133,7 +137,7 @@ void Hapke2012MaterialWriter::writeLuxCoreMaterial(const phsdata::Hapke2012 & h,
                                                    const std::vector<PropertyHapke2> & hapke2Properties,
                                                    unsigned int materialID) const {
     const unsigned int nbBands = genDTO.numberOfSpectralBands;
-    const std::string keyRoot = "scene.materials.Hapke2_" + std::to_string(h.indexFunction) + ".";
+    const std::string keyRoot = "scene.materials." + getMaterialName(h.indexFunction) + ".";
 
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "type", "Hapke2012");
     genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "generator", "phase");
