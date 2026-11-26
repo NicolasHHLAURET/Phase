@@ -343,6 +343,15 @@ Sandbox notes for rebuilding the prefix (no root available):
     Phase.hpp and defined in Phase.cpp; their only caller is now the moved
     prepareVegetationDirectionSet() -- candidates for a later pass.
     readMultiplicativeFactor stays (5 surface call sites in Phase.cpp).
+28. _tModulo zero-division fix (this session, owner chose option b): after the
+    owner removed the setParametersForPrintingProgress() call from
+    prepareVegetationDirectionSet (commit c8ca7fd), _tModulo had no caller
+    left and stayed 0, so checkProgress() (PhaseProperty.hpp:170) would
+    divide by zero (SIGFPE) on the first reflectance DB read. Fixed by
+    initializing _tModulo = 1 (PhaseProperty.cpp). Note the bug was latent
+    before too: the only caller lived in the vegetation path, which runs
+    only when vegetation models exist (surfaces are processed after, at
+    Phase.cpp:2141 vs 2084). See the MODULE PROGRESS REPORT TODO.
 
 ## Known TODOs / open points (next sessions)
 
@@ -426,6 +435,13 @@ Sandbox notes for rebuilding the prefix (no root available):
 - PhaseOld/ (added in 9dc5a2f) = code of Phase before the factorization, kept
   for old-vs-new comparison and validation (bugs, unintended behavior
   changes, new behaviors to document).
+- MODULE PROGRESS REPORT: setParametersForPrintingProgress() /
+  checkProgress() (PhaseProperty.hpp:157/170) are a minimal cout-based
+  approximate percentage progress report (_tModulo/_tIteration/_tToPercent).
+  Currently UNCALLED (the only caller was removed from
+  prepareVegetationDirectionSet in c8ca7fd); _tModulo defaults to 1 (item 28)
+  so checkProgress() no longer divides by zero, but no progress is printed.
+  Rewrite properly LATER, after all the processes themselves are completed.
 
 ## Pitfalls encountered (do not rediscover)
 

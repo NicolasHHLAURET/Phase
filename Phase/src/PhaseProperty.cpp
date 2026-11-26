@@ -52,7 +52,7 @@ bool PhaseProperty::_weightingOfReflectanceParameters = true;
 string PhaseProperty::_atmosphericDatabasePath;
 time_t PhaseProperty::_tInit;
 time_t PhaseProperty::_tMiddle;
-unsigned int PhaseProperty::_tModulo;
+unsigned int PhaseProperty::_tModulo = 1;
 double PhaseProperty::_tToPercent;
 unsigned int PhaseProperty::_tIteration;
 unsigned int PhaseProperty::_numberOfAerosols;
