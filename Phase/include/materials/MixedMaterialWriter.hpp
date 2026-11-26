@@ -30,8 +30,9 @@ public:
 
 private:
 	// Resolves one Mixed link (FirstProperty/SecondProperty) to the LuxCore
-	// material name of the referenced material, via the processor's writer map.
-	// Exits (-6) on volume links, (-7) on unknown/unregistered references.
+	// material name of the referenced material, via the shared processor
+	// resolver. Exits (-6) on volume links, (-7) on unknown/unregistered
+	// references.
 	std::string referencedMaterialName(const phsdata::Property & link,
 										const PhaseGeneralParametersDTO & genDTO) const;
 

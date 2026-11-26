@@ -17,9 +17,10 @@ std::string SpecularMaterialWriter::getMaterialName(unsigned int indexFunction) 
 	return "specular" + std::to_string(indexFunction);
 }
 
-SpecularMaterialWriter::SpecularMaterialWriter(	const FluorescenceService & fluorescenceService,
+SpecularMaterialWriter::SpecularMaterialWriter(	const SurfaceMaterialProcessor & processor,
+												const FluorescenceService & fluorescenceService,
 												const OpticalFactorsTextureWriter & opticalFactorsWriter) :
-	_fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
+	_processor(processor), _fluorescenceService(fluorescenceService), _opticalFactorsWriter(opticalFactorsWriter) {}
 
 bool SpecularMaterialWriter::prepareDatabase(const phsdata::Specular & s,
 											 const PhaseGeneralParametersDTO & genDTO,
@@ -39,34 +40,21 @@ bool SpecularMaterialWriter::prepareDatabase(const phsdata::Specular & s,
 
 void SpecularMaterialWriter::applyMultiplicativeFactors(const phsdata::Specular & s,
 														OpticalPropertyParameters & opticalProperty,
-														std::vector<PropertySpecular> & properties,
-														std::string & baseMaterial) const {
+														std::vector<PropertySpecular> & properties) const {
 	auto refractiveIndexDatabaseParameters = std::static_pointer_cast<RefractiveIndexDatabaseParameters>(
 		opticalProperty.getDatabaseParameters(REFRACTIVEINDEX_DATABASE));
 
 	// materialCharacter==2 (glossy coating + diffuse base) links the base BSDF
-	// through OpticalLink; the other characters have no base.
+	// through OpticalLink; the other characters have no base. The base material
+	// name is resolved in writeLuxCoreMaterial via
+	// SurfaceMaterialProcessor::referencedMaterialName (the legacy hand-rolled
+	// prefix + index mapping used to emit "notImpementedYet0" for Hapke/mixed
+	// and silently fall back to "lambertian0" for everything else).
 	int baseBSDF = 0;
 	int baseBSDFIndex = 0;
 	if (s.materialCharacter == 2 && s.opticalLink.is_initialized()) {
 		baseBSDF = s.opticalLink->typeOpticalLink;
 		baseBSDFIndex = s.opticalLink->indexOpticalLink;
-	}
-	// Same base-material mapping as the legacy treatSpecular (the
-	// "notImpementedYet" literal is emitted as-is, kept for output parity).
-	if (baseBSDF == 0) { // lambertian
-		baseMaterial = "lambertian";
-	} else if (baseBSDF == 4) { // RPV
-		baseMaterial = "RPV";
-	} else if (baseBSDF == 2) { // Hapke
-		baseMaterial = "notImpementedYet";
-		baseBSDFIndex = 0;
-	} else if (baseBSDF == 22) { // mixed
-		baseMaterial = "notImpementedYet";
-		baseBSDFIndex = 0;
-	} else {
-		baseMaterial = "lambertian";
-		baseBSDFIndex = 0;
 	}
 
 	for (unsigned int sbi = 0; sbi < properties.size(); ++sbi) {
@@ -113,17 +101,15 @@ bool SpecularMaterialWriter::treat(const phsdata::SurfaceFunction & sf,
 		PhaseProperty::readReflectanceParameters(useSpectralIrradianceForReflectance, opticalProperty.getDatabaseForProperty(i));
 
 	std::vector<PropertySpecular> properties(genDTO.numberOfSpectralBands);
-	std::string baseMaterial;
-	applyMultiplicativeFactors(s, opticalProperty, properties, baseMaterial);
+	applyMultiplicativeFactors(s, opticalProperty, properties);
 
-	writeLuxCoreMaterial(s, genDTO, properties, baseMaterial, materialIndex);
+	writeLuxCoreMaterial(s, genDTO, properties, materialIndex);
 	return true;
 }
 
 void SpecularMaterialWriter::writeLuxCoreMaterial(const phsdata::Specular & s,
 												  PhaseGeneralParametersDTO & genDTO,
 												  const std::vector<PropertySpecular> & properties,
-												  const std::string & baseMaterial,
 												  unsigned int materialID) const {
 	const unsigned int nbBands = genDTO.numberOfSpectralBands;
 	const std::string keyRoot = "scene.materials." + getMaterialName(s.indexFunction) + ".";
@@ -193,7 +179,7 @@ void SpecularMaterialWriter::writeLuxCoreMaterial(const phsdata::Specular & s,
 	} else if (materialType == 2) { // glossy coating + diffuse base
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "type", "glossydiffuse");
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "roughness", std::to_string(roughness));
-		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "base", baseMaterial + std::to_string(properties[0].baseBSDFIndex));
+		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "base", _processor.referencedMaterialName(properties[0].baseBSDF, properties[0].baseBSDFIndex, genDTO));
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "baseType", std::to_string(properties[0].baseBSDF));
 		genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot + "baseIndex", std::to_string(properties[0].baseBSDFIndex));
 	}

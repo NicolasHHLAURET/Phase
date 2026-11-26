@@ -43,6 +43,15 @@ class SurfaceMaterialProcessor {public:
     // is registered for the type.
     std::string materialNameFor(int xmlType, unsigned int indexFunction) const;
 
+    // Resolves an optical link (Mixed FirstProperty/SecondProperty, Specular
+    // OpticalLink: xmlType = typeOpticalLink, index = indexOpticalLink) to the
+    // LuxCore material name of the referenced surface material. Exits (-6) on
+    // volume links, (-7) if the referenced (type, indexFunction) does not exist
+    // in genDTO._surfaceMaterials.surfaceOpticalFunctions or has no registered
+    // writer.
+    std::string referencedMaterialName(int xmlType, int indexOpticalLink,
+        const PhaseGeneralParametersDTO & genDTO) const;
+
     // Convenience overload: registers an already-constructed writer and binds
     // its treat-style method. WriterT must expose:
     //   bool treat(const phsdata::SurfaceFunction &, const PhaseGeneralParametersDTO &,

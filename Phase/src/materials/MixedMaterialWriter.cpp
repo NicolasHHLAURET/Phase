@@ -21,26 +21,7 @@ std::string MixedMaterialWriter::getMaterialName(unsigned int indexFunction) {
 
 std::string MixedMaterialWriter::referencedMaterialName(const phsdata::Property & link,
 														const PhaseGeneralParametersDTO & genDTO) const {
-	const int xmlType = link.typeOpticalLink;
-	if (xmlType == globalReferences::AIR_FP || xmlType == globalReferences::FOLIAIRE || xmlType == globalReferences::MIX_VOLUME) {
-		cerr << "Can not create a mixed material out of a volume." << endl;
-		exit(-6);
-	}
-
-	// The referenced index is the indexFunction of a surface function of that type.
-	const phsdata::SurfaceFunction::Type type = SurfaceMaterialProcessor::surfaceTypeFromXmlType(xmlType);
-	bool found = false;
-	for (const std::shared_ptr<phsdata::SurfaceFunction> & sf : genDTO._surfaceMaterials.surfaceOpticalFunctions) {
-		if (sf->getType() == type && sf->indexFunction == link.indexOpticalLink) {
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		cerr << "Optical property " << link.indexOpticalLink << " of type " << xmlType << " referenced by a mixed material doesn't exist." << endl;
-		exit(-7);
-	}
-	return _processor.materialNameFor(xmlType, link.indexOpticalLink);
+	return _processor.referencedMaterialName(link.typeOpticalLink, link.indexOpticalLink, genDTO);
 }
 
 bool MixedMaterialWriter::treat(const phsdata::SurfaceFunction & sf,

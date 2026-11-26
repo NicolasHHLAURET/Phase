@@ -58,6 +58,29 @@ std::string SurfaceMaterialProcessor::materialNameFor(int xmlType, unsigned int 
 	return it->second(indexFunction);
 }
 
+std::string SurfaceMaterialProcessor::referencedMaterialName(int xmlType, int indexOpticalLink,
+		const PhaseGeneralParametersDTO & genDTO) const {
+	if (xmlType == globalReferences::AIR_FP || xmlType == globalReferences::FOLIAIRE || xmlType == globalReferences::MIX_VOLUME) {
+		cerr << "Optical link of type " << xmlType << " refers to a volume material; only surface materials can be referenced." << endl;
+		exit(-6);
+	}
+
+	// The referenced index is the indexFunction of a surface function of that type.
+	const phsdata::SurfaceFunction::Type type = surfaceTypeFromXmlType(xmlType);
+	bool found = false;
+	for (const std::shared_ptr<phsdata::SurfaceFunction> & sf : genDTO._surfaceMaterials.surfaceOpticalFunctions) {
+		if (sf->getType() == type && sf->indexFunction == indexOpticalLink) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		cerr << "Optical property " << indexOpticalLink << " of type " << xmlType << " referenced by an optical link doesn't exist." << endl;
+		exit(-7);
+	}
+	return materialNameFor(xmlType, indexOpticalLink);
+}
+
 void SurfaceMaterialProcessor::processAll(	PhaseGeneralParametersDTO & genDTO,
 											PhaseKeyMappingGenerator & pkmg,
 											std::ofstream & outCoeffSpecProperties) const {

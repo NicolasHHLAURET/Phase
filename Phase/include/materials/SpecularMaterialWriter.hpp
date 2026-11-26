@@ -11,6 +11,7 @@
 #include "PhaseDTOs.hpp"
 #include "../../librairieDart/include/mapping/PhaseKeyMappingGenerator.hpp"
 #include "PhaseProperty.hpp"
+#include "materials/SurfaceMaterialProcessor.hpp"
 #include "opticalfactors/OpticalFactorsTextureWriter.hpp"
 #include "fluorescence/FluorescenceMatrices.hpp"
 #include "PhaseStructure.hpp"
@@ -18,7 +19,8 @@
 namespace phase {
 class SpecularMaterialWriter {
 public:
-	SpecularMaterialWriter(	const FluorescenceService & fluorescenceService,
+	SpecularMaterialWriter(	const SurfaceMaterialProcessor & processor,
+							const FluorescenceService & fluorescenceService,
 							const OpticalFactorsTextureWriter & opticalFactorsWriter);
 
 	// LuxCore material name (the part after "scene.materials."): shared with
@@ -35,7 +37,6 @@ public:
 	void writeLuxCoreMaterial(	const phsdata::Specular & s,
 								PhaseGeneralParametersDTO & genDTO,
 								const std::vector<PropertySpecular> & properties,
-								const std::string & baseMaterial,
 								unsigned int materialID) const;
 
 private:
@@ -46,9 +47,9 @@ private:
 
 	void applyMultiplicativeFactors(const phsdata::Specular & s,
 									OpticalPropertyParameters & opticalProperty,
-									std::vector<PropertySpecular> & properties,
-									std::string & baseMaterial) const;
+									std::vector<PropertySpecular> & properties) const;
 
+	const SurfaceMaterialProcessor & _processor;
 	const FluorescenceService & _fluorescenceService;
 	const OpticalFactorsTextureWriter & _opticalFactorsWriter;
 };

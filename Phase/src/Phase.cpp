@@ -1854,7 +1854,7 @@ void processSurfaceMaterials(	PhaseGeneralParametersDTO & genDTO,
     processor.registerWriter(phsdata::SurfaceFunction::Type::Hapke1981, std::make_shared<phase::Hapke1981MaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::Hapke2012, std::make_shared<phase::Hapke2012MaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::RPV, std::make_shared<phase::RPVMaterialWriter>(fs, oftw));
-    processor.registerWriter(phsdata::SurfaceFunction::Type::Specular, std::make_shared<phase::SpecularMaterialWriter>(fs, oftw));
+    processor.registerWriter(phsdata::SurfaceFunction::Type::Specular, std::make_shared<phase::SpecularMaterialWriter>(processor, fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::Mixed, std::make_shared<phase::MixedMaterialWriter>(processor));
 
     processor.processAll(genDTO, pkmg, outCoeffSpecProperties);

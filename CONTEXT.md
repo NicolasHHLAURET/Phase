@@ -392,6 +392,23 @@ Sandbox notes for rebuilding the prefix (no root available):
     Old treatMixedMaterial + getMaterialName (Phase.cpp/Phase.hpp) and
     PhaseDAO::readCoeffDiffParametersForMixedMaterial{,XML} deleted.
 
+32. Specular base-material link resolved through the shared name registry (this
+    session): SurfaceMaterialProcessor gained referencedMaterialName(xmlType,
+    indexOpticalLink, genDTO) -- volume links (AIR_FP/FOLIAIRE/MIX_VOLUME) exit
+    -6, missing/unknown/unregistered references exit -7, otherwise it returns
+    materialNameFor(xmlType, index). MixedMaterialWriter::referencedMaterialName
+    now delegates to it. SpecularMaterialWriter holds the processor (new ctor
+    param; registration in Phase.cpp updated) and writeLuxCoreMaterial writes
+    the "base" key via the resolver instead of the hand-rolled prefix+index
+    mapping inherited from PhaseOld treatSpecular (which emitted
+    "notImpementedYet0" for Hapke/mixed and silently "lambertian0" for
+    everything else). Behavior change vs the item-29 output: Hapke base ->
+    "Hapke<i>", mixed base -> "mixedMat<i>", specular base -> "specular<i>",
+    PhaseExtern base -> exit(-7) until treatPhaseExtern gets a writer,
+    volume/unknown link -> exit(-6)/(-7); Lambertian and RPV bases are
+    byte-identical to before. Also fixed the misplaced treat() doc comment in
+    LambertianMaterialWriter.hpp (deferred from item 31).
+
 ## Known TODOs / open points (next sessions)
 
 - EQUIVALENT-LAMBERTIAN FROM VEGETATION: DONE (this session). treatFoliar now
