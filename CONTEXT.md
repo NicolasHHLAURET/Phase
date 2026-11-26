@@ -352,6 +352,25 @@ Sandbox notes for rebuilding the prefix (no root available):
     before too: the only caller lived in the vegetation path, which runs
     only when vegetation models exist (surfaces are processed after, at
     Phase.cpp:2141 vs 2084). See the MODULE PROGRESS REPORT TODO.
+29. treatSpecular converted into phase::SpecularMaterialWriter (this session):
+    new Phase/include/materials/SpecularMaterialWriter.{hpp,cpp} modeled on
+    RPVMaterialWriter, registered in processSurfaceMaterials for
+    phsdata::SurfaceFunction::Type::Specular (specular entries were previously
+    silently skipped: treatSpecular had no callers). Data now comes from
+    phsdata::Specular: refractiveIndex databaseName + ni/nt model names,
+    roughnessFactor, opticalDepth (tau), materialCharacter, OpticalLink (base
+    BSDF), SpecularNodeMultiplicativeFactorForLUT (ni/nt/opticalDepth/refl/trans
+    factors). Old treatSpecular + computeOpticalPropertiesSpecular deleted from
+    Phase.cpp/Phase.hpp. RPV copy-paste remnants dropped: commented writeRPV
+    call, unused R0/dTauMoy/albedo, v5 updatePropertyForOpticalPropertyInCoeffDiff-
+    XmlFile call, hardcoded temperature DB, useDirectionalDirectTransmittance
+    block (the v6 template removed that attribute). OF texture now
+    "specular<i>OF" via OpticalFactorsTextureWriter (v6 SpecularMultiplicative-
+    FactorForLUT owns an OpticalFactorMatrix subtree) instead of the v5
+    Lambertian "l<i>OF" reuse. Emissivity on the extra simulated bands
+    (Q,U,V / PSI,PSII) is now zero-padded like the other writers (legacy padded
+    with 1). The "notImpementedYet" base-material literal is kept for output
+    parity.
 
 ## Known TODOs / open points (next sessions)
 
@@ -403,8 +422,8 @@ Sandbox notes for rebuilding the prefix (no root available):
   iterations: equivalentFront/BackLambertian live in the slot although they
   are only used within treat() -- could become writer locals.
 - REFACTOR INTO MaterialWriter CLASSES (same pattern as the Lambertian / Hapke
-  / RPV writers): treatSpecular (Phase.cpp:1031), treatPhaseExtern
-  (Phase.cpp:1356), treatMixedMaterial (Phase.cpp:1423).
+  / RPV writers): treatSpecular DONE (item 29, SpecularMaterialWriter); remaining:
+  treatPhaseExtern (Phase.cpp), treatMixedMaterial (Phase.cpp).
 - DEAD CODE REMOVAL: treatHapke (definition PhaseSurfaces.cpp:10, declaration
   Phase.hpp:305) has NO callers -- Hapke1981MaterialWriter replaced it;
   delete it (also check the treatHapke2 declaration, Phase.hpp:332), then

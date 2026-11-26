@@ -246,19 +246,6 @@ void computeSpecular(	SpecularData & specularProperty,
 void writeSpecular(	SpecularData & specularProperty,
 					std::ofstream & outCoeffSpecProperties,
 					PhaseKeyMappingGenerator & pkmg);
-void treatSpecular(	OpticalPropertyParameters & specularPropertyParameters,
-					unsigned int opIndex,
-						std::vector<int> & useSpectralIrradianceForReflectance,
-						PhaseKeyMappingGenerator & pkmg,
-						std::ofstream & outCoeffSpecProperties,
-						PhaseGeneralParametersDTO & genDTO,
-						const std::vector<DirectionCartesienne> & listDirections);
-void computeOpticalPropertiesSpecular(const unsigned int& spectralBandIndex,
-										OpticalPropertyParameters & specularPropertyParameters,
-										const std::vector<DirectionCartesienne> & listDirections,
-										PropertySpecular & specularProperty,
-										double & albedo,
-										double & dTauMoy);
 
 void processSurfaceMaterials(PhaseGeneralParametersDTO & genDTO,  PhaseKeyMappingGenerator & pkmg, ofstream & outCoeffSpecProperties);
 

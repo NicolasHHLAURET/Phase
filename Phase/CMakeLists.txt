@@ -23,6 +23,7 @@ add_executable(phase
 	src/materials/Hapke2012MaterialWriter.cpp
 	src/materials/LambertianMaterialWriter.cpp
 	src/materials/RPVMaterialWriter.cpp
+	src/materials/SpecularMaterialWriter.cpp
 	src/materials/SurfaceMaterialProcessor.cpp
 	src/materials/VegetationMaterialWriter.cpp
 	src/opticalfactors/OpticalFactorsTextureWriter.cpp
