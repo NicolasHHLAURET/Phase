@@ -1,44 +1,57 @@
 /*
- * PhaseExternComputation.hpp
+ * DiscreteBSDFMaterialWriter.hpp
  *
- *  Created on: 29 oct. 2018
- *      Author: guilleuxj
- *      15h40
+ *  Created on: 26 nov. 2026
+ *      Author: lauretn
  */
 
-#ifndef INCLUDE_PHASEEXTERN_PHASEEXTERNCOMPUTATION_HPP_
-#define INCLUDE_PHASEEXTERN_PHASEEXTERNCOMPUTATION_HPP_
+#ifndef INCLUDE_MATERIALS_DISCRETEBSDFMATERIALWRITER_HPP_
+#define INCLUDE_MATERIALS_DISCRETEBSDFMATERIALWRITER_HPP_
 
 #include <vector>
-#include "GeneralDef.hpp"
-#include "../containers/NearestDirections.hpp"
-
-#if __cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)
+#include <string>
+#include <fstream>
 #include <memory>
+
+#include "GeneralDef.hpp"
+#include "PhaseDTOs.hpp"
+#include "PhaseProperty.hpp"
+#include "PhaseStructure.hpp"
+#include "PhaseUtils.hpp"
+#include "libDartEnv.h"
+#include "../../librairieDart/include/mapping/PhaseKeyMappingGenerator.hpp"
+#include "containers/NearestDirections.hpp"
+#include "containers/phaseModel/OpticalPropertyParameters.hpp"
+#include "database/model/PhaseExternDatabaseParameters.hpp"
+
 using namespace std;
-#else
-#include <boost/shared_ptr.hpp>
-using namespace boost;
-#endif
 
-/**
- * HEADER:
- * [modelIndex, numberOfValues]
- * [unsigned int, unsigned int]
- *
- * BODY
- * DE LA FORME
- * [spectralBandIndex, directionViewIndex, thetaView, phiView, directionIncidentIndex, thetaIncident, phiIncident, reflectance, directTransmittacne, diffuseTransmittance]
- * CE QUI DONNE
- * [unsigned int, unsigned int, double, double, unsigned int, double, double, double, double, double]
- */
+/* Header-only computation core moved from phaseExtern/PhaseExternComputation
+ * (item 33): the DiscreteBSDF (PhaseExtern) material is now a MaterialWriter. */
+namespace phase {
+class DiscreteBSDFMaterialWriter {
+public:
+	// LuxCore material name (the part after "scene.materials."): shared with
+	// SurfaceMaterialProcessor so mixed/specular materials can reference this material.
+	static std::string getMaterialName(unsigned int indexFunction);
 
-class PhaseExternComputation {
+	bool treat(	const phsdata::SurfaceFunction & sf,
+				PhaseGeneralParametersDTO & genDTO,
+				const std::vector<bool> & useSpectralIrradianceForReflectance,
+				unsigned int materialIndex,
+				PhaseKeyMappingGenerator & pkmg,
+				std::ofstream & outCoeffSpecProperties) const;
+
+	// Writes the LuxCore scene keys of a DiscreteBSDF (PhaseExtern) material:
+	// type, dataBase (binary phase-function file) and generator.
+	void writeLuxCoreMaterial(	const phsdata::DiscreteBSDF & d,
+								PhaseGeneralParametersDTO & genDTO) const;
+
 private:
 	void computePhaseExternForBand(	const unsigned int& spectralBandIndex,
 									shared_ptr<DirectionnalPhaseExternDatabaseParameters> & phaseExternPropertyParameters,
 									const std::vector<DirectionCartesienne> & listDirections,
-									PhaseExternProperty & phaseExternProperty) {
+									PhaseExternProperty & phaseExternProperty) const {
 		phaseExternProperty.thetaView = phaseExternPropertyParameters->getThetaView();
 		phaseExternProperty.phiView = phaseExternPropertyParameters->getPhiView();
 		phaseExternProperty.thetaIncident = phaseExternPropertyParameters->getThetaIncident();
@@ -51,7 +64,7 @@ private:
 								const std::string & modelName,
 								const unsigned int& spectralBandIndex,
 								PhaseKeyMappingGenerator & pkmg,
-								std::ofstream & outCoeffSpecProperties) {
+								std::ofstream & outCoeffSpecProperties) const {
 
 		pkmg.setTypeFonctionDePhase(globalReferences::PHASE_EXTERN);
 		pkmg.setNumeroFonctionDePhase(modelIndex);
@@ -67,7 +80,7 @@ private:
 											PhaseKeyMappingGenerator & pkmg,
 											std::ofstream & outCoeffSpecProperties,
 											PhaseGeneralParametersDTO & genDTO,
-											const std::vector<DirectionCartesienne> & listDirections) {
+											const std::vector<DirectionCartesienne> & listDirections) const {
 
 		// Le vector PhaseExternProperty contient, pour la bande courante toute les directions computees et interpolees par bandes.
 //		vector<PhaseExternProperty> temp;
@@ -101,7 +114,7 @@ private:
 												const int numDirVisee,
 												vector<PhaseExternProperty> & peProperties,
 												NearestDirections & nearDirVisee,
-												PhaseExternProperty & interpolatedPhaseExtern)
+												PhaseExternProperty & interpolatedPhaseExtern) const
 	{
 		// Conteneur temporaire pour ne pas modifier les donnees de la base externe -> detruit pour chaque dir Inc differente
 //		vector<PhaseExternProperty> temp,
@@ -158,7 +171,7 @@ private:
 	void interpoleDartDirectionWithNearDirection(	const DirectionCartesienne & dartDirection,
 													vector<PhaseExternProperty> & peProperties,
 													const NearestDirections & nearDirVisee,
-													PhaseExternProperty & interpolatedDirection) {
+													PhaseExternProperty & interpolatedDirection) const {
 
 		double distanceSum = 0., distance = 0., invertedDistance = 0.;
 		double interpalotedReflectance = 0.;
@@ -187,7 +200,7 @@ private:
 	void interpoleDartDirectionWithNearDirectionIncident(	const DirectionCartesienne & dartDirection,
 															const vector<PhaseExternProperty> & peProperties,
 															const NearestDirections & nearDirVisee,
-															PhaseExternProperty & interpolatedDirection) {
+															PhaseExternProperty & interpolatedDirection) const {
 		double distanceSum = 0., distance = 0., invertedDistance = 0.;
 		double interpalotedReflectance = 0.;
 
@@ -219,7 +232,7 @@ private:
 	 */
 	void getVectorOfAllIncidentDirectionForView(const PhaseExternProperty & dirView,
 												const vector<PhaseExternProperty> & peProperties,
-												vector<PhaseExternProperty> & incidentDirectionsForView) {
+												vector<PhaseExternProperty> & incidentDirectionsForView) const {
 		for (vector<PhaseExternProperty>::const_iterator it = peProperties.begin(); it < peProperties.end(); ++it) {
 			if (it->thetaView ==dirView.thetaView && it->phiView == dirView.phiView) {
 				incidentDirectionsForView.push_back(*it);
@@ -233,7 +246,7 @@ private:
 		 */
 	void getVectorOfAllViewDirectionForIncident(const PhaseExternProperty & dirIncident,
 												const vector<PhaseExternProperty> & peProperties,
-												vector<PhaseExternProperty> & ViewDirectionsForIncident) {
+												vector<PhaseExternProperty> & ViewDirectionsForIncident) const {
 		for (vector<PhaseExternProperty>::const_iterator it = peProperties.begin(); it < peProperties.end(); ++it) {
 			if (it->thetaIncident == dirIncident.thetaIncident && it->phiIncident == dirIncident.phiIncident) {
 				ViewDirectionsForIncident.push_back(*it);
@@ -244,7 +257,7 @@ private:
 	void checkIfIsNearDirection(const DirectionCartesienne & dartDirection,
 								const unsigned int & numPhaseExternDirection,
 								NearestDirections & nearDirVisee,
-								const PhaseExternProperty & pe) {
+								const PhaseExternProperty & pe) const {
 		double dotProduct;
 		Vecteur<double> carthesianDirection;
 		NearestDirections::Corners corner;
@@ -261,7 +274,7 @@ private:
 	void checkIfIsNearDirectionIncident(const DirectionCartesienne & dartDirection,
 										const unsigned int & numPhaseExternDirection,
 										NearestDirections & nearDirIncident,
-										const PhaseExternProperty & pe) {
+										const PhaseExternProperty & pe) const {
 		double dotProduct;
 		Vecteur<double> carthesianDirection;
 		NearestDirections::Corners corner;
@@ -278,7 +291,7 @@ private:
 	NearestDirections::Corners getCorner(	const double & dartTheta,
 											const double & dartPhi,
 											const double & dbTheta,
-											const double & dbPhi) {
+											const double & dbPhi) const {
 		if (dartTheta < dbTheta) {
 			// Upper
 			if ((dbPhi - dartPhi >= 0. && dbPhi - dartPhi <= M_PI05) || (dbPhi - dartPhi + M_PI2 >= 0. && dbPhi - dartPhi + M_PI2 <= M_PI05)) {
@@ -302,7 +315,7 @@ private:
 
 	Vecteur<double> convertiDirectionPolaireEnCartesien(const double & theta,
 														const double & phi,
-														const DirectionRoot::Unit & unit) {
+														const DirectionRoot::Unit & unit) const {
 		Vecteur<double> resultsVector;
 		static const double epsilon = 1E-10;
 		double thetaInRad = theta;
@@ -337,14 +350,14 @@ private:
 		return resultsVector;
 	}
 
-	ofstream _binaryFile;
+	mutable ofstream _binaryFile;
 	//ofstream _textFile; //debug
 
 	/**
 	 * 1 fichier par bande, comme les autres ?
 	 */
 	void openPhaseExternWriteFileForModel(	const unsigned int & modelIndex,
-											const string & modelName) {
+											const string & modelName) const {
 		ostringstream filePathStream;
 		filePathStream << DartEnv::getCurrentSimulationOutputPath() << PhaseUtils::getOutputFolder() << DartEnv::getSeparator() << modelIndex << ".phaseExternData.bin";
 		_binaryFile.open(filePathStream.str(), ios::out | ios::binary);
@@ -359,7 +372,7 @@ private:
 	 */
 	void writeInterpolatedPhaseFunctionToBinaryFile(	const PhaseExternProperty & phaseProperty,
 																				const unsigned int & numDirVisee,
-																				const unsigned int & numDirIncident) {
+																				const unsigned int & numDirIncident) const {
 		_binaryFile.write((char *) &phaseProperty.reflectance, sizeof(double));
 		//_textFile << phaseProperty.reflectance << " ";
 	}
@@ -369,17 +382,16 @@ private:
 	 * [modelIndex, spectralBandIndex, numberOfValues]
 	 * [unsigned int, unsigned int, unsigned int]
 	 */
-	void writeBinaryHeader(const unsigned int & numberOfValues) {
+	void writeBinaryHeader(const unsigned int & numberOfValues) const {
 		_binaryFile.write((char *) &numberOfValues, sizeof(unsigned int));
 		//_textFile << numberOfValues << " ";
 	}
 
-public:
 	void computePhaseExtern_MultiDirection(	OpticalPropertyParameters & phaseExternPropertyParameters,
 											PhaseKeyMappingGenerator & pkmg,
 											std::ofstream & outCoeffSpecProperties,
 											PhaseGeneralParametersDTO & genDTO,
-											const std::vector<DirectionCartesienne> & listDirections) {
+											const std::vector<DirectionCartesienne> & listDirections) const {
 
 		shared_ptr<PhaseExternDatabaseParameters> phaseExternDatabaseParameters = ::static_pointer_cast<PhaseExternDatabaseParameters>(phaseExternPropertyParameters.getDatabaseParameters(PHASE_EXTERN_DATABASE));
 		vector<shared_ptr<PhaseDatabaseParameters> > directionnalPhaseExtern = phaseExternDatabaseParameters->getDirectionnalPhaseExternDatabaseParametersVector();
@@ -412,5 +424,6 @@ public:
 
 	}
 };
+} // namespace phase
 
-#endif /* INCLUDE_PHASEEXTERN_PHASEEXTERNCOMPUTATION_HPP_ */
+#endif /* INCLUDE_MATERIALS_DISCRETEBSDFMATERIALWRITER_HPP_ */

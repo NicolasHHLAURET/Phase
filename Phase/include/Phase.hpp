@@ -104,7 +104,6 @@
 
 #include "containers/lights/LightsContainer.hpp"
 
-#include "phaseExtern/PhaseExternComputation.hpp"
 #include "phaseExtern/MarmitComputation.hpp"
 #include "phaseExtern/ProspectComputation.hpp"
 
@@ -256,26 +255,6 @@ void computeOpticalPropertiesLambertian(const unsigned int& spectralBandIndex,
 										double & dTauMoy,
 										double & albedo);
 
-
-/* Phase Extern */
-void treatPhaseExtern(OpticalPropertyParameters & PhaseExternPropertyParameters,
-						vector<int> & useSpectralIrradianceForReflectance,
-						PhaseKeyMappingGenerator & pkmg,
-						ofstream & outCoeffSpecProperties,
-						PhaseGeneralParametersDTO & genDTO,
-						const vector<DirectionCartesienne> & listDirections);
-
-void computeOpticalPropertiesPhaseExtern(const unsigned int& spectralBandIndex,
-										OpticalPropertyParameters & PhaseExternPropertyParameters,
-										const vector<DirectionCartesienne> & listDirections,
-										PhaseExternProperty & PhaseExternProperty) ;
-
-void writeTreatPhaseExtern(	ofstream & outCoeffSpecProperties,
-					PhaseKeyMappingGenerator & pkmg,
-					PhaseExternProperty & PhaseExternProperty,
-					const string & modelName,
-					const unsigned int & spectralBandIndex,
-					const unsigned int & modelIndex);
 
 /* LiDAR*/
 void readLiDAR();

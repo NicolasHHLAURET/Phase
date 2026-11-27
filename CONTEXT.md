@@ -409,6 +409,35 @@ Sandbox notes for rebuilding the prefix (no root available):
     byte-identical to before. Also fixed the misplaced treat() doc comment in
     LambertianMaterialWriter.hpp (deferred from item 31).
 
+33. PhaseExtern -> phase::DiscreteBSDFMaterialWriter (this session): the last
+    treat* became a MaterialWriter. PhaseExternComputation (header-only) was
+    moved to Phase/include/materials/DiscreteBSDFMaterialWriter.hpp (+ .cpp in
+    src/materials, added to CMakeLists) as the private computation core of the
+    new class, renamed and wrapped in namespace phase; helpers made const
+    (_binaryFile is now mutable). New public API: static
+    getMaterialName(i) = "DiscreteBSDF"+i and treat() matching the
+    MaterialHandler signature; registered for Type::DiscreteBSDF in
+    processSurfaceMaterials (this also registers the name provider, so
+    materialNameFor(PHASE_EXTERN=11, i) now works for specular/mixed links).
+    treat() resolves the direction set from the v6 DirectionSetLink
+    (genDTO._directionSet[link]._directions, exit -7 if out of range) instead
+    of a listDirections argument, builds PhaseExternDatabaseParameters from
+    phsdata (databaseName/modelName, exit -7 if missing), populates it via
+    PhaseProperty::readReflectanceParameters, runs the multi-direction
+    interpolation into <indexFunction>.phaseExternData.bin, and writes the 3
+    legacy LuxCore keys under the renamed keyRoot: type="DiscreteBSDF",
+    dataBase="<indexFunction>.phaseExternData", generator="phase" (the custom
+    LuxCore consumer is adapted on the owner side). Deleted: old
+    treatPhaseExtern/computeOpticalPropertiesPhaseExtern/writeTreatPhaseExtern
+    (Phase.cpp/Phase.hpp), the PHASE EXTERN block of
+    createDatabasesReadingProperties, PhaseDAO::readCoeffDiffParametersFor-
+    PhaseExtern{,XML}, and phaseExtern/PhaseExternComputation.hpp.
+    NOT done (deferred): addPhaseExternToDatabase/AddPhaseExtern (v6.1, DB
+    population from text file is an external program's job for now);
+    PhaseProperty::getNumberOfPhaseExternModels() and similar global static
+    counts are still used by writePhasePropertiesNumberOfModels -- cleaning
+    PhaseProperty's globals is end-of-modernization work.
+
 ## Known TODOs / open points (next sessions)
 
 - EQUIVALENT-LAMBERTIAN FROM VEGETATION: DONE (this session). treatFoliar now
@@ -459,14 +488,16 @@ Sandbox notes for rebuilding the prefix (no root available):
   iterations: equivalentFront/BackLambertian live in the slot although they
   are only used within treat() -- could become writer locals.
 - REFACTOR INTO MaterialWriter CLASSES (same pattern as the Lambertian / Hapke
-  / RPV writers): treatSpecular DONE (item 29), treatMixedMaterial DONE (item 31,
-  MixedMaterialWriter); remaining: treatPhaseExtern (Phase.cpp).
+  / RPV writers): ALL DONE -- treatSpecular (item 29), treatMixedMaterial
+  (item 31, MixedMaterialWriter), treatPhaseExtern (item 33,
+  DiscreteBSDFMaterialWriter).
 - DEAD CODE REMOVAL: treatHapke (definition PhaseSurfaces.cpp:10, declaration
   Phase.hpp:305) has NO callers -- Hapke1981MaterialWriter replaced it;
   delete it (also check the treatHapke2 declaration, Phase.hpp:332), then
   sweep for other dead code.
 - REMAINING PhaseDAO CALL SITES to port into phsdata / remove:
   readMultiplicativeFactorFoliar DONE (item 22; the last foliar DAO read);
+  readCoeffDiffParametersForPhaseExtern{,XML} DONE (item 33);
   PhaseSurfaces.cpp:116 and Phase.cpp:1195 call
   readCoeffDiffParametersForLambertianOpticalFactors with the HAPKE /
   SPECULAR model index -- same pattern as the line-387 bug fixed in item 20;
@@ -474,6 +505,13 @@ Sandbox notes for rebuilding the prefix (no root available):
   factor subtree in v6 or intentionally reuse the lambertian one;
   Phase.cpp:1768 readCoeffDiffParametersForFluidOpticalFactors
   (atmosphere / fluid path).
+- PHASEPROPERTY GLOBAL STATICS CLEANUP (end of v6 modernization): counts and
+  flags still read from PhaseProperty statics (e.g.
+  getNumberOfPhaseExternModels() in writePhasePropertiesNumberOfModels) must
+  come from the phsdata DTOs (genDTO._surfaceMaterials etc.) instead.
+- v6.1: addPhaseExternToDatabase / AddPhaseExtern (populate the .db from a
+  text file) is currently done by an external program; doing it inside Phase
+  is future work (deferred, not needed for the v6/C++17 modernization).
 - DATABASE SELF-DESTRUCT not properly handled: the selfDestruct loop
   (Phase.cpp ~2234, over opticalPropertiesDatabases built by
   createDatabasesReadingProperties) must cover ALL temporary databases. After

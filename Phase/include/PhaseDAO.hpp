@@ -122,17 +122,6 @@ public:
 	static bool readCoeffDiffParametersForIsProspectUseLambertian(	const int & index,
 																	bool& useProspectGen,
 																	int& lambertianDefinition);
-	static bool readCoeffDiffParametersForPhaseExtern(	const int & index,
-														string & phaseName,
-														string & modelName,
-														string & databaseName);
-
-	static bool readCoeffDiffParametersForPhaseExternXML(	const int & index,
-															string & phaseName,
-															string & modelName,
-															string & databaseName);
-
-
 	static bool readCoeffDiffParametersForLambertianOpticalFactors(const int & index,
 																OpticalFactorParameters & opticalFactorParameters);
 	static bool readCoeffDiffParametersForFluidOpticalFactors(const int & index,

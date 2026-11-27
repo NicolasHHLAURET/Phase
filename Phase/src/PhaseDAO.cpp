@@ -662,33 +662,6 @@ bool PhaseDAO::readCoeffDiffParametersForLambertianXML(	const int & index,
 	return true;
 }
 
-/***
- * LECTURE DE PHASE EXTERN
- */
-bool PhaseDAO::readCoeffDiffParametersForPhaseExtern(	const int & index,
-														string & phaseName,
-														string & modelName,
-														string & databaseName) {
-		return readCoeffDiffParametersForPhaseExternXML(index, phaseName, modelName, databaseName);
-}
-bool PhaseDAO::readCoeffDiffParametersForPhaseExternXML(const int & index,
-														string & phaseName,
-														string & modelName,
-														string & databaseName) {
-	try {
-		ostringstream oss;
-		oss << index;
-		string temp = "Coeff_diff.Surfaces.PhaseExternMultiFunctions.PhaseExtern[" + oss.str();
-		DartSAParameters::get(temp + "].ident", phaseName);
-		DartSAParameters::get(temp + "].ModelName", modelName);
-		DartSAParameters::get(temp + "].databaseName", databaseName);
-	} catch (DartException &E) {
-		cerr << E.getOriginMessage() << endl;
-		return false;
-	}
-	return true;
-}
-
 /*
  *    LAMBERTIEN
  */

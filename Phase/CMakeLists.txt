@@ -19,6 +19,7 @@ add_executable(phase
 	src/inputs/PhaseIOEmissionMaterial.cpp
 	src/inputs/PhaseIOOpticalMaterial.cpp
 	src/inputs/PhaseIOSpectralBands.cpp
+	src/materials/DiscreteBSDFMaterialWriter.cpp
 	src/materials/Hapke1981MaterialWriter.cpp
 	src/materials/Hapke2012MaterialWriter.cpp
 	src/materials/LambertianMaterialWriter.cpp

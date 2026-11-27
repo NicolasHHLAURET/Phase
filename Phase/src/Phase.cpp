@@ -102,6 +102,7 @@ extern "C" int sqlite3_initialize(void);
 //static Logger phaseLogger = Logger::getInstance(LOG4CPLUS_TEXT("Phase"));
 
 #include "materials/SurfaceMaterialProcessor.hpp"
+#include "materials/DiscreteBSDFMaterialWriter.hpp"
 #include "materials/LambertianMaterialWriter.hpp"
 #include "materials/Hapke1981MaterialWriter.hpp"
 #include "materials/Hapke2012MaterialWriter.hpp"
@@ -1118,71 +1119,6 @@ void writeSpecular(	SpecularData & specularProperty,
 	}
 }
 
-/* ----------------------------------------------------------------------------------------------------------
- * 									 	Phase Extern
- */
-void treatPhaseExtern(OpticalPropertyParameters & PhaseExternPropertyParameters,
-						const vector<bool> & useSpectralIrradianceForReflectance,
-						PhaseKeyMappingGenerator & pkmg,
-						ofstream & outCoeffSpecProperties,
-						PhaseGeneralParametersDTO & genDTO,
-						const vector<DirectionCartesienne> & listDirections) {
-
-	pkmg.setTypeFonctionDePhase(globalReferences::PHASE_EXTERN);
-
-//	for (unsigned int spectralBandIndex = 0; spectralBandIndex < genDTO.numberOfSpectralBands; spectralBandIndex++) {
-//		PhaseExternProperty PhaseExternProperty;
-//
-//		computeOpticalPropertiesPhaseExtern(spectralBandIndex, PhaseExternPropertyParameters, listDirections, PhaseExternProperty);
-//
-//
-//		PhaseUtils::updatePropertyForOpticalPropertyInCoeffDiffXmlFile(
-//			"MultispectralOpticalFunctions.PhaseExternMultiFunctions.PhaseExtern[", PhaseExternPropertyParameters.getModelIndex(), -1.0, -1.0,
-//			-1.0);
-//
-//		writeTreatPhaseExtern(outCoeffSpecProperties, pkmg, PhaseExternProperty, PhaseExternPropertyParameters.getModelName(), spectralBandIndex,
-//			PhaseExternPropertyParameters.getModelIndex());
-//	}
-
-	std::ostringstream keyRoot;
-
-	keyRoot << "scene.materials." << "PhaseExtern" <<  PhaseExternPropertyParameters.getModelIndex()<< ".";
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "type", "PhaseExtern");
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "dataBase",
-			std::to_string(PhaseExternPropertyParameters.getModelIndex()) + ".phaseExternData");
-	genDTO.luxCoreRenderSceneProperties.ajouterCle(keyRoot.str() + "generator", "phase");
-}
-
-
-void computeOpticalPropertiesPhaseExtern(const unsigned int& spectralBandIndex,
-										OpticalPropertyParameters & PhaseExternPropertyParameters,
-										const vector<DirectionCartesienne> & listDirections,
-										PhaseExternProperty & PhaseExternProperty) {
-
-//	shared_ptr<PhaseExternDatabaseParameters> PhaseExternDatabaseParameters = ::static_pointer_cast<PhaseExternDatabaseParameters>(
-//		PhaseExternPropertyParameters.getDatabaseParameters(PHASE_EXTERN_DATABASE));
-//	shared_ptr<PhaseTemperatureDatabaseParameters> temperatureDatabaseParameters = ::static_pointer_cast<PhaseTemperatureDatabaseParameters>(
-//		PhaseExternPropertyParameters.getDatabaseParameters(TEMPERATURE_DATABASE));
-//	shared_ptr<TransmittanceDatabaseParameters> hapkeTransmittanceParameters = ::static_pointer_cast<TransmittanceDatabaseParameters>(
-//		PhaseExternPropertyParameters.getDatabaseParameters(TRANSMITTANCE_DATABASE));
-//	shared_ptr<SpecularDatabaseParameters> kapkeSpecularParameters = ::static_pointer_cast<SpecularDatabaseParameters>(
-//		PhaseExternPropertyParameters.getDatabaseParameters(SPECULAR_DATABASE));
-//	unsigned int modelIndex = PhaseExternPropertyParameters.getModelIndex();
-}
-
-
-
-void writeTreatPhaseExtern(	ofstream & outCoeffSpecProperties,
-					PhaseKeyMappingGenerator & pkmg,
-					PhaseExternProperty & PhaseExternProperty,
-					const string & modelName,
-					const unsigned int & spectralBandIndex,
-					const unsigned int & modelIndex) {
-//	pkmg.setNumeroFonctionDePhase(modelIndex);
-//	pkmg.setBandeSpectrale(spectralBandIndex);
-//	outCoeffSpecProperties << pkmg.clePhaseUtilisee() << "1" << endl;
-//	outCoeffSpecProperties << pkmg.cleNomFichier() << modelName << endl;
-}
 
 void readLiDAR(){
 	PhaseDAO::readLiDARXML();
@@ -1854,6 +1790,7 @@ void processSurfaceMaterials(	PhaseGeneralParametersDTO & genDTO,
     processor.registerWriter(phsdata::SurfaceFunction::Type::Hapke1981, std::make_shared<phase::Hapke1981MaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::Hapke2012, std::make_shared<phase::Hapke2012MaterialWriter>(fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::RPV, std::make_shared<phase::RPVMaterialWriter>(fs, oftw));
+    processor.registerWriter(phsdata::SurfaceFunction::Type::DiscreteBSDF, std::make_shared<phase::DiscreteBSDFMaterialWriter>());
     processor.registerWriter(phsdata::SurfaceFunction::Type::Specular, std::make_shared<phase::SpecularMaterialWriter>(processor, fs, oftw));
     processor.registerWriter(phsdata::SurfaceFunction::Type::Mixed, std::make_shared<phase::MixedMaterialWriter>(processor));
 
@@ -2488,16 +2425,6 @@ vector<OpticalPropertyParameters> createDatabasesReadingProperties(const PhaseGe
 	string transmittanceModelName = "", transmittanceDatabaseName = "";
 	bool useRefraction = false, keepOutputFile = false;
 	int specularRadianceDistribution = 0, lambertianDefinition = 0, indexOrder=-1;
-
-	/* PHASE EXTERN */
-	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfPhaseExternModels(); modelIndex++) {
-		EXIT_IF(!PhaseDAO::readCoeffDiffParametersForPhaseExtern(modelIndex, phaseName, modelName, databaseName), "");
-		OpticalPropertyParameters opticalProperty(PHASE_EXTERN_PROPERTY, modelIndex, phaseName, indexOrder);
-		shared_ptr<PhaseExternDatabaseParameters> phaseExternDatabaseParameters(
-			new PhaseExternDatabaseParameters(databaseName, DartEnv::getDatabasePath(databaseName), modelName, genDTO.numberOfSpectralBands));
-		opticalProperty.addDatabaseToProperty(phaseExternDatabaseParameters);
-		phaseOpticalProperties.push_back(opticalProperty);
-	}
 
 	/* Specular */
 	for (unsigned int modelIndex = 0; modelIndex < PhaseProperty::getNumberOfSpecularModels(); modelIndex++) {
