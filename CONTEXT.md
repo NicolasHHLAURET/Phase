@@ -437,6 +437,20 @@ Sandbox notes for rebuilding the prefix (no root available):
     PhaseProperty::getNumberOfPhaseExternModels() and similar global static
     counts are still used by writePhasePropertiesNumberOfModels -- cleaning
     PhaseProperty's globals is end-of-modernization work.
+34. CONTEXT.md transfer-protocol update (this session, after item 33 was
+    pushed by the owner as 3f10191, tree f7a4875052d6db68863768e932281e5531ed5b14):
+    new pitfall (h) "memory panic" (sender-side long-payload corruption and
+    tool-output-vs-message-text confusion), new protocol point 9 (generic
+    fixlines.py line-repair script with 'S-E:N' ranges handling
+    too-many/not-enough lines; stored in transfer/scripts/ of the
+    AICommunications repo, pushed by the owner), new handoff checklist item 9
+    (one chunk per message, <=50 b64 lines per chunk, per-chunk sha256,
+    repair only the bad lines), and a sub-split clause in protocol point 4.
+    Item-33 transfer itself was base64 with 3 corrupted chunks (ac/ad/af),
+    repaired iteratively (split into 2x50 sub-chunks, script/data separation,
+    double-encoded data files around flip-trigger sequences like "Ki8K");
+    after repair all per-chunk sha256 matched and the reassembled patch
+    decoded to sha256 3f17446c991ea9d0a4cf3c79930e12897c229763a38eb48c7c360b3dec3e1fdd.
 
 ## Known TODOs / open points (next sessions)
 
@@ -633,6 +647,28 @@ Sandbox notes for rebuilding the prefix (no root available):
       applying with --ignore-whitespace and an empty `git diff -w` against
       the sender's commit. Related: whitespace-only context lines dropped at
       chunk seams (chunk_08 line 100) are also structural.
+  (h) "memory panic" / long-payload corruption (item-33 base64 transfer,
+      2026-11-27, receiver evidence in transfer/failed/ of the
+      AICommunications repo): long payloads can be corrupted on the SENDER
+      side during generation, not only in transport -- silent,
+      deterministic-looking character flips (e.g. "Ki8K"->"Ky8K", "RVTP" vs
+      "RVRP"), 4-char groups added/dropped in b64 lines (uneven line lengths
+      -> "base64: incorrect entry"), whole chunks mangled at once. Worse: a
+      message can be BELIEVED sent while nothing was actually emitted --
+      tool output (the `cat` of a chunk) is never delivered; only bytes in
+      the assistant MESSAGE TEXT count, and from memory the assistant cannot
+      tell what was really sent. Detection is only receiver-side ("nothing
+      received", sha256 mismatch, line-count anomalies). Mitigations, all
+      validated on item 33: ONE chunk per message (owner-driven "send
+      chunk_X"); chunks <= 50 b64 lines; split a bad chunk into smaller
+      sub-chunks (2x50); announce the expected sha256 with every chunk and
+      never reassemble/decode until ALL per-chunk hashes match; re-send only
+      bad chunks from a FRESH `cat`, never from memory; the receiver never
+      hand-edits received files; if a resend is byte-identical to the
+      previous mangled one, STOP and ask instead of looping; accept that
+      mangling happens -- report it at the end of the message ("recommend
+      re-sending") and let the owner decide. Iterative repair works
+      (9 bad lines -> 2 -> 0).
 - Sessions cannot push to GitHub (connector disabled). Delivery = patches per
   the protocol below; the owner pushes, sessions fetch anonymously.
 - fresh CMake configure fails if find_package(Boost) has no COMPONENTS:
@@ -680,7 +716,9 @@ text is emitted more reliably than base64 -- so plain text is the default:
 4. Base64 fallback only for whitespace-critical payloads (tabs inside string
    literals, ...) or after repeated plain-text failures: `base64 -w 76`, then
    chunks of <= 50 lines (`split -l 50`), one code block per chunk, each
-   preceded by its `sha256sum`; re-send only the failed chunk(s); reassemble
+   preceded by its `sha256sum`; re-send only the failed chunk(s) -- split a
+   failing chunk into smaller sub-chunks (e.g. 2x50 lines) before re-sending,
+   smaller payloads slip less (pitfall h); reassemble
    `cat chunk_* > p.b64`; authoritative check `base64 -d p.b64 | sha256sum`
    == sender's decoded-patch sha256 (the whole-file hash may differ by a
    trailing newline). Decode/apply success proves nothing -- only the hash.
@@ -728,6 +766,23 @@ text is emitted more reliably than base64 -- so plain text is the default:
    and invites new slips (observed 2026-11-26, specular patch: a
    byte-identical-rebuild repair script was 5.2 KB; the harmful-only fix
    was a 0.5 KB two-line insertion).
+9. Generic line-repair script, stored once at `transfer/scripts/fixlines.py`
+   in the AICommunications repo (sha256 196c32f7ce3140c28bbd5a34f29226eae543cf5251896d46f7b8d9fab9265d11
+   at creation; the owner pushes it):
+       python3 fixlines.py FILE RANGES_CSV DATAFILE_B64
+   RANGES_CSV = comma-separated 'S-E:N': received lines S..E (1-indexed,
+   inclusive) are replaced by the next N lines of DATAFILE_B64 (base64 of
+   the replacement lines, one per line, concatenated in CSV order; ranges
+   applied bottom-up so earlier numbers stay valid). N may differ from
+   E-S+1: N=0 deletes (too many lines), N>E-S+1 inserts (not enough lines),
+   and 'S-(S-1):N' is a pure insertion before line S. Validated
+   byte-identical on item-33 chunks ad1/ad2/ac/af plus synthetic
+   too-many/not-enough-lines cases. Send the script as short plain text and
+   only the data file as b64; DOUBLE-encode the data file (.b64.b64) when
+   it contains flip-trigger sequences (e.g. "Ki8K"), single-encode
+   otherwise. Keep repair payloads minimal: a 79-line script repairing a
+   50-line chunk is counter-productive -- script/data separation exists to
+   keep payloads short. Gate on the resulting sha256 the script prints.
 
 ## Session handoff checklist (for AI agents)
 
@@ -762,3 +817,12 @@ text is emitted more reliably than base64 -- so plain text is the default:
    `Vibe <vibe@localhost>`) so any deliverable can be regenerated with
    `git format-patch`; do not rely on /tmp artifacts (stubs, chunks, repair
    scripts) surviving between messages.
+9. TRANSFER DISCIPLINE under recurring corruption ("memory panic", pitfall
+   h): send ONE chunk per message when the owner drives chunk-by-chunk;
+   <= 50 b64 lines per chunk; per-chunk sha256 announced with every chunk;
+   never reassemble/decode until all per-chunk hashes match; on any
+   mismatch repair ONLY the bad lines via `transfer/scripts/fixlines.py`
+   (protocol point 9) -- never resend whole payloads from memory; if a
+   resent chunk is byte-identical to the mangled one, STOP and ask. A b64
+   chunk may alternatively be sent as plain text if the receiver reassembles
+   it on his side.
